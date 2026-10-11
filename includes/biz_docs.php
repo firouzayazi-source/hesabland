@@ -737,6 +737,8 @@ final class BizInvoices
         $first = BizSerial::hasFirstIssued() ? ', first_issued_at = COALESCE(first_issued_at, NOW())' : '';
         $pdo->prepare("UPDATE biz_invoices SET status = 'issued', number = :n, issued_at = NOW(), voided_at = NULL{$first}
                        WHERE id = :id AND user_id = :u")->execute(['n' => $number, 'id' => $id, 'u' => $userId]);
+        // ⛔ عکسِ گارانتیِ کالا روی ردیف‌های فروش — همان تراکنش (`BizWarranty::stamp()`)
+        if ($kind === 'sale') { self::stampWarranty($pdo, $userId, $id); }
 
         // ⛔ گزینه‌های فاکتور (`Biz::INVOICE_FLAGS`): «قیمتِ خرید/فروش»ِ کالا به فیِ
         //    همین سند — داخلِ همان تراکنش، پس صدورِ ناموفق قیمت را هم عوض نمی‌کند.
@@ -899,6 +901,20 @@ final class BizInvoices
         $side = self::SETTLED_BY[(string)$inv['kind']] === 'receipt' ? 'دریافتِ' : 'پرداختِ';
         return ['ok' => true, 'message' => 'سند به پیش‌نویس برگشت.'
             . ($voidedOrigin > 0 ? ' ' . $side . 'همراهش باطل شد — هنگامِ صدورِ دوباره ثبتش کنید.' : '')];
+    }
+
+    /**
+     * ⛔ عکسِ گارانتیِ کالا روی ردیف‌های فروشِ یک سند — فقط از `issueTx` (همان تراکنش).
+     *    ردیفی که از قبل عکس دارد (صدورِ دوباره پس از اصلاح) دست نمی‌خورد؛ پس عوض کردنِ
+     *    کالا گارانتیِ فروخته‌شده را عوض نمی‌کند (`BizWarranty::lookup()`).
+     */
+    private static function stampWarranty(PDO $pdo, int $userId, int $invoiceId): void
+    {
+        if (!tableHasColumn('biz_invoice_lines', 'warranty_months')) { return; }
+        $pdo->prepare('UPDATE biz_invoice_lines l JOIN biz_products p ON p.id = l.product_id AND p.user_id = l.user_id
+                       SET l.warranty_months = p.warranty_months
+                       WHERE l.invoice_id = :i AND l.user_id = :u AND l.warranty_months IS NULL AND p.warranty_months > 0')
+            ->execute(['i' => $invoiceId, 'u' => $userId]);
     }
 
     /** ستون‌های پیش‌فاکتور آمده‌اند؟ (migration_biz_proforma) */

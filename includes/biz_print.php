@@ -31,6 +31,7 @@ final class BizPrint
         'serials'    => 'گزارش IMEI گوشی‌ها',
         'account'    => 'گردشِ صندوق و بانک',
         'cheques'    => 'دفترِ چک',
+        'repair'     => 'قبضِ پذیرشِ تعمیر',
     ];
 
     /**
@@ -42,7 +43,7 @@ final class BizPrint
         'prices' => null, 'invoice' => null, 'payment' => null, 'party' => 'receive',
         'stock' => 'reports', 'parties' => 'reports', 'kardex' => 'reports', 'sales' => 'reports',
         'by_product' => 'reports', 'by_invoice' => 'reports', 'by_party' => 'reports', 'serials' => 'reports',
-        'account' => 'money', 'cheques' => 'money',
+        'account' => 'money', 'cheques' => 'money', 'repair' => 'repairs',
     ];
 
     /** عنوانِ سندهای دوسویه — `?k=sale|purchase`. */

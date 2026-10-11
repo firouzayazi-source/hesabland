@@ -55,7 +55,7 @@ foreach (BizPrint::HUB as $items) {
 T::same([], $missing, '⛔ هر قلمِ HUB یک سندِ موجود در DOCS است');
 $orphan = [];
 foreach (array_keys(BizPrint::DOCS) as $d) {
-    if (in_array($d, ['invoice', 'payment'], true)) { continue; }   // سند، نه گزارش — از صفحه‌ی خودشان
+    if (in_array($d, ['invoice', 'payment', 'repair'], true)) { continue; }   // سند، نه گزارش — از صفحه‌ی خودشان (قبضِ تعمیر از repair.php)
     $ok = false;
     foreach ($hubDocs as $h) { if ($h === $d || str_starts_with($h, $d . ':')) { $ok = true; } }
     if (!$ok) { $orphan[] = $d; }

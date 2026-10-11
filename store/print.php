@@ -284,6 +284,30 @@ case 'payment':
     <?php BizPrint::foot($userId, ['امضای پرداخت‌کننده', 'امضای دریافت‌کننده']);
     break;
 
+case 'repair':
+    // ⛔ قبضِ پذیرش — هیچ مبلغی جز «برآورد» نیست؛ پول فقط در فاکتورِ تعمیر
+    require_once __DIR__ . '/../includes/biz_repairs.php';
+    $rep = BizRepairs::get($userId, $id);
+    if (!$rep) { Biz::notFound(); }
+    BizPrint::head($userId, 'قبضِ پذیرشِ تعمیر شماره‌ی ' . toPersianDigits((string)$rep['number']), Biz::url('repair.php?id=' . $id), [
+        'تاریخِ پذیرش' => toJalali((string)$rep['received_on']),
+        'قولِ تحویل'   => $rep['promised_on'] ? toJalali((string)$rep['promised_on']) : '',
+        'مشتری'        => BizRepairs::customer($rep),
+        'تلفن'         => (string)($rep['party_id'] !== null ? ($rep['party_phone'] ?? '') : ($rep['customer_phone'] ?? '')),
+        'دستگاه'       => (string)$rep['device'],
+        'IMEI'         => (string)($rep['imei'] ?? ''),
+    ]); ?>
+    <table class="pr-table">
+        <tbody>
+            <tr><td>ایراد</td><td><?= nl2br(h((string)$rep['problem'])) ?></td></tr>
+            <?php if ((string)$rep['accessories'] !== ''): ?><tr><td>لوازمِ همراه</td><td><?= h((string)$rep['accessories']) ?></td></tr><?php endif; ?>
+            <?php if ((int)$rep['estimate'] > 0): ?><tr><td>برآوردِ هزینه</td><td><?= $money($rep['estimate']) ?> تومان</td></tr><?php endif; ?>
+        </tbody>
+    </table>
+    <p class="pr-note">لطفاً این قبض را هنگامِ تحویل همراه داشته باشید. فروشگاه مسئولِ اطلاعاتِ داخلِ دستگاه نیست؛ پیش از تحویل پشتیبان بگیرید.</p>
+    <?php BizPrint::foot($userId, ['امضای تحویل‌گیرنده (فروشگاه)', 'امضای مشتری']);
+    break;
+
 case 'sales':
     $sa = BizReports::sales($userId, $rf, $rt);
     $ca = BizReports::cash($userId, $rf, $rt);

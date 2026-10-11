@@ -151,6 +151,7 @@ MIGRATIONS=(
     migration_cheque_value.sql
     migration_biz_staff.sql
     migration_biz_proforma.sql
+    migration_biz_repairs.sql
 )
 
 # migration هایی که پیش از راه‌اندازی ردیابی وجود داشتند.
@@ -383,6 +384,7 @@ declare -A SENTINEL=(
     [migration_cheque_value.sql]="cheques:idx_cheques_series"
     [migration_biz_staff.sql]="biz_payments.created_by"
     [migration_biz_proforma.sql]="biz_invoices:idx_biz_inv_proforma"
+    [migration_biz_repairs.sql]="biz_invoice_lines.warranty_months"
 )
 
 # آیا شاهد یک migration در دیتابیس هست؟

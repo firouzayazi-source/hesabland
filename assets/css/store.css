@@ -1493,3 +1493,14 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-proforma-act { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .st-inline-label { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--st-ink-2); }
 .st-inline-label input { width: 3.5em; text-align: center; }
+
+/* تعمیرات و گارانتی (store/repairs.php، store/repair.php) */
+.st-status-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.st-repair-bill { padding-top: 10px; border-top: 1px solid var(--st-line); }
+.st-repair-bill form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.st-warranty-res { margin-top: 12px; }
+.st-warranty-head { font-weight: 700; margin: 0 0 8px; }
+.st-warranty-head.is-ok { color: var(--st-ok); }
+.st-warranty-head.is-off { color: var(--st-ink-2); }
+.st-pill.is-rep-ready { background: var(--st-ok-wash); color: var(--st-ok); border-color: transparent; }
+.st-pill.is-rep-delivered, .st-pill.is-rep-cancelled { opacity: .75; }

@@ -45,6 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($rr['message'] !== '') { $res['message'] .= ' ' . $rr['message']; }
             }
             // ⛔ مالیات و شناسه‌ی مودیان هم جدا (`saveTax()`) — ورود از فایل آن‌ها را نمی‌فرستد
+            // ⛔ گارانتیِ پیش‌فرضِ کالا — جدا (`BizWarranty::saveProduct()`)؛ عکسش هنگامِ صدور روی ردیف
+            if (isset($_POST['warranty_form'])) {
+                require_once __DIR__ . '/../includes/biz_repairs.php';
+                $wr = BizWarranty::saveProduct($userId, (int)$res['id'], postParam('warranty_months'), postParam('warranty_label'));
+                if (!$wr['ok']) { redirectWithMessage(Biz::url('product.php?id=' . (int)$res['id']), 'error', 'کالا ذخیره شد، ولی ' . $wr['message']); }
+            }
             if (isset($_POST['tax_form'])) {
                 $tr = BizProducts::saveTax($userId, (int)$res['id'], $_POST);
                 if (!$tr['ok']) { redirectWithMessage(Biz::url('product.php?id=' . (int)$res['id']), 'error', 'کالا ذخیره شد، ولی ' . $tr['message']); }
@@ -282,6 +288,19 @@ require __DIR__ . '/../includes/biz_head.php';
         </div>
         <p class="st-muted">گوشی: هر دستگاه با IMEIِ خودش خرید و فروش می‌شود (فاکتورِ خرید، یک ردیف برای هر گوشی). خدمت موجودی ندارد.</p>
     </fieldset>
+    <?php if (tableHasColumn('biz_products', 'warranty_months')): ?>
+    <fieldset class="st-fieldset">
+        <legend>گارانتی</legend>
+        <input type="hidden" name="warranty_form" value="1">
+        <div class="st-row2">
+            <label class="st-field"><span>مدتِ گارانتی (ماه) <small class="st-muted">— ۰ = ندارد</small></span>
+                <input type="text" name="warranty_months" inputmode="numeric" dir="ltr" value="<?= h((string)($_POST['warranty_months'] ?? ($product['warranty_months'] ?? '0'))) ?>"></label>
+            <label class="st-field"><span>نوع <small class="st-muted">(مثلاً شرکتی، فروشگاه)</small></span>
+                <input type="text" name="warranty_label" maxlength="40" value="<?= h((string)($_POST['warranty_label'] ?? ($product['warranty_label'] ?? ''))) ?>"></label>
+        </div>
+        <p class="st-muted">هنگامِ صدورِ فاکتور روی همان فروش ثبت می‌شود؛ تغییرِ بعدی گارانتیِ فروخته‌شده‌ها را عوض نمی‌کند. استعلام با IMEI از «تعمیرات و گارانتی».</p>
+    </fieldset>
+    <?php endif; ?>
     <?php if (Biz::accReady()): ?>
     <fieldset class="st-fieldset">
         <legend>مالیات و سامانه‌ی مودیان</legend>
