@@ -20,7 +20,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_print.php';
 
-$userId   = (int)Auth::userId();
+$userId   = Biz::ownerId();
 $self     = Biz::url('quick-sale.php');
 $accounts = BizDocView::accounts($userId);
 $form = ['party_id' => 0, 'lines' => [], 'discount' => '', 'pay_mode' => 'full', 'pay_amount' => '',

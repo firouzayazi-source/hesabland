@@ -211,6 +211,16 @@ function deleteUserAccount(int $userId): array
         } catch (PDOException $e) { /* جدول در دسترس نیست */ }
     }
 
+    // ⛔ همکارانِ فروشگاهِ این کاربر (`store_staff`): داده‌ای زیرِ شناسه‌ی خودشان
+    //    ندارند و بعد از صاحب بی‌معنا‌اند — بی‌حذف، همکارِ یتیم با ورودِ بعد یک
+    //    فروشگاهِ خالیِ خودش را می‌دید. بعد از commit حذف می‌شوند (هر کدام سدِ خودش).
+    $staffLogins = [];
+    if (in_array('store_staff', $tables, true)) {
+        $sl = $pdo->prepare('SELECT staff_id FROM store_staff WHERE user_id = :u');
+        $sl->execute(['u' => $userId]);
+        $staffLogins = array_map('intval', $sl->fetchAll(PDO::FETCH_COLUMN));
+    }
+
     $pdo->beginTransaction();
     try {
         $passes = 0;
@@ -268,6 +278,18 @@ function deleteUserAccount(int $userId): array
     } catch (Throwable $e) {
         $pdo->rollBack();
         return ['ok' => false, 'deleted' => [], 'reason' => $e->getMessage()];
+    }
+
+    // ⛔ ردیفِ همکاریِ خودِ این حساب (اگر همکارِ فروشگاهی بود) — بیرون از سدِ بالا،
+    //    چون ستونِ `user_id`ِ آن ردیف صاحبِ فروشگاه است نه این کاربر.
+    if (in_array('store_staff', $tables, true)) {
+        $pdo->prepare('DELETE FROM store_staff WHERE staff_id = :u')->execute(['u' => $userId]);
+    }
+    foreach ($staffLogins as $sid) {
+        if ($sid !== $userId) {
+            revokeAllAccessFor($sid);
+            deleteUserAccount($sid);
+        }
     }
 
     return ['ok' => true, 'deleted' => $deleted];

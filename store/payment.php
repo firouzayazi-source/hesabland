@@ -16,15 +16,17 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_print.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $id     = (int)getParam('id', '0');
 
 if ($id > 0) {
     $pay = BizPay::get($userId, $id);
     if (!$pay) { redirectWithMessage(Biz::url('payments.php'), 'error', 'سند پیدا نشد.'); }
+    Biz::requireCap(BizRights::payCap((string)$pay['kind']));
     $self = Biz::url('payment.php?id=' . $id);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Csrf::verifyOrFail(postParam('csrf_token'));
+        if (postParam('action') === 'void') { Biz::requireCap('void'); }
         $r = postParam('action') === 'void' ? BizPay::void($userId, $id) : ['ok' => false, 'message' => 'درخواست نامعتبر است.'];
         redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
     }
@@ -92,6 +94,7 @@ if ($id > 0) {
 // ---------- ثبتِ تازه ----------
 $kind = getParam('k');
 if (!isset(BizPay::KINDS[$kind])) { $kind = 'receipt'; }
+Biz::requireCap(BizRights::payCap($kind));
 $invId = (int)getParam('inv', '0');
 $inv   = $invId > 0 ? BizInvoices::get($userId, $invId) : null;
 if ($inv && ($inv['status'] !== 'issued' || BizInvoices::SETTLED_BY[$inv['kind']] !== $kind)) { $inv = null; $invId = 0; }

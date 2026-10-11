@@ -548,6 +548,7 @@ final class BizInvoices
                     ->execute(['u' => $userId, 'k' => $kind, 'p' => $head['party_id'], 'd' => $head['date'], 'dd' => $head['due'],
                                's' => $t['subtotal'], 'di' => $head['discount'], 'e' => $head['extra'], 't' => $t['total'], 'n' => $head['note']]);
                 $id = (int)$pdo->lastInsertId();
+                Biz::stampAuthor($pdo, 'biz_invoices', $id, $userId);
             }
             if ($acc) {
                 $pdo->prepare('UPDATE biz_invoices SET vat_rate = :r, tax_total = :tx WHERE id = :id AND user_id = :u')
@@ -1063,6 +1064,7 @@ final class BizInvoices
             ->execute(['u' => $userId, 'k' => $kind, 'p' => $orig['party_id'], 'r' => $origId, 'd' => $date,
                        's' => $total - $taxTotal, 't' => $total, 'n' => $note === '' ? null : $note]);
         $id = (int)$pdo->lastInsertId();
+        Biz::stampAuthor($pdo, 'biz_invoices', $id, $userId);
         if (Biz::accReady()) {
             $pdo->prepare('UPDATE biz_invoices SET vat_rate = :r, tax_total = :tx WHERE id = :id AND user_id = :u')
                 ->execute(['r' => (float)($orig['vat_rate'] ?? 0), 'tx' => $taxTotal, 'id' => $id, 'u' => $userId]);
@@ -1301,6 +1303,7 @@ final class BizPay
                        'i' => $invId ?: null, 'o' => !empty($in['origin_invoice']) ? 1 : 0, 'am' => $amount, 'd' => $date,
                        'm' => $method, 'ti' => $title === '' ? null : $title, 'n' => $note === '' ? null : $note]);
         $id = (int)$pdo->lastInsertId();
+        Biz::stampAuthor($pdo, 'biz_payments', $id, $userId);
         if ($catId !== null) {
             $pdo->prepare('UPDATE biz_payments SET category_id = :c WHERE id = :id AND user_id = :u')
                 ->execute(['c' => $catId, 'id' => $id, 'u' => $userId]);

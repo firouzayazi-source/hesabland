@@ -21,7 +21,7 @@ require_once __DIR__ . '/../includes/biz_print.php';
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_reports.php';
 
-$userId   = (int)Auth::userId();
+$userId   = Biz::ownerId();
 $period   = getParam('p');
 $period   = isset(BizReports::PERIODS[$period]) ? $period : 'month';
 [$rFrom, $rTo] = BizReports::range($period, BizDocView::gDate(getParam('from')), BizDocView::gDate(getParam('to')));

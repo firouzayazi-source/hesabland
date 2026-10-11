@@ -33,6 +33,18 @@ final class BizPrint
         'cheques'    => 'دفترِ چک',
     ];
 
+    /**
+     * ⛔ دسترسیِ هر برگه برای همکاران (`Biz::can()`); `null` = هر عضوِ فروشگاه.
+     *    فاکتور و رسید با نوعِ خودِ سند سنجیده می‌شوند (`BizRights`)، پس اینجا `null`.
+     *    برگه‌ای که اینجا نیست «گزارش‌ها» می‌خواهد (بسته‌ی پیش‌فرض).
+     */
+    public const DOC_CAPS = [
+        'prices' => null, 'invoice' => null, 'payment' => null, 'party' => 'receive',
+        'stock' => 'reports', 'parties' => 'reports', 'kardex' => 'reports', 'sales' => 'reports',
+        'by_product' => 'reports', 'by_invoice' => 'reports', 'by_party' => 'reports', 'serials' => 'reports',
+        'account' => 'money', 'cheques' => 'money',
+    ];
+
     /** عنوانِ سندهای دوسویه — `?k=sale|purchase`. */
     public const SIDE_TITLES = [
         'by_product' => ['sale' => 'فروش به تفکیکِ کالا', 'purchase' => 'خرید به تفکیکِ کالا'],

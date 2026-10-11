@@ -17,7 +17,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_print.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $filter = getParam('f');
 $filter = isset(BizCheques::FILTERS[$filter]) ? $filter : '';
 $page   = max(1, (int)getParam('page', '1'));

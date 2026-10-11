@@ -13,7 +13,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_acc.php';
 
-$userId   = (int)Auth::userId();
+$userId   = Biz::ownerId();
 $self     = Biz::url('cash-count.php');
 $accounts = BizDocView::accounts($userId);
 $form     = ['account_id' => (int)getParam('acc', (string)($accounts[0]['id'] ?? 0)), 'counted' => '', 'date' => BizDocView::jDate(date('Y-m-d')), 'note' => ''];

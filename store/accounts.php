@@ -16,7 +16,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_catalog.php';
 require_once __DIR__ . '/../includes/biz_print.php';
 
-$userId   = (int)Auth::userId();
+$userId   = Biz::ownerId();
 $self     = Biz::url('accounts.php');
 $editAcc  = (int)getParam('acc', '0');
 $form     = ['name' => '', 'kind' => 'cash', 'opening_balance' => ''];

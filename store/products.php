@@ -14,7 +14,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_catalog.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $q      = mb_substr(trim(getParam('q')), 0, 80);
 $filter = getParam('f');
 $filter = isset(BizProducts::FILTERS[$filter]) ? $filter : '';
@@ -37,13 +37,13 @@ require __DIR__ . '/../includes/biz_head.php';
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('products-io.php')) ?>">ورود و خروجِ اکسل</a>
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('products-cleanup.php')) ?>">پاک‌سازیِ استفاده‌نشده‌ها</a>
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('print.php') . '?' . http_build_query(array_filter(['doc' => 'stock', 'f' => $filter, 'c' => $cat], fn($v) => $v !== ''))) ?>">چاپ</a>
-        <a class="st-btn" href="<?= h(Biz::url('product.php')) ?>">+ کالای تازه</a>
+        <?php if (Biz::can('products')): ?><a class="st-btn" href="<?= h(Biz::url('product.php')) ?>">+ کالای تازه</a><?php endif; ?>
     </div>
 </div>
 
 <div class="st-chips-row">
     <span class="st-stat"><?= toPersianDigits((string)$sum['count']) ?> کالای فعال</span>
-    <span class="st-stat">ارزشِ انبار <b class="st-num"><?= formatMoney($sum['value']) ?></b> تومان</span>
+    <?php if (Biz::can('cost')): ?><span class="st-stat">ارزشِ انبار <b class="st-num"><?= formatMoney($sum['value']) ?></b> تومان</span><?php endif; ?>
     <?php if ($sum['low'] > 0): ?><span class="st-stat is-low"><?= toPersianDigits((string)$sum['low']) ?> کم‌موجودی</span><?php endif; ?>
     <?php if ($sum['out'] > 0): ?><span class="st-stat is-out"><?= toPersianDigits((string)$sum['out']) ?> ناموجود</span><?php endif; ?>
 </div>
@@ -75,7 +75,7 @@ require __DIR__ . '/../includes/biz_head.php';
             <p class="st-empty">کالایی با این مشخصات پیدا نشد.</p>
         <?php else: ?>
             <p class="st-empty">هنوز کالایی ثبت نکرده‌اید. با «کالای تازه» شروع کنید؛ موجودیِ فعلیِ انبار را همان‌جا به‌عنوان موجودیِ اول دوره بنویسید.</p>
-            <a class="st-btn" href="<?= h(Biz::url('product.php')) ?>">+ کالای تازه</a>
+            <?php if (Biz::can('products')): ?><a class="st-btn" href="<?= h(Biz::url('product.php')) ?>">+ کالای تازه</a><?php endif; ?>
         <?php endif; ?>
     </div>
 <?php else: ?>
@@ -87,7 +87,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <th class="st-hide-sm">دسته</th>
                 <th class="st-th-num">موجودی</th>
                 <th class="st-th-num">قیمتِ فروش</th>
-                <th class="st-th-num st-hide-sm">ارزشِ انبار</th>
+                <?php if (Biz::can('cost')): ?><th class="st-th-num st-hide-sm">ارزشِ انبار</th><?php endif; ?>
             </tr>
         </thead>
         <tbody>
@@ -109,7 +109,7 @@ require __DIR__ . '/../includes/biz_head.php';
                     <?php endif; ?>
                 </td>
                 <td class="st-td-num"><span class="st-num"><?= formatMoney((int)$p['sell_price']) ?></span></td>
-                <td class="st-td-num st-hide-sm"><span class="st-num"><?= $value === null ? '—' : formatMoney($value) ?></span></td>
+                <?php if (Biz::can('cost')): ?><td class="st-td-num st-hide-sm"><span class="st-num"><?= $value === null ? '—' : formatMoney($value) ?></span></td><?php endif; ?>
             </tr>
         <?php endforeach; ?>
         </tbody>

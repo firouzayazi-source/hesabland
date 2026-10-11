@@ -16,7 +16,7 @@ require_once __DIR__ . '/../includes/biz_print.php';
 require_once __DIR__ . '/../includes/biz_catalog.php';
 require_once __DIR__ . '/../includes/biz_invoice_design.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $self   = Biz::url('print-settings.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

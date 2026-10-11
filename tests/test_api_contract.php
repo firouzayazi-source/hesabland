@@ -6918,7 +6918,7 @@ if (!preg_match("~strncmp\(\\\$script, 'api/', 4\) === 0\).*?http_response_code\
 
 // ⛔ نوع در صفحه‌های store/ از دیتابیس تازه می‌شود، نه از نشست — وگرنه روشن
 //    و خاموش کردنِ فروشگاه برای `personal`↔`both` تا ورودِ دوباره اثر نداشت.
-if (!preg_match('/function requirePage\(\): void\s*\{(?:(?!\bfunction\b).)*?if \(!in_array\(self::refreshType\(\), self::STORE_TYPES, true\)\) \{\s*self::notFound\(\);/s', $biz70)) {
+if (!preg_match('/function requirePage\(\): void\s*\{(?:(?!\bfunction\b).)*?if \(!in_array\(self::refreshType\(\), self::STORE_TYPES, true\)(?: \|\| !empty\(\$_SESSION\[\'biz_off\'\]\))?\) \{\s*self::notFound\(\);/s', $biz70)) {
     $bBad[] = 'biz.php — requirePage() نوع را از دیتابیس تازه نمی‌کند یا حسابِ بی‌فروشگاه را ۴۰۴ نمی‌کند';
 }
 if (!preg_match("/public const TYPES = \[\s*'personal'\s*=> [^\]]*'both'\s*=> [^\]]*'business'\s*=> [^\]]*\];/s", $biz70)
@@ -7094,7 +7094,7 @@ foreach ($storeFiles70 as $f) {
 }
 $head70 = $strip70((string)file_get_contents(__DIR__ . '/../includes/biz_head.php'));
 $foot70 = $strip70((string)file_get_contents(__DIR__ . '/../includes/biz_foot.php'));
-if (!str_contains($head70, 'foreach (Biz::NAV as $__group => $__items)') || !str_contains($head70, 'class="st-side"')
+if (!str_contains($head70, 'foreach (Biz::nav() as $__group => $__items)') || !str_contains($head70, 'class="st-side"')
     || !str_contains($head70, 'id="stNavToggle"') || !str_contains($foot70, 'foreach (Biz::TABBAR as $__file)')
     || !str_contains($foot70, 'for="stNavToggle"')) {
     $bBad[] = 'پوسته‌ی فروشگاه — نوارِ کناری از Biz::NAV، کشوی بی‌جاوااسکریپت (stNavToggle) یا منوی پایین از TABBAR نیست';
@@ -7514,7 +7514,7 @@ if (preg_match('/html\[data-st-palette="[a-z]+"\][^{,]*\s[.#a-z]/', $css70d)) {
 $pBoot = strpos($head70d, 'Biz::bootScript()'); $pCss = strpos($head70d, "css/store.css");
 if ($pBoot === false || $pCss === false || $pBoot > $pCss) { $dBad[] = 'biz_head.php — bootScript باید پیش از store.css بیاید'; }
 if (!preg_match('/id="stCmdData"><\?= json_encode\([^;]*JSON_HEX_TAG/', $head70d)) { $dBad[] = 'biz_head.php — stCmdData بی‌JSON_HEX_TAG'; }
-foreach (['id="stNavToggle"', 'class="st-side"', 'data-cmd-open', 'foreach (Biz::NAV as'] as $n) {
+foreach (['id="stNavToggle"', 'class="st-side"', 'data-cmd-open', 'foreach (Biz::nav() as'] as $n) {
     if (!str_contains($head70d, $n)) { $dBad[] = "biz_head.php — «{$n}» نیست (پوسته بی‌جاوااسکریپت کار نمی‌کند)"; }
 }
 if (!preg_match('/<form class="st-search"[^>]*method="get"[^>]*action="<\?= h\(Biz::url\(\'search\.php\'\)\)/', $head70d)) {

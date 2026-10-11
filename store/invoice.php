@@ -16,7 +16,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_print.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $id     = (int)getParam('id', '0');
 $inv    = BizInvoices::get($userId, $id);
 if (!$inv) {
@@ -26,6 +26,7 @@ if ($inv['status'] === 'draft') {
     header('Location: ' . Biz::url('invoice-edit.php?id=' . $id));
     exit;
 }
+Biz::requireCap(BizRights::docCap((string)$inv['kind']));
 $side = BizDocView::sideOf((string)$inv['kind']);
 Biz::$navActive = BizDocView::SIDES[$side]['page'];
 $self = Biz::url('invoice.php?id=' . $id);
@@ -33,6 +34,7 @@ $self = Biz::url('invoice.php?id=' . $id);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verifyOrFail(postParam('csrf_token'));
     $action = postParam('action');
+    if (in_array($action, ['void', 'unissue'], true)) { Biz::requireCap('void'); }
     if ($action === 'void') {
         $r = BizInvoices::void($userId, $id);
     } elseif ($action === 'unissue') {

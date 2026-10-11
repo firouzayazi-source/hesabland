@@ -15,7 +15,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_acc.php';
 
-$userId   = (int)Auth::userId();
+$userId   = Biz::ownerId();
 $self     = Biz::url('payroll.php');
 $accounts = BizDocView::accounts($userId);
 $emps     = BizPayroll::employees($userId);

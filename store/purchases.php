@@ -13,7 +13,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 
 $pageTitle = 'فاکتورهای خرید';
 require __DIR__ . '/../includes/biz_head.php';

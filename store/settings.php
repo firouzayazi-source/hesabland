@@ -15,7 +15,7 @@ require_once __DIR__ . '/../includes/biz_catalog.php';
 require_once __DIR__ . '/../includes/avatar.php';
 require_once __DIR__ . '/../includes/biz_docview.php';
 
-$userId   = (int)Auth::userId();
+$userId   = Biz::ownerId();
 $error    = '';
 $values   = Biz::settings($userId);
 

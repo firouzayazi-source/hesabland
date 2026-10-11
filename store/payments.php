@@ -15,7 +15,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $filter = getParam('f');
 $filter = isset(BizPay::FILTERS[$filter]) ? $filter : '';
 $acc    = (int)getParam('acc', '0');

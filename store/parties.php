@@ -13,7 +13,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_catalog.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $q      = mb_substr(trim(getParam('q')), 0, 80);
 $filter = getParam('f');
 $filter = isset(BizParties::FILTERS[$filter]) ? $filter : '';

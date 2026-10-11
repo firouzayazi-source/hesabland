@@ -88,6 +88,7 @@ const NON_ACTIVITY_TABLES = [
     'reminder_occurrences'  => 'Schedule::materialize خودکار می‌سازدش',
     'reminder_notifications'=> 'برنامه تولیدش می‌کند و created_at هم ندارد',
     'notification_prefs'    => 'یک تنظیم است، نه یک رکورد',
+    'store_staff'           => 'اجازه‌ی ورودِ همکارانِ فروشگاه است، نه رکوردِ دفتر',
     'payments'              => 'هدیه‌ی مدیر هم ردیف می‌سازد؛ کارِ کاربر نیست',
     'api_tokens'            => 'اعتبارنامه',
     'password_resets'       => 'اعتبارنامه',

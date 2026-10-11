@@ -23,7 +23,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_io.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $self   = Biz::url('products-io.php');
 
 /** فایل برای دانلود — پیش از هر خروجیِ HTML. */

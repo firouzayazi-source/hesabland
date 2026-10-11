@@ -34,7 +34,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_quickbuy.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $id     = (int)getParam('id', '0');
 $inv    = $id > 0 ? BizInvoices::get($userId, $id) : null;
 if ($id > 0 && !$inv) {
@@ -48,6 +48,7 @@ if ($inv && ($inv['status'] !== 'draft' || !isset(BizInvoices::RETURN_OF[(string
 }
 $kind = $inv ? (string)$inv['kind'] : (getParam('k') === 'purchase' ? 'purchase' : 'sale');
 if (!isset(BizInvoices::RETURN_OF[$kind])) { $kind = 'sale'; }
+Biz::requireCap(BizRights::docCap($kind));
 $side = BizDocView::sideOf($kind);
 Biz::$navActive = BizDocView::SIDES[$side]['page'];
 $self = Biz::url('invoice-edit.php' . ($id > 0 ? '?id=' . $id : '?k=' . $kind));
@@ -113,6 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ردیف‌های خالیِ فرم دوباره نشان داده نمی‌شوند؛ «افزودنِ ردیف» پنج تای تازه می‌گذارد
     $form['lines'] = array_values(array_filter($rawLines, $filled));
 
+    if ((isset($_POST['np_open']) || $action === 'np_save') && !Biz::can('products')) {
+        Biz::denied('products');   // کالای تازه از داخلِ فاکتور = تعریفِ کالا
+    }
     if (isset($_POST['np_open'])) {
         // «+» بی‌جاوااسکریپت: همان صفحه با پنلِ باز. متنِ ردیف نامِ پیشنهادی
         // است؛ اگر خودش IMEI بود، گوشی با همان IMEI.
@@ -157,6 +161,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $np = ['open' => false, 'row' => -1, 'type' => 'goods', 'name' => '', 'sku' => '', 'buy' => '', 'sell' => '', 'imei1' => '', 'imei2' => '', 'error' => ''];
             }
         }
+    } elseif ($kind === 'sale' && (isset($_POST['sp_open']) || isset($_POST['sp_link']) || isset($_POST['sp_issue']) || $action === 'sp_save') && !Biz::can('buy')) {
+        // ⛔ «+ موجودی» یک فاکتورِ خریدِ واقعی است (`BizQuickBuy`) — بی‌دسترسیِ خرید نه
+        Biz::denied('buy');
     } elseif ($kind === 'sale' && isset($_POST['sp_open'])) {
         // «+ موجودی» زیرِ ردیف: پنل با پیش‌فرض‌ها — کسریِ همین کالا، آخرین
         // فروشنده‌اش، قیمت‌های خودِ کالا، و برای گوشی IMEIِ همان ردیف.

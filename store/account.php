@@ -19,6 +19,8 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/signup.php';
 require_once __DIR__ . '/../includes/user_data.php';
 
+// ⛔ رمز مالِ **خودِ** واردشده است (همکار رمزِ خودش را عوض می‌کند)، ولی بکاپ
+//    همه‌ی دفترِ فروشگاه است و فقط صاحبِ فروشگاه می‌گیردش.
 $userId = (int)Auth::userId();
 $self   = Biz::url('account.php');
 
@@ -29,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
     }
     if (postParam('action') === 'export') {
+        if (Biz::isStaff()) { redirectWithMessage($self, 'error', 'بکاپِ فروشگاه را فقط صاحبِ فروشگاه می‌گیرد.'); }
         // موفق: فایل فرستاده شد و همین‌جا خارج شد
         redirectWithMessage($self, 'error', sendUserExport($userId));
     }
@@ -64,6 +67,9 @@ require __DIR__ . '/../includes/biz_head.php';
     <button type="submit" class="st-btn">ذخیره‌ی رمز</button>
 </form>
 
+<?php if (Biz::isStaff()): ?>
+<p class="st-muted">شما همکارِ این فروشگاه هستید (<?= h(Biz::STAFF_ROLES[Biz::role()]['label']) ?>). بکاپ و تنظیمات دستِ صاحبِ فروشگاه است.</p>
+<?php else: ?>
 <h2 class="st-h2 st-section-title" id="backup">بکاپ</h2>
 <form method="post" class="st-card st-form" action="<?= h($self) ?>">
     <?= Csrf::field() ?>
@@ -71,5 +77,6 @@ require __DIR__ . '/../includes/biz_head.php';
     <p class="st-muted">یک فایلِ کامل از همه‌ی داده‌ی این حساب — کالا، طرف‌حساب، فاکتور، دریافت و پرداخت، چک — با پسوندِ <span class="ltr-num">.sthesab</span>. آن را جایی بیرون از این گوشی یا رایانه نگه دارید. برای بازگرداندنِ دفترِ فروشگاه از این فایل با پشتیبانی تماس بگیرید — بازگرداندنِ خودکار فقط دفترِ شخصی را برمی‌گرداند، تا قاعده‌های فروشگاه (موجودی، شماره‌ی فاکتور، بستنِ دوره) دور زده نشوند.</p>
     <button type="submit" class="st-btn st-btn-ghost">دانلودِ بکاپ</button>
 </form>
+<?php endif; ?>
 
 <?php require __DIR__ . '/../includes/biz_foot.php'; ?>

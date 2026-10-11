@@ -149,6 +149,7 @@ MIGRATIONS=(
     migration_error_area.sql
     migration_biz_pair.sql
     migration_cheque_value.sql
+    migration_biz_staff.sql
 )
 
 # migration هایی که پیش از راه‌اندازی ردیابی وجود داشتند.
@@ -379,6 +380,7 @@ declare -A SENTINEL=(
     [migration_biz_pair.sql]="app_settings~setting_key=biz_pair_seeded"
     # ⚠ شاهد ایندکسِ **آخر** است: `ALTER`ِ دوم آخرین کارِ فایل است.
     [migration_cheque_value.sql]="cheques:idx_cheques_series"
+    [migration_biz_staff.sql]="biz_payments.created_by"
 )
 
 # آیا شاهد یک migration در دیتابیس هست؟

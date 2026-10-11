@@ -75,6 +75,8 @@ final class Audit
         'store_share.linked', 'store_share.unlinked',
         // سودِ کلِ فروشگاه به دفترِ کدام مدیر می‌رود — همان جنس
         'store_share.house',
+        // همکارانِ فروشگاه (صاحبِ فروشگاه) — دادنِ دسترسی به دفترِ فروشگاه
+        'store.staff_added', 'store.staff_changed', 'store.staff_removed',
     ];
 
     /** کلیدهای تنظیماتی که مقدارشان هرگز در `detail` نمی‌آید. */

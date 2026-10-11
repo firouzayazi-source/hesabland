@@ -23,7 +23,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $q      = mb_substr(trim(getParam('q')), 0, 80);
 $json   = getParam('format') === 'json';
 $cap    = $json ? 5 : 12;

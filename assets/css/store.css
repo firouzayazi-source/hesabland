@@ -1473,3 +1473,18 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-imei-warn { display: inline-block; margin-inline-start: 6px; font-size: 11.5px; font-weight: 600; color: #b45309; }
 :root[data-st-theme="dark"] .st-imei-warn { color: #fbbf24; }
 @media (prefers-color-scheme: dark) { :root:not([data-st-theme]) .st-imei-warn { color: #fbbf24; } }
+
+/* نمای خواندنیِ کالا برای همکارِ بی‌دسترسیِ «تعریفِ کالا» (store/product.php) */
+.st-dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+.st-dl dt { color: var(--st-ink-2); }
+.st-dl dd { margin: 0; font-weight: 600; }
+
+/* همکاران و دسترسی‌ها (store/staff.php) */
+.st-staff-list { display: grid; gap: 12px; }
+.st-staff.is-inactive { opacity: .7; }
+.st-staff-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.st-staff-head .st-muted-i { margin: 2px 0 0; }
+.st-staff-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--st-line); }
+.st-yes { color: var(--st-ok); font-weight: 700; }
+.st-field-sm { max-width: 220px; }
+.st-role-table td:first-child { white-space: normal; }

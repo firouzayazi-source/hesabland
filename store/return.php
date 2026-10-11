@@ -14,13 +14,14 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $origId = (int)getParam('inv', '0');
 $orig   = BizInvoices::get($userId, $origId);
 if (!$orig || !isset(BizInvoices::RETURN_OF[$orig['kind']]) || $orig['status'] !== 'issued') {
     redirectWithMessage(Biz::url('sales.php'), 'error', 'برگشت فقط از فاکتورِ صادرشده‌ی فروش یا خرید زده می‌شود.');
 }
 $kind = BizInvoices::RETURN_OF[$orig['kind']];
+Biz::requireCap(BizRights::docCap($kind));
 $side = BizDocView::sideOf($kind);
 Biz::$navActive = BizDocView::SIDES[$side]['page'];
 $self = Biz::url('return.php?inv=' . $origId);

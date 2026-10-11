@@ -12,7 +12,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $id     = (int)getParam('id', '0');
 $party  = $id > 0 ? BizParties::get($userId, $id) : null;
 if ($id > 0 && !$party) {

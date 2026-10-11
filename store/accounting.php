@@ -21,7 +21,7 @@ require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_acc.php';
 require_once __DIR__ . '/../includes/biz_dash.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $TABS = ['balance' => 'ترازنامه', 'trial' => 'ترازِ آزمایشی', 'journal' => 'روزنامه', 'vat' => 'مالیات بر ارزش افزوده',
          'year' => 'سالِ مالی', 'moadian' => 'سامانه‌ی مودیان', 'cats' => 'سرفصل‌ها'];
 $t = (string)getParam('t');

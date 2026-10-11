@@ -16,13 +16,15 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_catalog.php';
 
-$userId  = (int)Auth::userId();
+$userId  = Biz::ownerId();
 $id      = (int)getParam('id', '0');
 $product = $id > 0 ? BizProducts::get($userId, $id) : null;
 if ($id > 0 && !$product) {
     redirectWithMessage(Biz::url('products.php'), 'error', 'کالا پیدا نشد.');
 }
 $self  = Biz::url('product.php' . ($id > 0 ? '?id=' . $id : ''));
+// ⛔ بی‌دسترسیِ «تعریفِ کالا» (فروشنده): هیچ نوشتنی، و فقط نمای خواندنی پایین.
+if (!Biz::can('products') && ($_SERVER['REQUEST_METHOD'] === 'POST' || !$product)) { Biz::denied('products'); }
 $error = '';
 $form  = $product ?? [
     'name' => '', 'sku' => '', 'category' => '', 'unit' => 'عدد', 'buy_price' => '', 'sell_price' => '',
@@ -143,6 +145,18 @@ require __DIR__ . '/../includes/biz_head.php';
 <?php if ($error !== ''): ?>
 <div class="st-flash st-flash-err" role="alert"><?= h($error) ?></div>
 <?php endif; ?>
+
+<?php if (!Biz::can('products')): /* نمای خواندنیِ فروشنده — بی‌بهای خرید مگر دسترسیِ «سود» */ ?>
+<div class="st-card">
+    <dl class="st-dl">
+        <dt>قیمتِ فروش</dt><dd class="st-num"><?= formatMoney((int)$product['sell_price']) ?> تومان</dd>
+        <?php if ($tracked): ?><dt>موجودی</dt><dd class="st-num"><?= h(BizView::qty($product['stock_qty'], $unit)) ?></dd><?php endif; ?>
+        <?php if (Biz::can('cost')): ?><dt>میانگینِ بهای خرید</dt><dd class="st-num"><?= formatMoney((int)round((float)$product['avg_cost'])) ?> تومان</dd><?php endif; ?>
+        <?php if ((string)$product['sku'] !== ''): ?><dt>کد / بارکد</dt><dd class="ltr-num"><?= h((string)$product['sku']) ?></dd><?php endif; ?>
+        <?php if ((string)($product['note'] ?? '') !== ''): ?><dt>توضیح</dt><dd><?= h((string)$product['note']) ?></dd><?php endif; ?>
+    </dl>
+</div>
+<?php require __DIR__ . '/../includes/biz_foot.php'; return; endif; ?>
 
 <?php if ($tracked): ?>
 <div class="st-kpis st-kpis-3">

@@ -88,7 +88,7 @@ final class Biz
                        'payroll.php' => 'حقوق و مساعده'],
         'گزارش‌ها' => ['reports.php' => 'گزارش‌ها و چاپ', 'accounting.php' => 'دفاتر و مالیات'],
         'سیستم'    => ['settings.php' => 'تنظیمات فروشگاه', 'invoice-design.php' => 'طراحی فاکتور', 'print-settings.php' => 'تنظیمات چاپ',
-                       'import.php' => 'ورود و خروجِ اطلاعات'],
+                       'import.php' => 'ورود و خروجِ اطلاعات', 'staff.php' => 'همکاران و دسترسی‌ها'],
     ];
 
     /**
@@ -254,16 +254,32 @@ final class Biz
     public static function newMenuHtml(int $userId): string
     {
         $out = '<div class="st-new-grid">';
-        foreach (self::newMenu($userId) as $k) {
+        foreach (array_filter(self::newMenu($userId), [self::class, 'canNew']) as $k) {
             [$short, $tone, $svg] = self::NEW_TILES[$k] ?? [self::NEW_MENU[$k], 'slate', '<circle cx="12" cy="12" r="4"/>'];
             $out .= '<a class="st-new-tile is-tone-' . h($tone) . '" href="' . h(self::url($k)) . '" title="' . h(self::NEW_MENU[$k]) . '">'
                   . '<span class="st-new-ico"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $svg . '</svg></span>'
                   . '<span class="st-new-name">' . h($short) . '</span></a>';
         }
+        if (!self::can('settings')) { return $out . '</div>'; }
         return $out . '</div>'
             . '<a class="st-new-edit" href="' . h(self::url('settings.php')) . '#newmenu">'
             . '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>'
             . '<span>چیدمانِ این منو را عوض کنید</span></a>';
+    }
+
+    /** قلمِ «+» برای نقشِ جاری باز است؟ (صفحه، و برای سندهای دوحالته نوعِ سند) */
+    public static function canNew(string $key): bool
+    {
+        if (!self::canPage($key)) { return false; }
+        parse_str((string)parse_url($key, PHP_URL_QUERY), $q);
+        $file = basename(strtok($key, '?'));
+        $need = match ($file) {
+            'invoice-edit.php' => BizRights::docCap((string)($q['k'] ?? 'sale')),
+            'payment.php'      => BizRights::payCap((string)($q['k'] ?? 'receipt')),
+            'product.php'      => 'products',
+            default            => null,
+        };
+        return $need === null || self::can($need);
     }
 
     /**
@@ -298,15 +314,31 @@ final class Biz
             'cheques.php'        => '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 14h5"/><path d="M15 11h3"/><path d="M15 14h3"/>',
             'payroll.php'        => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5 1.6 0 3 .5 4.1 1.3"/><path d="M18 13v8M15.5 15h3.7a1.3 1.3 0 0 1 0 2.6h-2.4a1.3 1.3 0 0 0 0 2.6h3.7"/>',
             'accounting.php'     => '<path d="M5 3h11l3 3v15H5z"/><path d="M12 3v18"/><path d="M8 8h1M8 12h1M8 16h1M15 8h1M15 12h1M15 16h1"/>',
+            'staff.php'          => '<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M14 19.5a4 4 0 0 1 7.5-1.9"/>',
             'categories.php'     => '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
         ];
     }
 
-    /** @return array<string,string> فایل ← برچسب، به ترتیبِ منو */
+    /**
+     * ⛔ `NAV` برای نقشِ جاری — هر منو (کناری، پایین، فرمانِ سریع، مسیر) از این
+     *    می‌خواند، نه از `NAV` خام: فروشنده قلمی که بازش ۴۰۳ است را نمی‌بیند.
+     * @return array<string, array<string,string>>
+     */
+    public static function nav(): array
+    {
+        $out = [];
+        foreach (self::NAV as $g => $items) {
+            $keep = array_filter($items, fn($f) => self::canPage($f), ARRAY_FILTER_USE_KEY);
+            if ($keep) { $out[$g] = $keep; }
+        }
+        return $out;
+    }
+
+    /** @return array<string,string> فایل ← برچسب، به ترتیبِ منو (فقط صفحه‌های بازِ این نقش) */
     public static function navFlat(): array
     {
         $out = [];
-        foreach (self::NAV as $items) { $out += $items; }
+        foreach (self::nav() as $items) { $out += $items; }
         return $out;
     }
 
@@ -425,9 +457,20 @@ final class Biz
         //    صفر کوئریِ اضافه. ستونِ `avatar` (migration_p4) یا `account_type`
         //    ممکن است نباشد؛ آن‌وقت همان مسیرِ قبلی.
         try {
-            $st = Database::getConnection()->prepare('SELECT account_type, avatar FROM users WHERE id = :id LIMIT 1');
-            $st->execute(['id' => $uid]);
+            // ⛔ همکاری در **همین** کوئری (LEFT JOIN) — صفر کوئریِ اضافه برای هر صفحه
+            //    (`STORE_BUDGET`). جدولِ نیامده (42S02) ← همان کوئریِ قبلی بی‌همکار.
+            try {
+                $st = Database::getConnection()->prepare(
+                    'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active
+                     FROM users u LEFT JOIN store_staff s ON s.staff_id = u.id WHERE u.id = :id LIMIT 1');
+                $st->execute(['id' => $uid]);
+            } catch (PDOException $e) {
+                if ((string)$e->getCode() !== '42S02') { throw $e; }
+                $st = Database::getConnection()->prepare('SELECT account_type, avatar FROM users WHERE id = :id LIMIT 1');
+                $st->execute(['id' => $uid]);
+            }
             $row = $st->fetch() ?: [];
+            self::applyStaff($row);
             $v = $row['account_type'] ?? null;
             $t = is_string($v) && isset(self::TYPES[$v]) ? $v : 'personal';
             $a = $row['avatar'] ?? null;
@@ -436,10 +479,26 @@ final class Biz
         } catch (PDOException $e) {
             if ((string)$e->getCode() !== '42S22') { throw $e; }
             $t = self::typeFor($uid);
+            self::applyStaff([]);
             self::$avatarReady = false;
         }
         $_SESSION['account_type'] = $t;
         return $t;
+    }
+
+    /**
+     * همکار بودنِ نشست از `store_staff` — هر صفحه‌ی فروشگاه (همراهِ `refreshType()`).
+     * ⛔ همکارِ غیرفعال‌شده همان لحظه بیرون می‌ماند (`$_SESSION['biz_off']`)، نه
+     *    با ورودِ بعدی؛ و جدولِ نیامده یعنی «صاحب» (نصبِ عقب‌مانده نمی‌شکند).
+     */
+    private static function applyStaff(array $row): void
+    {
+        unset($_SESSION['biz_owner'], $_SESSION['biz_role'], $_SESSION['biz_off']);
+        if (empty($row['staff_owner'])) { return; }
+        if ((int)$row['staff_active'] !== 1) { $_SESSION['biz_off'] = 1; return; }
+        $role = (string)$row['staff_role'];
+        $_SESSION['biz_owner'] = (int)$row['staff_owner'];
+        $_SESSION['biz_role']  = isset(self::STAFF_ROLES[$role]) && $role !== 'owner' ? $role : 'seller';
     }
 
     /** آدرسِ خانه‌ی حساب لند — برای حسابِ `both` در سرآیندِ فروشگاه. */
@@ -515,9 +574,11 @@ final class Biz
             header('Location: ' . self::url('login.php'));
             exit;
         }
-        if (!in_array(self::refreshType(), self::STORE_TYPES, true)) {
+        if (!in_array(self::refreshType(), self::STORE_TYPES, true) || !empty($_SESSION['biz_off'])) {
             self::notFound();
         }
+        $cap = self::pageCap(basename(self::currentScript()));
+        if ($cap !== null && !self::can($cap)) { self::denied($cap); }
     }
 
     /** ۴۰۴ِ خنثی — نه نامِ فروشگاه، نه سربرگ، نه هیچ نشانه‌ای. */
@@ -536,6 +597,138 @@ final class Biz
            . '<p><a href="' . htmlspecialchars($home, ENT_QUOTES) . '">بازگشت</a></p>'
            . '</body></html>';
         exit;
+    }
+
+    /**
+     * ⛔ نقش‌های همکارانِ فروشگاه — تنها مرجع (`store_staff.role`). صاحبِ فروشگاه
+     *    همیشه `owner` است و همه‌ی دسترسی‌ها (`*`) را دارد؛ «همکار» و «تنظیمات»
+     *    فقط مالِ اوست. کلیدِ دوم پیش‌فرضِ فرمِ افزودن است.
+     *
+     * **خواسته‌ی مالکِ نصب (مهر ۱۴۰۵):** فروشِ کشوری — فروشگاهی که فروشنده و
+     * حسابدار دارد نباید رمزِ صاحب را به همه بدهد.
+     */
+    public const STAFF_ROLES = [
+        'owner'      => ['label' => 'صاحبِ فروشگاه', 'caps' => ['*']],
+        'seller'     => ['label' => 'فروشنده',       'caps' => ['sell', 'receive', 'repairs']],
+        'manager'    => ['label' => 'مدیرِ فروشگاه', 'caps' => ['sell', 'receive', 'repairs', 'buy', 'cost', 'money', 'reports',
+                                                         'accounting', 'payroll', 'products', 'void']],
+        'accountant' => ['label' => 'حسابدار',       'caps' => ['sell', 'receive', 'buy', 'cost', 'money', 'reports',
+                                                         'accounting', 'payroll', 'products', 'void']],
+    ];
+
+    /** ⛔ هر دسترسی و معنایش — فرمِ همکار و پیامِ «دسترسی ندارید» از همین. */
+    public const CAPS = [
+        'sell'       => 'فروش و برگشت از فروش',
+        'receive'    => 'دریافت از مشتری',
+        'repairs'    => 'پذیرشِ تعمیرات',
+        'buy'        => 'خرید و برگشت از خرید',
+        'cost'       => 'دیدنِ قیمتِ خرید و سود',
+        'money'      => 'صندوق، بانک، پرداخت و چک',
+        'reports'    => 'گزارش‌ها',
+        'accounting' => 'دفاتر، مالیات و سند',
+        'payroll'    => 'حقوق و مساعده',
+        'products'   => 'تعریف و ویرایشِ کالا',
+        'void'       => 'ابطالِ سندِ صادرشده',
+        'settings'   => 'تنظیمات، طراحیِ فاکتور و ورودِ اطلاعات',
+        'staff'      => 'همکاران و دسترسی‌ها',
+    ];
+
+    /**
+     * ⛔ هر صفحه کدام دسترسی را می‌خواهد — `requirePage()` می‌سنجد و منو صفحه‌ی
+     *    بسته را نشان نمی‌دهد. `null` = هر عضوِ فروشگاه. صفحه‌ای که اینجا نیست
+     *    **بسته** است (`settings`)، نه باز — صفحه‌ی فردا بی‌صدا به فروشنده نمی‌رسد.
+     *    صفحه‌های دوحالته (فاکتورِ فروش یا خرید) کارِ دقیق‌تر را خودشان با `can()` می‌کنند.
+     */
+    public const PAGE_CAPS = [
+        'index.php' => null, 'search.php' => null, 'account.php' => null, 'login.php' => null, 'logout.php' => null,
+        'errors.php' => null, 'products.php' => null, 'product.php' => null, 'parties.php' => null, 'party.php' => null,
+        'invoice.php' => null, 'invoice-edit.php' => null, 'print.php' => null, 'payment.php' => null,
+        'quick-sale.php' => 'sell', 'sales.php' => 'sell', 'return.php' => null,
+        'purchases.php' => 'buy', 'categories.php' => 'products', 'products-cleanup.php' => 'products',
+        'payments.php' => 'money', 'accounts.php' => 'money', 'cash-count.php' => 'money', 'cheques.php' => 'money',
+        'payroll.php' => 'payroll', 'reports.php' => 'reports', 'accounting.php' => 'accounting',
+        'settings.php' => 'settings', 'invoice-design.php' => 'settings', 'print-settings.php' => 'settings',
+        'import.php' => 'settings', 'products-io.php' => 'settings', 'staff.php' => 'staff',
+    ];
+
+    /**
+     * ⛔ شناسه‌ی **فروشگاه** (صاحبِ داده) — نه کسی که وارد شده. همه‌ی صفحه‌های
+     *    `store/` داده را با همین می‌خوانند و می‌نویسند؛ همکار داده‌ای زیرِ شناسه‌ی
+     *    خودش ندارد. از نشست (`refreshType()` هر صفحه از دیتابیس تازه‌اش می‌کند).
+     *    ⚠ برای «چه کسی ثبت کرد» `Auth::userId()` درست است، نه این.
+     */
+    public static function ownerId(): int
+    {
+        return !empty($_SESSION['biz_owner']) ? (int)$_SESSION['biz_owner'] : (int)Auth::userId();
+    }
+
+    /** نقشِ نشستِ جاری در فروشگاه (`STAFF_ROLES`). */
+    public static function role(): string
+    {
+        $r = (string)($_SESSION['biz_role'] ?? 'owner');
+        return isset(self::STAFF_ROLES[$r]) ? $r : 'seller';
+    }
+
+    /** همکار است (نه صاحب)؟ */
+    public static function isStaff(): bool
+    {
+        return self::role() !== 'owner';
+    }
+
+    /** ⛔ تنها سنجه‌ی دسترسی در فروشگاه. */
+    public static function can(string $cap): bool
+    {
+        $caps = self::STAFF_ROLES[self::role()]['caps'];
+        return in_array('*', $caps, true) || in_array($cap, $caps, true);
+    }
+
+    /** دسترسیِ لازمِ یک صفحه‌ی `store/` (بسته‌ی پیش‌فرض: `settings`). */
+    public static function pageCap(string $file): ?string
+    {
+        return array_key_exists($file, self::PAGE_CAPS) ? self::PAGE_CAPS[$file] : 'settings';
+    }
+
+    /** صفحه برای نقشِ جاری باز است؟ (منو) */
+    public static function canPage(string $file): bool
+    {
+        $c = self::pageCap(basename(strtok($file, '?')));
+        return $c === null || self::can($c);
+    }
+
+    /** پیامِ ۴۰۳ِ خنثی: «دسترسی ندارید» با نامِ دسترسی، و برگشت به داشبورد. */
+    public static function denied(string $cap): void
+    {
+        if (!headers_sent()) {
+            http_response_code(403);
+            header('Content-Type: text/html; charset=utf-8');
+        }
+        $label = self::CAPS[$cap] ?? $cap;
+        echo '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8">'
+           . '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">'
+           . '<title>دسترسی ندارید</title></head>'
+           . '<body style="font-family:Tahoma,sans-serif;text-align:center;padding:48px 16px">'
+           . '<p>برای این بخش («' . htmlspecialchars($label, ENT_QUOTES) . '») دسترسی ندارید.</p>'
+           . '<p>اگر لازم دارید، از صاحبِ فروشگاه بخواهید در «همکاران» به شما بدهد.</p>'
+           . '<p><a href="' . htmlspecialchars(self::url(), ENT_QUOTES) . '">بازگشت به داشبورد</a></p>'
+           . '</body></html>';
+        exit;
+    }
+
+    /** دسترسی نیست ⇒ ۴۰۳ و پایان. برای کارهای داخلِ صفحه (ابطال، خرید، …). */
+    public static function requireCap(string $cap): void
+    {
+        if (!self::can($cap)) { self::denied($cap); }
+    }
+
+    /**
+     * ⛔ حسابِ ورودِ تازه‌ساخته‌ی یک همکار ← «فقط فروشگاه» (`BizStaff::add()`، داخلِ
+     *    همان تراکنش). این‌جاست نه آنجا چون `biz.php` تنها نویسنده‌ی `account_type`
+     *    است (قاعده ۷۰). `setType()` نه: آن یک ردیفِ `biz_settings` (فروشگاهِ دوم)
+     *    برایش می‌ساخت؛ و حسابِ تازه نشستی ندارد که ابطال بخواهد.
+     */
+    public static function markStaffLogin(PDO $pdo, int $staffId): void
+    {
+        $pdo->prepare("UPDATE users SET account_type = 'business' WHERE id = :id")->execute(['id' => $staffId]);
     }
 
     /** ⛔ تنها قاعده‌ی «این نقش با این نوعِ حساب جور است؟». */
@@ -909,7 +1102,7 @@ final class Biz
     {
         // ⛔ اول از ردیفِ `SELECT *`ِ تنظیماتِ همین کاربر (سرآیندِ هر صفحه همان را
         //    می‌خواند، پس کوئریِ تازه‌ای نیست)؛ نقشه‌ی ساختار فقط اگر ردیفی نیست
-        if (self::$accReady === null && class_exists('Auth') && Auth::userId() !== null) { self::settings((int)Auth::userId()); }
+        if (self::$accReady === null && class_exists('Auth') && Auth::userId() !== null) { self::settings(self::ownerId()); }
         return self::$accReady ??= self::hasColumn('biz_settings', 'vat_rate');
     }
 
@@ -965,6 +1158,25 @@ final class Biz
     public static function businessInfoReady(): bool
     {
         return self::$infoReady ??= self::hasColumn('biz_settings', 'invoice_prefs');
+    }
+
+    /** جدولِ همکاران آمده است؟ (migration_biz_staff) */
+    public static function staffReady(): bool
+    {
+        return self::hasColumn('biz_payments', 'created_by');
+    }
+
+    /**
+     * ⛔ «چه کسی ثبت کرد» روی سندِ تازه (`biz_invoices`/`biz_payments.created_by`) —
+     *    کسی که **وارد شده** (`Auth::userId()`)، نه صاحبِ فروشگاه. پورسانت و
+     *    «فروشِ من»ِ فروشنده از همین است. داخلِ همان تراکنشِ ساختنِ سند.
+     */
+    public static function stampAuthor(PDO $pdo, string $table, int $id, int $ownerId): void
+    {
+        if (!in_array($table, ['biz_invoices', 'biz_payments'], true) || !self::staffReady()) { return; }
+        $actor = class_exists('Auth') && Auth::userId() !== null ? (int)Auth::userId() : $ownerId;
+        $pdo->prepare("UPDATE `{$table}` SET created_by = :a WHERE id = :id AND user_id = :u")
+            ->execute(['a' => $actor, 'id' => $id, 'u' => $ownerId]);
     }
 
     /**
@@ -1278,3 +1490,20 @@ final class BizOnce
     }
 }
 
+/**
+ * ⛔ دسترسیِ لازم برای هر نوعِ سند — تنها نگاشت (منوی «+»، صفحه‌ی سند، ذخیره و ابطال).
+ *    دو صفحه (فاکتور و دریافت/پرداخت) چند نوع سند را با یک فایل می‌سازند؛ بی‌این،
+ *    فروشنده با تغییرِ `?k=` در آدرس فاکتورِ خرید یا پرداخت ثبت می‌کرد.
+ */
+final class BizRights
+{
+    public static function docCap(string $kind): string
+    {
+        return in_array($kind, ['purchase', 'purchase_return'], true) ? 'buy' : 'sell';
+    }
+
+    public static function payCap(string $kind): string
+    {
+        return $kind === 'receipt' ? 'receive' : 'money';
+    }
+}

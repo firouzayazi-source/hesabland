@@ -26,7 +26,7 @@
 if (!defined('APP_BASE_PATH')) { http_response_code(404); exit; }
 require_once __DIR__ . '/csrf.php';
 
-$__bizUid   = (int)Auth::userId();
+$__bizUid   = Biz::ownerId();
 $__bizSet   = Biz::settings($__bizUid);
 $__bizShop  = $__bizSet['shop_name'] !== '' ? $__bizSet['shop_name'] : 'فروشگاه من';
 $__bizName  = Auth::fullName() !== '' ? Auth::fullName() : 'کاربر';
@@ -54,7 +54,7 @@ $__bizErrs  = Auth::isAdmin() ? AppErrors::openCount('store') : null;
 
 // مسیر: گروه ← قلمِ منو ← (اگر صفحه‌ی جزئیات است) عنوانِ خودِ صفحه
 $__bizCrumbs = [];
-foreach (Biz::NAV as $__g => $__items) {
+foreach (Biz::nav() as $__g => $__items) {
     if (isset($__items[$__bizPage])) {
         $__bizCrumbs[] = [$__g, ''];
         $__bizCrumbs[] = [$__items[$__bizPage], $__bizPage !== $__bizScript ? Biz::url($__bizPage) : ''];
@@ -69,12 +69,12 @@ if (($pageTitle ?? '') !== '' && ($__bizPage !== $__bizScript || !$__bizCrumbs))
 // ⛔ دادهٔ فرمانِ سریع: فقط برچسب و آدرسِ صفحه‌ها (هیچ رکوردی) — رکوردها را
 //    `search.php` با همان نشست و همان سنجشِ مالکیت می‌دهد.
 $__bizCmd = ['pages' => [], 'new' => [], 'search' => Biz::url('search.php')];
-foreach (Biz::NAV as $__g => $__items) {
+foreach (Biz::nav() as $__g => $__items) {
     foreach ($__items as $__f => $__l) {
         if (is_file(__DIR__ . '/../' . Biz::DIR . '/' . $__f)) { $__bizCmd['pages'][] = ['t' => $__l, 'g' => $__g, 'u' => Biz::url($__f), 'k' => $__f]; }
     }
 }
-foreach (Biz::NEW_MENU as $__h => $__l) { $__bizCmd['new'][] = ['t' => $__l, 'u' => Biz::url($__h), 'k' => $__h]; }
+foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KEY) as $__h => $__l) { $__bizCmd['new'][] = ['t' => $__l, 'u' => Biz::url($__h), 'k' => $__h]; }
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-area="store"<?= $__bizPalA ?>>
@@ -120,7 +120,7 @@ foreach (Biz::NEW_MENU as $__h => $__l) { $__bizCmd['new'][] = ['t' => $__l, 'u'
         </span>
     </a>
     <nav class="st-side-nav">
-        <?php foreach (Biz::NAV as $__group => $__items):
+        <?php foreach (Biz::nav() as $__group => $__items):
             $__shown = array_filter($__items, fn($f) => is_file(__DIR__ . '/../' . Biz::DIR . '/' . $f), ARRAY_FILTER_USE_KEY);
             if (!$__shown) { continue; } ?>
         <div class="st-side-group">

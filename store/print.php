@@ -21,9 +21,12 @@ require_once __DIR__ . '/../includes/biz_print.php';
 require_once __DIR__ . '/../includes/biz_docs.php';
 require_once __DIR__ . '/../includes/biz_reports.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $doc    = getParam('doc');
 $doc    = isset(BizPrint::DOCS[$doc]) ? $doc : 'stock';
+// ⛔ هر برگه دسترسیِ خودش (`BizPrint::DOC_CAPS`)؛ فاکتور و رسید پایین‌تر با نوعِ خودِ سند
+$docCap = array_key_exists($doc, BizPrint::DOC_CAPS) ? BizPrint::DOC_CAPS[$doc] : 'reports';
+if ($docCap !== null) { Biz::requireCap($docCap); }
 $id     = (int)getParam('id', '0');
 $filter = getParam('f');
 $cat    = mb_substr(trim(getParam('c')), 0, 80);
@@ -243,6 +246,7 @@ case 'invoice':
     } else {
         $inv = BizInvoices::get($userId, $id);
         if (!$inv || $inv['status'] === 'draft') { Biz::notFound(); }
+        Biz::requireCap(BizRights::docCap((string)$inv['kind']));
         // ⛔ «مانده‌ی قبلی / کل» — کلیدش در طراحیِ فاکتور (`show_balance`)
         $ba = $design['show_balance'] && $inv['status'] === 'issued' && $inv['party_id'] !== null
             ? BizParties::balanceAround($userId, (int)$inv['party_id'], $id) : null;
@@ -259,6 +263,7 @@ case 'invoice':
 case 'payment':
     $pay = BizPay::get($userId, $id);
     if (!$pay) { Biz::notFound(); }
+    Biz::requireCap(BizRights::payCap((string)$pay['kind']));
     BizPrint::head($userId, (BizPay::KINDS[$pay['kind']] ?? '') . ' شماره‌ی ' . toPersianDigits((string)$pay['number']) . ($pay['status'] === 'void' ? ' (باطل)' : ''),
         Biz::url('payment.php?id=' . $id), [
         'تاریخ'     => toJalali((string)$pay['pay_date']),

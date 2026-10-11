@@ -19,7 +19,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_catalog.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $scope  = getParam('s');
 $scope  = isset(BizProducts::CLEANUP_SCOPES[$scope]) ? $scope : 'empty';
 $cat    = mb_substr(trim(getParam('c')), 0, 80);

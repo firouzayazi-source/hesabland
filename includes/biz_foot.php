@@ -23,7 +23,7 @@ $__bizFootI     = 0;
         if ($__bizFootI++ === Biz::TABBAR_NEW_AT): ?>
     <details class="st-dd st-tab-new">
         <summary aria-label="ثبتِ جدید"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
-        <div class="st-dd-menu st-new-menu"><?= Biz::newMenuHtml((int)Auth::userId()) ?></div>
+        <div class="st-dd-menu st-new-menu"><?= Biz::newMenuHtml(Biz::ownerId()) ?></div>
     </details>
         <?php endif; ?>
     <a href="<?= h(Biz::url($__file)) ?>"

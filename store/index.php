@@ -29,7 +29,15 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_dash.php';
 
-$userId   = (int)Auth::userId();
+$userId   = Biz::ownerId();
+
+// ⛔ همکاری که نه پول را می‌بیند نه سود را (فروشنده) داشبوردِ مالی نمی‌گیرد —
+//    موجودیِ صندوق و سودِ ماه برای او بسته است؛ فقط فروشِ خودش و کمبودِ انبار.
+if (!Biz::can('money') && !Biz::can('cost')) {
+    require __DIR__ . '/../includes/biz_seller_home.php';
+    return;
+}
+
 $settings = Biz::settings($userId);
 $today    = today();
 $mStart   = startOfJalaliMonth();

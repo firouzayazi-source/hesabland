@@ -79,6 +79,7 @@ const STORE_BUDGET = [
     'store/accounting.php'     => 12,
     'store/cash-count.php'     => 6,   // صندوق‌ها + شمارش‌های اخیر
     'store/payroll.php'        => 7,   // کارکنان با مانده + صندوق‌ها + گردش
+    'store/staff.php'          => 6,   // پوسته + همکاران (یک JOIN) + سنجشِ migration — فقط صاحبِ فروشگاه
 ];
 // ⚠ `errors.php` فقط برای مدیرِ نصب است؛ حسابِ فروشگاهیِ این تست فقط ۴۰۴ِ خنثی
 //   می‌گیرد (`test_store_errors`، قاعده ۷۵).

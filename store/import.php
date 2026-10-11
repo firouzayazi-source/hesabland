@@ -23,7 +23,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_migrate.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $self   = Biz::url('import.php');
 
 $send = static function (string $bytes, string $name, string $type): void {

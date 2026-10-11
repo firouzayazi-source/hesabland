@@ -19,7 +19,7 @@ require_once __DIR__ . '/../includes/biz_catalog.php';
 require_once __DIR__ . '/../includes/biz_docs.php';
 require_once __DIR__ . '/../includes/biz_invoice_design.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $self   = Biz::url('invoice-design.php');
 $ready  = BizInvoiceDesign::ready();
 

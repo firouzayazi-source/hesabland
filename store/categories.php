@@ -14,7 +14,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_catalog.php';
 
-$userId = (int)Auth::userId();
+$userId = Biz::ownerId();
 $self   = Biz::url('categories.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

@@ -157,6 +157,7 @@ const EXPECT = [
     'store/return.php'          => 'blocked',
     'store/sales.php'           => 'blocked',
     'store/account.php'         => 'blocked',
+    'store/staff.php'           => 'blocked',
     'store/accounting.php'      => 'blocked',
     'store/cash-count.php'      => 'blocked',
     'store/payroll.php'         => 'blocked',
