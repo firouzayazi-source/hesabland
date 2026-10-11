@@ -143,10 +143,13 @@ function buildTransactionFilter(int $userId, array $in, array $walletList): arra
 
     $conditions = ['t.user_id = :user_id'];
     $params     = ['user_id' => $userId];
+    $dateFrom   = '';
+    $dateTo     = '';
 
     if ($period === 'today') {
         $conditions[] = 't.transaction_date = :p_from';
         $params['p_from'] = today();
+        $dateFrom = $dateTo = today();
     } elseif ($period === 'week') {
         $conditions[] = 't.transaction_date BETWEEN :p_from AND :p_to';
         $params['p_from'] = startOfWeek();
@@ -165,9 +168,16 @@ function buildTransactionFilter(int $userId, array $in, array $walletList): arra
         $params['p_to']   = $toDate;
     }
 
+    if (isset($params['p_to'])) { $dateFrom = $params['p_from']; $dateTo = $params['p_to']; }
+
     if ($type === 'income' || $type === 'expense') {
         $conditions[] = 't.type = :type';
         $params['type'] = $type;
+    } elseif ($type === 'move') {
+        // ⛔ «وصول و پرداخت» فقط `moneyMoves()` است؛ هیچ تراکنشی در آن نیست.
+        $conditions[] = '1 = 0';
+    } else {
+        $type = 'all';
     }
 
     $searchSql = transactionSearchSql($search);
@@ -213,7 +223,137 @@ function buildTransactionFilter(int $userId, array $in, array $walletList): arra
         'to_date'     => $toDate,
         'wallet_id'   => $walletId,
         'wallet_name' => $walletName,
+        'date_from'   => $dateFrom,
+        'date_to'     => $dateTo,
     ];
+}
+
+/**
+ * ⛔ «وصول و پرداخت»: پولی که با طلب/بدهی و چک جابه‌جا شده — **تنها خواننده**.
+ *
+ * **گزارشِ مالکِ نصب (مهر ۱۴۰۵):** «۵ تومن از کسی طلب داشتم، ۱ تومن بهم داده؛
+ * از طلب کم می‌شه ولی توی تراکنش‌ها و گزارش‌ها نمیاد.»
+ *
+ * این‌ها عمداً ردیفِ `transactions` نیستند (وصولِ طلب درآمد نیست؛ با تراکنش
+ * شدن، گزارشِ درآمدِ ماه به اندازه‌ی کلِ وصول باد می‌کرد) و موجودیِ حساب از
+ * قبل حسابشان می‌کند (`walletBalances()`). پس اینجا **فقط خوانده** می‌شوند
+ * و کنارِ تراکنش‌ها نشان داده می‌شوند — با برچسبِ خودشان، نه درآمد/هزینه.
+ *
+ * ⚠ در PHP با فهرستِ تراکنش ادغام می‌شوند، نه با `UNION` در SQL: جدولِ
+ *   مشتق ایندکسِ `idx_user_date_created` را بی‌اثر می‌کرد و فهرستِ ۴۰تایی
+ *   کلِ تاریخچه را می‌خواند (`test_query_budget`). این دو جدول کوچک‌اند.
+ *
+ * دو منبع، هم‌شکلِ ردیفِ تراکنش (`move` = `debt`|`cheque`، `type` فقط برای
+ * علامت: `income` = آمد، `expense` = رفت):
+ *   - `debt_payments` (هر پرداخت، از جمله «تسویه شد»ِ باقیمانده)
+ *   - چکِ پاس‌شده (`status = 'cleared'`)، به تاریخِ پاس شدن
+ *
+ * @param array $f همان خروجیِ `buildTransactionFilter()`
+ * @param string $order `date` (فهرست) یا `created` (آخرین‌ها روی خانه)
+ * @return list<array<string,mixed>>
+ */
+function moneyMoves(int $userId, array $f = [], string $order = 'date', int $limit = 0): array
+{
+    $type = (string)($f['type'] ?? 'all');
+    if ($type === 'income' || $type === 'expense') { return []; }
+    $pdo = Database::getConnection();
+    $from   = (string)($f['date_from'] ?? '');
+    $to     = (string)($f['date_to'] ?? '');
+    $wallet = (int)($f['wallet_id'] ?? 0);
+    $search = (string)($f['search'] ?? '');
+    $like   = $search === '' ? '' : '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search) . '%';
+    $amount = $search === '' ? null : txSearchAmount($search);
+    $hasWallet = tableExists('wallets');
+    $out = [];
+
+    $where = function (string $date, string $walletCol, string $name, string $note, string $amt, string $p) use ($from, $to, $wallet, $like, $amount): array {
+        $c = []; $b = [];
+        if ($from !== '') { $c[] = "{$date} BETWEEN :{$p}f AND :{$p}t"; $b["{$p}f"] = $from; $b["{$p}t"] = $to; }
+        if ($wallet > 0)  { $c[] = "{$walletCol} = :{$p}w"; $b["{$p}w"] = $wallet; }
+        if ($like !== '') {
+            $s = ["{$name} LIKE :{$p}q1 ESCAPE '!'", "{$note} LIKE :{$p}q2 ESCAPE '!'"];
+            $b["{$p}q1"] = $like; $b["{$p}q2"] = $like;
+            if ($amount !== null) { $s[] = "{$amt} = :{$p}qa"; $b["{$p}qa"] = $amount; }
+            $c[] = '(' . implode(' OR ', $s) . ')';
+        }
+        return [$c ? ' AND ' . implode(' AND ', $c) : '', $b];
+    };
+
+    if (tableExists('debt_payments') && tableHasColumn('debt_payments', 'wallet_id')) {
+        [$w, $b] = $where('dp.payment_date', 'dp.wallet_id', 'd.counterparty_name', 'dp.note', 'dp.amount', 'd');
+        $st = $pdo->prepare('
+            SELECT dp.id, dp.amount, dp.note, dp.payment_date AS transaction_date, dp.created_at,
+                   dp.wallet_id, d.id AS ref_id, d.direction, d.counterparty_name' .
+                   ($hasWallet ? ', wl.name AS wallet_name' : ", NULL AS wallet_name") . '
+            FROM debt_payments dp
+            JOIN debts d ON d.id = dp.debt_id AND d.user_id = dp.user_id' .
+            ($hasWallet ? ' LEFT JOIN wallets wl ON wl.id = dp.wallet_id' : '') . '
+            WHERE dp.user_id = :du' . $w);
+        $st->execute(['du' => $userId] + $b);
+        foreach ($st->fetchAll() as $r) {
+            $in = $r['direction'] === 'receivable';
+            $out[] = $r + [
+                'move'  => 'debt',
+                'type'  => $in ? 'income' : 'expense',
+                'title' => ($in ? 'وصولِ طلب از ' : 'پرداختِ بدهی به ') . $r['counterparty_name'],
+                'label' => $in ? 'وصولِ طلب' : 'پرداختِ بدهی',
+            ];
+        }
+    }
+
+    if (tableExists('cheques') && tableHasColumn('cheques', 'settle_wallet_id') && tableHasColumn('cheques', 'status')) {
+        [$w, $b] = $where('DATE(ch.settled_at)', 'ch.settle_wallet_id', 'ch.counterparty_name', 'ch.note', 'ch.amount', 'c');
+        $st = $pdo->prepare('
+            SELECT ch.id, ch.amount, ch.note, DATE(ch.settled_at) AS transaction_date, ch.settled_at AS created_at,
+                   ch.settle_wallet_id AS wallet_id, ch.id AS ref_id, ch.direction, ch.counterparty_name' .
+                   ($hasWallet ? ', wl.name AS wallet_name' : ", NULL AS wallet_name") . '
+            FROM cheques ch' .
+            ($hasWallet ? ' LEFT JOIN wallets wl ON wl.id = ch.settle_wallet_id' : '') . "
+            WHERE ch.user_id = :cu AND ch.status = 'cleared' AND ch.settled_at IS NOT NULL" . $w);
+        $st->execute(['cu' => $userId] + $b);
+        foreach ($st->fetchAll() as $r) {
+            $in = $r['direction'] === 'received';
+            $out[] = $r + [
+                'move'  => 'cheque',
+                'type'  => $in ? 'income' : 'expense',
+                'title' => ($in ? 'پاس شدنِ چکِ ' : 'پاس شدنِ چک به ') . $r['counterparty_name'],
+                'label' => $in ? 'وصولِ چکِ دریافتی' : 'پاس شدنِ چکِ صادره',
+            ];
+        }
+    }
+
+    usort($out, $order === 'created'
+        ? fn($a, $b) => strcmp((string)$b['created_at'], (string)$a['created_at'])
+        : fn($a, $b) => [$b['transaction_date'], $b['created_at']] <=> [$a['transaction_date'], $a['created_at']]);
+    return $limit > 0 ? array_slice($out, 0, $limit) : $out;
+}
+
+/** جمعِ «آمد» و «رفت»ِ وصول و پرداخت در یک بازه — برای گزارش (درآمد/هزینه نیست). */
+function moneyMovesTotals(int $userId, string $from, string $to): array
+{
+    $in = 0; $out = 0; $n = 0;
+    foreach (moneyMoves($userId, ['date_from' => $from, 'date_to' => $to]) as $m) {
+        $n++;
+        if ($m['type'] === 'income') { $in += (int)$m['amount']; } else { $out += (int)$m['amount']; }
+    }
+    return ['in' => $in, 'out' => $out, 'count' => $n];
+}
+
+/**
+ * یک صفحه از فهرستِ ادغام‌شده‌ی تراکنش و «وصول و پرداخت»، به ترتیبِ تاریخ.
+ *
+ * ⚠ تراکنش‌ها `LIMIT offset+perPage` از اول خوانده می‌شوند (همان ایندکس،
+ *   همان هزینه‌ی `OFFSET`) و با همه‌ی جابه‌جایی‌های همان صافی مرتب و بریده
+ *   می‌شوند — پس صفحه‌ی بعد هیچ ردیفی را تکرار یا جا نمی‌اندازد.
+ *
+ * @param callable(int $limit): array $fetchTx تراکنش‌ها، مرتب به تاریخ و زمانِ ثبت (نزولی)
+ */
+function txMergePage(callable $fetchTx, array $moves, int $offset, int $perPage): array
+{
+    $rows = array_merge($fetchTx($offset + $perPage), $moves);
+    usort($rows, fn($a, $b) => [$b['transaction_date'], (string)($b['created_at'] ?? '')]
+                            <=> [$a['transaction_date'], (string)($a['created_at'] ?? '')]);
+    return array_slice($rows, $offset, $perPage);
 }
 
 /** حساب‌های کاربر — یا آرایه‌ی خالی اگر جدولش هنوز با migration نیامده. */
@@ -264,6 +404,16 @@ function txCsvQuery(int $userId, array $input): PDOStatement
 }
 
 /**
+ * «وصول و پرداخت»ِ همان صافی‌های خروجی، به ترتیبِ صعودی (همان ترتیبِ `txCsvQuery()`).
+ * ⛔ فایل همان چیزی است که صفحه نشان می‌دهد — بی این، وصولِ طلب روی صفحه بود و در اکسل نه.
+ */
+function txCsvMoves(int $userId, array $input): array
+{
+    $filter = buildTransactionFilter($userId, $input, txWalletList($userId));
+    return array_reverse(moneyMoves($userId, $filter));
+}
+
+/**
  * ⛔ متنِ کاربر با `=`/`+`/`-`/`@` در اکسل **فرمول** می‌شود (عنوانِ
  *    «=HYPERLINK(…)» یک پیوندِ زنده در فایلِ دانلودشده). همان سدِ
  *    `BizSheet::writeCsv()`: یک `'` جلویش.
@@ -274,7 +424,7 @@ function txCsvCell(string $v): string
 }
 
 /** سرآیندها + BOM + ردیف‌ها، یکی‌یکی (نه `fetchAll()`). */
-function txCsvStream(PDOStatement $stmt): void
+function txCsvStream(PDOStatement $stmt, array $moves = []): void
 {
     // ⛔ گزیپی که `db.php` روشن می‌کند باید پیش از فرستادنِ فایل بسته شود،
     //    وگرنه چیزی که ذخیره می‌شود دوبار فشرده است و باز نمی‌شود. همان
@@ -303,13 +453,25 @@ function txCsvStream(PDOStatement $stmt): void
 
     fputcsv($out, ['تاریخ', 'تاریخ میلادی', 'نوع', 'دسته‌بندی', 'حساب', 'عنوان', 'یادداشت', 'مبلغ (تومان)']);
 
-    while ($row = $stmt->fetch()) {
+    // ادغامِ دو فهرستِ صعودی: ردیف‌های پایگاه یکی‌یکی (نه `fetchAll()`)، جابه‌جایی‌ها از حافظه
+    $next = static function () use ($stmt, &$moves) {
+        static $row = null, $done = false;
+        if ($row === null && !$done) { $row = $stmt->fetch() ?: null; $done = $row === null; }
+        $m = $moves[0] ?? null;
+        if ($row !== null && ($m === null || $row['transaction_date'] <= $m['transaction_date'])) {
+            $r = $row; $row = null; return $r;
+        }
+        if ($m !== null) { array_shift($moves); return $m; }
+        return null;
+    };
+    while ($row = $next()) {
         fputcsv($out, [
             // تاریخِ شمسی برای خواندن، میلادی برای مرتب‌سازی و فرمولِ اکسل —
             // ⚠ هر دو با ارقامِ لاتین، وگرنه اکسل ستون را متن می‌بیند.
             str_replace('/', '-', toLatinDigits(toJalali($row['transaction_date']))),
             $row['transaction_date'],
-            $row['type'] === 'income' ? 'درآمد' : 'هزینه',
+            // ⛔ وصول/پرداخت با نامِ خودش — جمعِ «درآمد» در اکسل نباید آن را بگیرد
+            !empty($row['move']) ? (string)$row['label'] : ($row['type'] === 'income' ? 'درآمد' : 'هزینه'),
             txCsvCell((string)($row['category_name'] ?? '')),
             txCsvCell((string)($row['wallet_name'] ?? '')),
             txCsvCell((string)$row['title']),

@@ -25,12 +25,14 @@ if ($fromDate > $toDate) {
 }
 
 try {
-    $stmt = txCsvQuery($userId, ['period' => 'custom', 'from_date' => $fromDate, 'to_date' => $toDate]);
+    $range = ['period' => 'custom', 'from_date' => $fromDate, 'to_date' => $toDate];
+    $stmt  = txCsvQuery($userId, $range);
+    $moves = txCsvMoves($userId, $range);
     Audit::log('data.exported', 'transactions_csv', null, ['kind' => 'csv']);
 } catch (Throwable $e) {
     Log::error('export_csv', $e);
     redirectWithMessage('data.php', 'error', 'خروجی گرفته نشد. اگر تکرار شد به پشتیبانی خبر بدهید.');
 }
 
-txCsvStream($stmt);
+txCsvStream($stmt, $moves);
 exit;

@@ -57,6 +57,10 @@ if ($fromDate > $toDate) {
 }
 
 $rangeStats = getPeriodStats($dailyRows, $fromDate, $toDate);
+// ⛔ وصولِ طلب/چک و پرداختِ بدهی/چک جدا از درآمد و هزینه (`moneyMovesTotals()`):
+//    پول آمده و رفته، ولی «سودِ خالص» را تکان نمی‌دهد.
+require_once __DIR__ . '/includes/tx_query.php';
+$rangeMoves = moneyMovesTotals($userId, $fromDate, $toDate);
 
 $incomeCount = 0; $expenseCount = 0;
 foreach ($dailyRows as $row) {
@@ -207,9 +211,16 @@ renderMonthComparisonCard($comparison, $insights);
         <div class="summary-box"><div class="label">سود خالص</div><div class="value <?= $rangeStats['net'] >= 0 ? 'stats-net-positive' : 'stats-net-negative' ?>"><?= formatMoney($rangeStats['net']) ?></div></div>
         <div class="summary-box"><div class="label">تعداد درآمدها</div><div class="value"><?= toPersianDigits($incomeCount) ?></div></div>
         <div class="summary-box"><div class="label">تعداد هزینه‌ها</div><div class="value"><?= toPersianDigits($expenseCount) ?></div></div>
+        <?php if ($rangeMoves['count'] > 0): ?>
+        <div class="summary-box"><div class="label">دریافت از طلب و چک</div><div class="value stats-income"><?= formatMoney($rangeMoves['in']) ?></div></div>
+        <div class="summary-box"><div class="label">پرداختِ بدهی و چک</div><div class="value stats-expense"><?= formatMoney($rangeMoves['out']) ?></div></div>
+        <?php endif; ?>
     </div>
+    <?php if ($rangeMoves['count'] > 0): ?>
+    <p class="hint">وصولِ طلب، پرداختِ بدهی و چکِ پاس‌شده پولِ حساب را جابه‌جا کرده‌اند ولی درآمد یا هزینه نیستند، پس در «سود خالص» نمی‌آیند. فهرستشان: <a href="<?= h(APP_BASE_PATH) ?>/transactions.php?type=move&amp;period=custom&amp;from_date=<?= urlencode($fromDate) ?>&amp;to_date=<?= urlencode($toDate) ?>">وصول و پرداخت</a></p>
+    <?php endif; ?>
 
-    <?php if (empty($rangeDailyRows)): ?>
+    <?php if (empty($rangeDailyRows) && $rangeMoves['count'] === 0): ?>
         <p style="text-align:center; color:var(--color-gray-500); padding:20px 0;">برای این بازه تراکنشی ثبت نشده است.</p>
     <?php endif; ?>
     </div>

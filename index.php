@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/home_calendar.php';
+require_once __DIR__ . '/includes/tx_query.php';
 
 Auth::initSession();
 Auth::requireLogin();
@@ -24,7 +25,7 @@ $incomeCategories  = array_filter($categories, fn($c) => $c['type'] === 'income'
 $expenseCategories = array_filter($categories, fn($c) => $c['type'] === 'expense');
 
 $recentStmt = $pdo->prepare('
-    SELECT t.id, t.type, t.amount, t.title, t.note, t.transaction_date, t.category_id,
+    SELECT t.id, t.type, t.amount, t.title, t.note, t.transaction_date, t.created_at, t.category_id,
            c.name AS category_name, c.icon AS cat_icon, c.color AS cat_color' . txStoreShareCols() . '
     FROM transactions t
     LEFT JOIN categories c ON c.id = t.category_id
@@ -33,7 +34,10 @@ $recentStmt = $pdo->prepare('
     LIMIT 8
 ');
 $recentStmt->execute(['user_id' => $userId]);
-$recentTransactions = $recentStmt->fetchAll();
+// ⛔ وصولِ طلب و چکِ پاس‌شده هم «آخرین جابه‌جایی»اند (`moneyMoves()`)، به ترتیبِ ثبت.
+$recentTransactions = array_merge($recentStmt->fetchAll(), moneyMoves($userId, [], 'created', 8));
+usort($recentTransactions, fn($a, $b) => strcmp((string)$b['created_at'], (string)$a['created_at']));
+$recentTransactions = array_slice($recentTransactions, 0, 8);
 
 // آمار ماه جاری برای نوار مانده بالای صفحه.
 // ⛔ از `monthComparison()` می‌آید، نه یک کوئریِ جدا: همان تابع جمعِ

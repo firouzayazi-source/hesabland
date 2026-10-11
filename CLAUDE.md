@@ -286,7 +286,7 @@ sudo ./hesabland release     # همان abc1234 — و فقط همان — رو�
 
 ### `docs/decisions/money.md` — حساب، دسته، چک، قسط، دارایی، معاملات
 - **تنها مرجع‌ها:** `walletBalances()` (هفت منبعِ پول)، `resolveWalletId()`/`defaultWalletId()` (هیچ پولی بی‌حساب نمی‌ماند)، `categoryScopeSql()`/`categoryScopeParams()` (`NULL` = پیش‌فرضِ برنامه)، `chequeActiveSql()`، `debtInstallments()`، `assetSummaryRows()`، `tradesWithProgress()`، `mergeWallet()`، `privatizeDefaultCategory()`، `mergeCategories()` (فقط از `user-admin.php --merge-categories`)، `includes/trade_credit.php`.
-- وصولِ طلب، چکِ پاس‌شده، تعدیلِ موجودی، انتقال و تسویه‌ی سهامدار **ردیفِ `transactions` نمی‌سازند** (درآمد/هزینه نیستند). سودِ معامله تراکنشِ **بی‌حساب** است.
+- وصولِ طلب، چکِ پاس‌شده، تعدیلِ موجودی، انتقال و تسویه‌ی سهامدار **ردیفِ `transactions` نمی‌سازند** (درآمد/هزینه نیستند). سودِ معامله تراکنشِ **بی‌حساب** است. ولی وصول/پرداختِ طلب و بدهی و چکِ پاس‌شده **دیده می‌شوند**: فقط `moneyMoves()` (فهرستِ تراکنش‌ها با صافیِ «وصول و پرداخت»، خانه، اکسل، گزارشِ بازه)، با ردیفِ خودش (`renderMoneyMoveRow()`) و هرگز در جمعِ درآمد/هزینه.
 - `is_settled = 1 ⇔ status = 'cleared'`؛ چکِ برگشتی/خرج‌شده «در جریان» نیست (وگرنه دوبار شمرده می‌شود). چکِ دریافتیِ برگشتی خودکار طلب می‌شود.
 - قسط ردیفِ ذخیره‌شده ندارد؛ باقیمانده‌ی تقسیم به قسطِ آخر؛ «پرداخت‌شده» از جمعِ پرداخت نه تاریخ، و مانده‌ی هر قسط `remaining` (نه `amount`)؛ بدهیِ قسطی یک بار شمرده شود. `debts.due_date` `NULL` = «بدون سررسید» (نه امروز). مبلغِ بدهی هرگز کمتر از پرداخت‌شده؛ جمعِ مانده با `GREATEST(CAST…)`.
 - **سری‌ها با لنگر:** `advanceRecurringDate(…, jalaliDayOfDate(start_date))` و `jalaliAddMonths()` — هرگز بی‌لنگر (۳۱→۳۰ همیشگی). تولیدِ خودکارِ دوره‌ای اول سررسید را **شرطی** جلو می‌برد؛ حساب از `resolveWalletId()`.

@@ -34,26 +34,31 @@ $perPage = 40;
 $page = max(1, (int)getParam('p', '1'));
 $offset = ($page - 1) * $perPage;
 
+// ⛔ وصولِ طلب، پرداختِ بدهی و چکِ پاس‌شده کنارِ تراکنش‌ها (`moneyMoves()`) —
+//    پول جابه‌جا شده و کاربر باید ببیندش، ولی درآمد/هزینه نیست.
+$moves = moneyMoves($userId, $filter);
+
 $countJoin = $filter['count_join'];
 $countStmt = $pdo->prepare("SELECT COUNT(*) AS cnt FROM transactions t $countJoin $whereClause");
 $countStmt->execute($params);
-$totalRows = (int)$countStmt->fetch()['cnt'];
+$txRows    = (int)$countStmt->fetch()['cnt'];
+$totalRows = $txRows + count($moves);
 $totalPages = max(1, (int)ceil($totalRows / $perPage));
 if ($page > $totalPages) { $page = $totalPages; $offset = ($page - 1) * $perPage; }
 
-$sql = "
-    SELECT t.id, t.type, t.amount, t.title, t.note, t.transaction_date, t.created_at, t.category_id,
-           c.name AS category_name, c.icon AS cat_icon, c.color AS cat_color" . txStoreShareCols() . "
-    FROM transactions t
-    LEFT JOIN categories c ON c.id = t.category_id
-    $whereClause
-    ORDER BY t.transaction_date DESC, t.created_at DESC
-    LIMIT $perPage OFFSET $offset
-";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$transactions = $stmt->fetchAll();
+$transactions = txMergePage(function (int $limit) use ($pdo, $whereClause, $params, $txRows): array {
+    if ($txRows === 0) { return []; }
+    $stmt = $pdo->prepare("
+        SELECT t.id, t.type, t.amount, t.title, t.note, t.transaction_date, t.created_at, t.category_id,
+               c.name AS category_name, c.icon AS cat_icon, c.color AS cat_color" . txStoreShareCols() . "
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.category_id
+        $whereClause
+        ORDER BY t.transaction_date DESC, t.created_at DESC
+        LIMIT " . (int)$limit);
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}, $moves, $offset, $perPage);
 
 $categories = cachedCategories();
 $incomeCategories  = array_filter($categories, fn($c) => $c['type'] === 'income');
@@ -98,6 +103,7 @@ include __DIR__ . '/includes/header.php';
                 <div class="seg-item <?= $type === 'all' ? 'active' : '' ?>" data-group="type" data-filter="all">همه</div>
                 <div class="seg-item <?= $type === 'income' ? 'active' : '' ?>" data-group="type" data-filter="income">درآمد</div>
                 <div class="seg-item <?= $type === 'expense' ? 'active' : '' ?>" data-group="type" data-filter="expense">هزینه</div>
+                <div class="seg-item <?= $type === 'move' ? 'active' : '' ?>" data-group="type" data-filter="move" title="وصولِ طلب، پرداختِ بدهی و چکِ پاس‌شده — درآمد یا هزینه نیستند">وصول و پرداخت</div>
             </div>
             <div class="search-inline">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>

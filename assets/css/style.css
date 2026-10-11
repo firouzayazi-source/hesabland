@@ -5996,3 +5996,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .tx-store-src { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .tx-store-tag { font-weight: 600; color: var(--ink); }
+
+/* ⛔ «وصول و پرداخت» در فهرستِ تراکنش (`renderMoneyMoveRow()`): پول جابه‌جا شده
+   ولی درآمد/هزینه نیست — آیکنِ خنثی و برچسبِ صریح تا با تراکنش اشتباه نشود. */
+.cat-icon-move { --cat-bg: var(--line-soft); background: var(--line-soft); color: var(--muted); }
+.tx-move-tag {
+    display: inline-block; padding: 0 7px; border-radius: 999px;
+    background: var(--line-soft); color: var(--ink); font-size: 11px; font-weight: 600;
+}

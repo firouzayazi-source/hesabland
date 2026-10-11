@@ -37,11 +37,12 @@ $userId = Auth::userId();
 $pdo    = Database::getConnection();
 
 try {
-    $stmt = txCsvQuery($userId, $_POST);
+    $stmt  = txCsvQuery($userId, $_POST);
+    $moves = txCsvMoves($userId, $_POST);
     Audit::log('data.exported', 'transactions_csv', null, ['kind' => 'csv']);
 } catch (Throwable $e) {
     Log::error('api.export_csv', $e);
     failJsonOrRedirect('خروجی گرفته نشد. اگر تکرار شد به پشتیبانی خبر بدهید.', 500, '../transactions.php');
 }
 
-txCsvStream($stmt);
+txCsvStream($stmt, $moves);

@@ -4625,6 +4625,7 @@ function storeShareMarkSvg(int $size = 22): string
 
 function renderTransactionRow(array $tx): void
 {
+    if (!empty($tx['move'])) { renderMoneyMoveRow($tx); return; }
     $icon  = categoryIconSvg($tx['cat_icon'] ?? null);
     $color = !empty($tx['cat_color']) ? $tx['cat_color'] : '#64748b';
     $__ss  = !empty($tx['store_share_ref']) && array_key_exists('store_share_edited', $tx);
@@ -4705,6 +4706,47 @@ function renderTransactionRow(array $tx): void
  * لیست تراکنش‌ها را بر اساس روز گروه‌بندی و رندر می‌کند،
  * با نمایش تاریخ شمسی و جمع خالص همان روز در سربرگ هر گروه.
  */
+/**
+ * ⛔ ردیفِ «وصول و پرداخت» (`moneyMoves()`): پولی که با طلب/بدهی یا چک آمد و رفت.
+ *    شکلِ ردیفِ تراکنش را دارد ولی **ویرایش/حذف/پیوست ندارد** — منبعش پرداختِ
+ *    طلب یا چک است و فقط همان‌جا عوض می‌شود (وگرنه دو جا یک پول را عوض می‌کردند).
+ *    برچسبِ «درآمد/هزینه نیست» صریح است تا کسی جمعِ ماه را با آن اشتباه نگیرد.
+ */
+function renderMoneyMoveRow(array $m): void
+{
+    $in   = $m['type'] === 'income';
+    $href = APP_BASE_PATH . ($m['move'] === 'cheque' ? '/cheques.php?view=archive' : '/debts.php');
+    $icon = $m['move'] === 'cheque'
+        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 14h6M15 14h3"/></svg>'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>';
+    ?>
+    <div class="tx-row is-move" data-move="<?= h($m['move']) ?>">
+        <div class="tx-row-summary">
+            <span class="tx-row-icon-wrap">
+                <span class="cat-icon cat-icon-move"><?= $icon ?></span>
+                <span class="tx-row-texts">
+                    <span class="tx-row-title"><?= h($m['title']) ?></span>
+                    <span class="tx-row-cat"><span class="tx-move-tag"><?= h($m['label']) ?></span><?= !empty($m['wallet_name']) ? ' · ' . h($m['wallet_name']) : '' ?></span>
+                </span>
+            </span>
+            <span class="tx-row-amount amount-<?= $in ? 'income' : 'expense' ?>"><?= $in ? '+' : '−' ?><?= formatMoney($m['amount']) ?></span>
+            <span class="tx-row-chevron">▾</span>
+        </div>
+        <div class="tx-row-details">
+            <div class="tx-row-details-line"><span>نوع</span><span><?= h($m['label']) ?> — درآمد یا هزینه نیست</span></div>
+            <div class="tx-row-details-line"><span>تاریخ</span><span><?= toJalali($m['transaction_date']) ?></span></div>
+            <div class="tx-row-details-line"><span>حساب</span><span><?= !empty($m['wallet_name']) ? h($m['wallet_name']) : 'بی‌حساب' ?></span></div>
+            <?php if (!empty($m['note'])): ?>
+                <div class="tx-row-details-line"><span>توضیح</span><span><?= h($m['note']) ?></span></div>
+            <?php endif; ?>
+            <div class="tx-row-actions">
+                <a class="btn btn-secondary btn-sm" href="<?= h($href) ?>"><?= $m['move'] === 'cheque' ? 'باز کردن در چک‌ها' : 'باز کردن در طلب و بدهی' ?></a>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
 function renderTransactionsGrouped(array $transactions): void
 {
     if (empty($transactions)) {
