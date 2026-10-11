@@ -102,8 +102,8 @@ final class BizDocView
     /** صندوق‌های فعال. */
     public static function accounts(int $userId): array
     {
-        // ⛔ صندوقِ چک انتخاب‌شدنی نیست؛ چک فقط از روشِ «چک» به آن می‌رسد
-        return array_values(array_filter(BizCash::list($userId), fn($a) => (int)$a['is_active'] === 1 && !BizCash::isCheque($a)));
+        // ⛔ صندوقِ چک و تهاتر انتخاب‌شدنی نیست؛ چک فقط از روشِ «چک» و تهاتر فقط از معاوضه
+        return array_values(array_filter(BizCash::list($userId), fn($a) => (int)$a['is_active'] === 1 && !BizCash::isSystem($a)));
     }
 
     /**

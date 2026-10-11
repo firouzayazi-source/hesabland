@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $accounts = BizCash::list($userId);
 if ($editAcc > 0 && $error === '') {
     foreach ($accounts as $a) {
-        if ((int)$a['id'] === $editAcc && !BizCash::isCheque($a)) {
+        if ((int)$a['id'] === $editAcc && !BizCash::isSystem($a)) {
             $form = ['name' => $a['name'], 'kind' => $a['kind'], 'opening_balance' => (string)(int)$a['opening_balance']];
         }
     }
@@ -62,7 +62,7 @@ require __DIR__ . '/../includes/biz_head.php';
 </div>
 
 <div class="st-acc-grid">
-    <?php foreach ($accounts as $a): $on = (int)$a['is_active'] === 1; $b = (int)$a['balance']; $chq = BizCash::isCheque($a); ?>
+    <?php foreach ($accounts as $a): $on = (int)$a['is_active'] === 1; $b = (int)$a['balance']; $chq = BizCash::isSystem($a); ?>
     <section class="st-card st-acc<?= $on ? '' : ' is-inactive' ?>">
         <div class="st-card-head">
             <h2 class="st-h3"><?= h($a['name']) ?></h2>
@@ -85,7 +85,7 @@ require __DIR__ . '/../includes/biz_head.php';
             </form>
             <?php endif; ?>
         </div>
-        <?php if ($chq): ?><p class="st-muted st-acc-note">چک‌های در جریان؛ در جمعِ موجودی نیست تا وصول شود.</p><?php endif; ?>
+        <?php if ($chq): ?><p class="st-muted st-acc-note"><?= BizCash::isCheque($a) ? 'چک‌های در جریان؛ در جمعِ موجودی نیست تا وصول شود.' : 'سیستمی: پول‌آمد و پول‌رفتِ هم‌مبلغِ معاوضه؛ موجودی‌اش همیشه صفر است.' ?></p><?php endif; ?>
     </section>
     <?php endforeach; ?>
 </div>

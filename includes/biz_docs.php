@@ -1294,6 +1294,11 @@ final class BizPay
         if (BizCash::isCheque($a) && $chq === null && !$settle && !$reverse && !($endorse && $a['kind'] === BizCash::CHEQUE_KINDS['in'])) {
             return ['ok' => false, 'message' => 'صندوقِ چک را خودِ برنامه پر و خالی می‌کند — از صفحه‌ی «چک‌ها» وصول کنید.'];
         }
+        // ⛔ صندوقِ تهاتر فقط از معاوضه (`BizTradeIn`، پرچمِ داخلیِ `_trade_in` — هرگز از فرم)؛
+        //    سندِ دستی رویش موجودیِ همیشه‌صفرش را می‌شکست.
+        if ((string)$a['kind'] === BizCash::CLEARING_KIND && empty($in['_trade_in'])) {
+            return ['ok' => false, 'message' => 'صندوقِ «تهاتر» را خودِ برنامه هنگامِ معاوضه پر و خالی می‌کند.'];
+        }
 
         if ($kind === 'transfer') {
             $accOk->execute(['id' => $to, 'u' => $userId]);
@@ -1301,6 +1306,9 @@ final class BizPay
             if ($to === $acc || $t === false || (int)$t['is_active'] !== 1) { return ['ok' => false, 'message' => 'صندوقِ مقصد باید فعال و متفاوت باشد.']; }
             if (BizCash::isCheque($t) && !$settle) {
                 return ['ok' => false, 'message' => 'صندوقِ چک را خودِ برنامه پر و خالی می‌کند — از صفحه‌ی «چک‌ها» وصول کنید.'];
+            }
+            if ((string)$t['kind'] === BizCash::CLEARING_KIND) {
+                return ['ok' => false, 'message' => 'صندوقِ «تهاتر» را خودِ برنامه هنگامِ معاوضه پر و خالی می‌کند.'];
             }
             $party = 0; $invId = 0;
         } else {

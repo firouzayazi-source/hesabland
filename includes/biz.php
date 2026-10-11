@@ -86,6 +86,7 @@ final class Biz
                        'products.php' => 'محصولات و موجودی', 'categories.php' => 'دسته‌بندی‌ها', 'parties.php' => 'مشتریان و تأمین‌کنندگان',
                        'repairs.php' => 'تعمیرات و گارانتی'],
         'مالی'     => ['payments.php' => 'دریافت و پرداخت', 'accounts.php' => 'صندوق و بانک', 'cheques.php' => 'چک‌ها',
+                       'installments.php' => 'اقساطِ مشتریان',
                        'payroll.php' => 'حقوق و مساعده'],
         'گزارش‌ها' => ['reports.php' => 'گزارش‌ها و چاپ', 'accounting.php' => 'دفاتر و مالیات'],
         'سیستم'    => ['settings.php' => 'تنظیمات فروشگاه', 'invoice-design.php' => 'طراحی فاکتور', 'print-settings.php' => 'تنظیمات چاپ',
@@ -318,6 +319,7 @@ final class Biz
             'cheques.php'        => '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 14h5"/><path d="M15 11h3"/><path d="M15 14h3"/>',
             'payroll.php'        => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5 1.6 0 3 .5 4.1 1.3"/><path d="M18 13v8M15.5 15h3.7a1.3 1.3 0 0 1 0 2.6h-2.4a1.3 1.3 0 0 0 0 2.6h3.7"/>',
             'accounting.php'     => '<path d="M5 3h11l3 3v15H5z"/><path d="M12 3v18"/><path d="M8 8h1M8 12h1M8 16h1M15 8h1M15 12h1M15 16h1"/>',
+            'installments.php'   => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 15h2M14 15h2"/>',
             'repairs.php'        => '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.5 17.5a1.5 1.5 0 0 0 2.1 2.1l5.8-5.8a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.1-.6-.6-2.1z"/>',
             'staff.php'          => '<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M14 19.5a4 4 0 0 1 7.5-1.9"/>',
             'categories.php'     => '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
@@ -654,7 +656,7 @@ final class Biz
         'payroll.php' => 'payroll', 'reports.php' => 'reports', 'accounting.php' => 'accounting',
         'settings.php' => 'settings', 'invoice-design.php' => 'settings', 'print-settings.php' => 'settings',
         'import.php' => 'settings', 'products-io.php' => 'settings', 'staff.php' => 'staff',
-        'repairs.php' => 'repairs', 'repair.php' => 'repairs',
+        'repairs.php' => 'repairs', 'repair.php' => 'repairs', 'installments.php' => 'receive',
     ];
 
     /**

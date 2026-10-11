@@ -35,6 +35,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verifyOrFail(postParam('csrf_token'));
     $action = postParam('action');
     if (in_array($action, ['void', 'unissue'], true)) { Biz::requireCap('void'); }
+    // ⛔ اقساط فقط زمان‌بندی است و معاوضه خریدِ واقعی + تهاترِ جفت (`biz_sales_ext.php`)
+    if (in_array($action, ['plan', 'plan_delete', 'tradein'], true)) {
+        require_once __DIR__ . '/../includes/biz_sales_ext.php';
+        Biz::requireCap($action === 'tradein' ? 'buy' : 'receive');
+        if ($action === 'plan') {
+            $fd = BizDocView::docDate(postParam('first_due'), 'سررسیدِ قسطِ اول', true);
+            $r = $fd['ok'] ? BizInstallments::plan($userId, $id, (int)toLatinDigits(postParam('count')), $fd['date'], postParam('every'))
+                           : ['ok' => false, 'message' => $fd['message']];
+        } elseif ($action === 'plan_delete') {
+            BizInstallments::remove($userId, $id);
+            $r = ['ok' => true, 'message' => 'برنامه‌ی اقساط برداشته شد (فاکتور و دریافت‌ها دست نخوردند).'];
+        } else {
+            $r = BizTradeIn::run($userId, $id, ['product_id' => (int)postParam('ti_product'), 'new_name' => postParam('ti_name'),
+                                                'imei' => postParam('ti_imei'), 'value' => postParam('ti_value')]);
+        }
+        redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
+    }
     if ($action === 'void') {
         $r = BizInvoices::void($userId, $id);
     } elseif ($action === 'unissue') {
@@ -184,6 +201,72 @@ require __DIR__ . '/../includes/biz_head.php';
     </section>
     <?php endif; ?>
 </div>
+
+<?php if ($inv['kind'] === 'sale' && $inv['status'] === 'issued' && $inv['party_id'] !== null):
+    require_once __DIR__ . '/../includes/biz_sales_ext.php';
+    $sched = BizInstallments::schedule($userId, $id);
+    $canPlan = $remain > 0 && Biz::can('receive') && BizInstallments::ready(); ?>
+<?php if ($sched || $canPlan): ?>
+<section class="st-card" id="installments">
+    <h2 class="st-h2">اقساط</h2>
+    <?php if ($sched): ?>
+    <div class="st-table-wrap">
+        <table class="st-table st-table-compact">
+            <thead><tr><th>قسط</th><th>سررسید</th><th class="st-th-num">مبلغ</th><th class="st-th-num">پرداخت‌شده</th><th>وضعیت</th></tr></thead>
+            <tbody>
+            <?php foreach ($sched as $q): ?>
+                <tr class="<?= $q['state'] === 'paid' ? 'is-inactive' : '' ?>">
+                    <td><span class="st-num"><?= toPersianDigits((string)$q['seq']) ?></span></td>
+                    <td><span class="st-num"><?= h(toJalali($q['due_date'])) ?></span></td>
+                    <td class="st-td-num"><?= BizDocView::money($q['amount']) ?></td>
+                    <td class="st-td-num"><?= BizDocView::money($q['paid']) ?></td>
+                    <td><span class="st-pill is-inst-<?= h($q['state']) ?>"><?= h(BizInstallments::STATES[$q['state']]) ?></span></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <p class="st-muted">هر دریافت از همین مشتری (از «ثبتِ دریافت») به ترتیبِ سررسید قسط‌ها را پر می‌کند.</p>
+    <?php if (Biz::can('receive')): ?>
+    <form method="post" action="<?= h($self) ?>" onsubmit="return confirm('برنامه‌ی اقساط برداشته شود؟ فاکتور و دریافت‌ها دست نمی‌خورند.');">
+        <?= Csrf::field() ?><input type="hidden" name="action" value="plan_delete">
+        <button type="submit" class="st-link-btn st-link-danger">برداشتنِ برنامه</button>
+    </form>
+    <?php endif; ?>
+    <?php elseif ($canPlan): ?>
+    <form method="post" class="st-inline-form" action="<?= h($self) ?>">
+        <?= Csrf::field() ?><input type="hidden" name="action" value="plan">
+        <label class="st-field st-field-sm"><span>تعدادِ قسط</span><input type="text" name="count" inputmode="numeric" dir="ltr" required value="۶"></label>
+        <label class="st-field st-field-sm"><span>قسطِ اول</span><input type="text" name="first_due" dir="ltr" required value="<?= h(BizDocView::jDate(date('Y-m-d', strtotime('+1 month')))) ?>"></label>
+        <label class="st-field st-field-sm"><span>فاصله</span><select name="every"><?php foreach (BizInstallments::EVERY as $ek => $el): ?><option value="<?= h($ek) ?>"><?= h($el) ?></option><?php endforeach; ?></select></label>
+        <button type="submit" class="st-btn st-btn-ghost">ساختِ اقساط</button>
+    </form>
+    <p class="st-muted">مانده‌ی <?= BizDocView::money($remain) ?> تومان به قسط‌های برابر تقسیم می‌شود (باقیمانده به قسطِ آخر). پیش‌پرداخت را پیش از این با «ثبتِ دریافت» بزنید؛ سودِ اقساط را پیش از صدور در «اضافات»ِ فاکتور بگذارید.</p>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
+<?php if ($remain > 0 && Biz::can('buy') && Biz::can('sell')):
+    $phones = BizTradeIn::phones($userId); ?>
+<section class="st-card" id="tradein">
+    <h2 class="st-h2">معاوضه — خریدِ گوشیِ کهنه‌ی همین مشتری</h2>
+    <form method="post" class="st-form" action="<?= h($self) ?>" autocomplete="off">
+        <?= Csrf::field() ?><input type="hidden" name="action" value="tradein">
+        <div class="st-row2">
+            <label class="st-field"><span>کالا (گوشیِ دست‌دوم)</span>
+                <select name="ti_product"><option value="0">— کالای تازه با نامِ پایین —</option>
+                <?php foreach ($phones as $p): ?><option value="<?= (int)$p['id'] ?>"><?= h($p['name']) ?></option><?php endforeach; ?></select></label>
+            <label class="st-field"><span>نامِ کالای تازه</span><input type="text" name="ti_name" maxlength="120" placeholder="مثلاً آیفون ۱۱ دست‌دوم"></label>
+        </div>
+        <div class="st-row2">
+            <label class="st-field"><span>IMEI</span><input type="text" name="ti_imei" inputmode="numeric" dir="ltr" maxlength="20" required></label>
+            <label class="st-field"><span>ارزشِ گوشیِ کهنه (تومان)</span><input type="text" name="ti_value" inputmode="numeric" dir="ltr" required></label>
+        </div>
+        <p class="st-muted">یک فاکتورِ خرید از همین مشتری ثبت می‌شود (گوشی با IMEI وارد انبار)، و ارزشش از ماندهِ این فاکتور کم می‌شود — بی‌جابه‌جاییِ پولِ نقد.</p>
+        <button type="submit" class="st-btn st-btn-ghost">ثبتِ معاوضه</button>
+    </form>
+</section>
+<?php endif; ?>
+<?php endif; ?>
 
 <?php if ($inv['status'] === 'issued'): ?>
 <section class="st-card st-danger">

@@ -1879,7 +1879,12 @@ final class BizCash
         'pos'  => 'کارت‌خوان',
         'cheque_in'  => 'چک‌های دریافتیِ در جریان',
         'cheque_out' => 'چک‌های پرداختیِ در جریان',
+        // ⛔ سیستمی: تهاترِ معاوضه (`BizTradeIn`) — هر پول‌آمد با پول‌رفتِ هم‌مبلغِ جفتش، پس همیشه صفر
+        'clearing'   => 'تهاتر (معاوضه)',
     ];
+
+    /** صندوقِ سیستمیِ تهاتر — انتخاب‌شدنی نیست (`isSystem()`). */
+    public const CLEARING_KIND = 'clearing';
 
     /**
      * ⛔ نوع‌هایی که کاربر خودش می‌سازد. دو نوعِ چک را فقط
@@ -1910,6 +1915,32 @@ final class BizCash
         $pdo->prepare('INSERT INTO biz_accounts (user_id, name, kind, sort_order) VALUES (:u, :n, :k, 90)')
             ->execute(['u' => $userId, 'n' => self::KINDS[$kind], 'k' => $kind]);
         return (int)$pdo->lastInsertId();
+    }
+
+    /**
+     * صندوقِ تهاترِ معاوضه — اگر نیست ساخته و اگر غیرفعال شده دوباره فعال می‌شود
+     * (همان الگوی `chequeAccount()`). فقط `BizTradeIn::run()`.
+     */
+    public static function clearingAccount(PDO $pdo, int $userId): int
+    {
+        $st = $pdo->prepare('SELECT id, is_active FROM biz_accounts WHERE user_id = :u AND kind = :k ORDER BY id LIMIT 1 FOR UPDATE');
+        $st->execute(['u' => $userId, 'k' => self::CLEARING_KIND]);
+        $row = $st->fetch();
+        if ($row) {
+            if ((int)$row['is_active'] !== 1) {
+                $pdo->prepare('UPDATE biz_accounts SET is_active = 1 WHERE id = :id AND user_id = :u')->execute(['id' => (int)$row['id'], 'u' => $userId]);
+            }
+            return (int)$row['id'];
+        }
+        $pdo->prepare('INSERT INTO biz_accounts (user_id, name, kind, sort_order) VALUES (:u, :n, :k, 95)')
+            ->execute(['u' => $userId, 'n' => self::KINDS[self::CLEARING_KIND], 'k' => self::CLEARING_KIND]);
+        return (int)$pdo->lastInsertId();
+    }
+
+    /** صندوقِ سیستمی (چک یا تهاتر) — در منوی انتخابِ صندوق نمی‌آید. */
+    public static function isSystem(array $a): bool
+    {
+        return self::isCheque($a) || (string)$a['kind'] === self::CLEARING_KIND;
     }
 
     public static function isCheque(array $a): bool
@@ -1994,8 +2025,8 @@ final class BizCash
             $ck = $pdo->prepare('SELECT kind, opening_balance, created_at FROM biz_accounts WHERE id = :id AND user_id = :u');
             $ck->execute(['id' => $id, 'u' => $userId]);
             $cur = $ck->fetch() ?: ['kind' => '', 'opening_balance' => $ob, 'created_at' => ''];
-            if (in_array((string)$cur['kind'], self::CHEQUE_KINDS, true)) {
-                return ['ok' => false, 'message' => 'صندوقِ چک را خودِ برنامه نگه می‌دارد و ویرایش نمی‌شود.'];
+            if (in_array((string)$cur['kind'], self::CHEQUE_KINDS, true) || (string)$cur['kind'] === self::CLEARING_KIND) {
+                return ['ok' => false, 'message' => 'صندوقِ چک و تهاتر را خودِ برنامه نگه می‌دارد و ویرایش نمی‌شود.'];
             }
             if ((int)$cur['opening_balance'] !== $ob
                 && ($e = Biz::lockError($userId, BizCommon::earliest([substr((string)$cur['created_at'], 0, 10),

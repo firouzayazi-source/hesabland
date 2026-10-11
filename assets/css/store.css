@@ -1504,3 +1504,8 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-warranty-head.is-off { color: var(--st-ink-2); }
 .st-pill.is-rep-ready { background: var(--st-ok-wash); color: var(--st-ok); border-color: transparent; }
 .st-pill.is-rep-delivered, .st-pill.is-rep-cancelled { opacity: .75; }
+
+/* اقساط (store/invoice.php#installments، store/installments.php) */
+.st-pill.is-inst-paid    { background: var(--st-ok-wash); color: var(--st-ok); border-color: transparent; }
+.st-pill.is-inst-partial { background: var(--st-warn-wash); color: var(--st-warn); border-color: transparent; }
+.st-pill.is-inst-overdue { background: var(--st-err-wash); color: var(--st-err); border-color: transparent; }
