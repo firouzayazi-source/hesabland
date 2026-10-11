@@ -1488,3 +1488,8 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-yes { color: var(--st-ok); font-weight: 700; }
 .st-field-sm { max-width: 220px; }
 .st-role-table td:first-child { white-space: normal; }
+
+/* پیش‌فاکتور در نوارِ کارهای فاکتور (store/invoice-edit.php) */
+.st-proforma-act { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.st-inline-label { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--st-ink-2); }
+.st-inline-label input { width: 3.5em; text-align: center; }

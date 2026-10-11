@@ -284,6 +284,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = $res['message'];
         } else {
             $id = (int)$res['id'];
+            if ($action === 'proforma' && $kind === 'sale') {
+                // ⛔ پیش‌فاکتور = همین پیش‌نویس با شماره‌ی خودش؛ اثری ندارد (`markProforma()`)
+                $pf = BizInvoices::markProforma($userId, $id, (int)toLatinDigits((string)postParam('proforma_days', (string)BizInvoices::PROFORMA_DAYS)));
+                BizOnce::done(Biz::url('invoice-edit.php?id=' . $id));
+                if (!$pf['ok']) { redirectWithMessage(Biz::url('invoice-edit.php?id=' . $id), 'error', $pf['message']); }
+                header('Location: ' . Biz::url('print.php?doc=invoice&id=' . $id));
+                exit;
+            }
             if ($action === 'save') {
                 BizOnce::done(Biz::url('invoice-edit.php?id=' . $id));
                 redirectWithMessage(Biz::url('invoice-edit.php?id=' . $id), 'success', $res['message']);
@@ -378,7 +386,10 @@ require __DIR__ . '/../includes/biz_head.php';
         <a class="st-back" href="<?= h(Biz::url(BizDocView::SIDES[$side]['page'])) ?>">‹ <?= h(BizDocView::SIDES[$side]['title']) ?></a>
         <h1 class="st-h1"><?= h($inv ? BizInvoices::title($inv) : BizInvoices::KINDS[$kind] . 'ِ تازه') ?></h1>
     </div>
-    <?php if ($inv): ?><span class="st-pill is-draft">پیش‌نویس — هنوز اثری ندارد</span><?php endif; ?>
+    <?php if ($inv && !empty($inv['proforma_no'])): ?>
+        <span class="st-pill is-draft">پیش‌فاکتورِ <?= toPersianDigits((string)$inv['proforma_no']) ?><?= !empty($inv['proforma_until']) ? ' · اعتبار تا ' . toJalali((string)$inv['proforma_until']) : '' ?></span>
+        <a class="st-btn st-btn-ghost st-btn-sm" href="<?= h(Biz::url('print.php?doc=invoice&id=' . (int)$inv['id'])) ?>">چاپِ پیش‌فاکتور</a>
+    <?php elseif ($inv): ?><span class="st-pill is-draft">پیش‌نویس — هنوز اثری ندارد</span><?php endif; ?>
 </div>
 
 <?php if ($error !== ''): ?><div class="st-flash st-flash-err" role="alert"><?= h($error) ?></div><?php endif; ?>
@@ -593,6 +604,12 @@ require __DIR__ . '/../includes/biz_head.php';
         <button type="submit" name="action" value="issue_print" class="st-btn">صدور و چاپ</button>
         <button type="submit" name="action" value="issue" class="st-btn st-btn-ghost">صدور</button>
         <button type="submit" name="action" value="save" class="st-btn st-btn-ghost" formnovalidate>ذخیره‌ی پیش‌نویس</button>
+        <?php if ($isSale && BizInvoices::proformaReady()): ?>
+        <span class="st-proforma-act">
+            <button type="submit" name="action" value="proforma" class="st-btn st-btn-ghost" formnovalidate><?= !empty($inv['proforma_no']) ? 'به‌روزرسانی و چاپِ پیش‌فاکتور' : 'پیش‌فاکتور و چاپ' ?></button>
+            <label class="st-inline-label">اعتبار <input type="text" name="proforma_days" inputmode="numeric" dir="ltr" size="3" value="<?= (int)BizInvoices::PROFORMA_DAYS ?>" aria-label="اعتبارِ پیش‌فاکتور (روز)"> روز</label>
+        </span>
+        <?php endif; ?>
     </div>
 </form>
 

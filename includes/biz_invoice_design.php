@@ -375,8 +375,15 @@ final class BizInvoiceDesign
     /** عنوانِ برگه — عنوانِ دلخواهِ فروش/خرید جای نامِ نوع می‌نشیند، شماره می‌ماند. */
     public static function title(array $inv, array $d): string
     {
+        if (self::isProforma($inv)) { return 'پیش‌فاکتور'; }
         $custom = $inv['kind'] === 'sale' ? $d['title_sale'] : ($inv['kind'] === 'purchase' ? $d['title_purchase'] : '');
         return $custom !== '' ? $custom : (BizInvoices::KINDS[$inv['kind']] ?? 'فاکتور');
+    }
+
+    /** پیش‌نویسِ پیش‌فاکتوردار (`BizInvoices::markProforma()`) — با عنوان و شماره‌ی خودش چاپ می‌شود. */
+    public static function isProforma(array $inv): bool
+    {
+        return ($inv['status'] ?? '') === 'draft' && !empty($inv['proforma_no']);
     }
 
     /**
@@ -414,8 +421,12 @@ final class BizInvoiceDesign
             ];
         }
         $party = array_filter($party, fn($v) => $v !== '');
+        $pro = self::isProforma($inv);
         $docInfo = array_filter([
-            'شماره'        => $inv['number'] !== null ? toPersianDigits((string)$inv['number']) : '',
+            'شماره'        => $pro ? toPersianDigits((string)$inv['proforma_no'])
+                            : ($inv['number'] !== null ? toPersianDigits((string)$inv['number']) : ''),
+            'اعتبار تا'    => $pro && !empty($inv['proforma_until']) ? toJalali((string)$inv['proforma_until']) : '',
+            'پیش‌فاکتور'   => !$pro && !empty($inv['proforma_no']) ? toPersianDigits((string)$inv['proforma_no']) : '',
             'تاریخ'        => toJalali((string)$inv['inv_date']),
             'سررسید'       => !empty($inv['due_date']) ? toJalali((string)$inv['due_date']) : '',
             'فاکتورِ اصلی' => ($inv['ref_invoice_id'] ?? null) !== null ? toPersianDigits((string)$inv['ref_number']) : '',
@@ -430,7 +441,7 @@ final class BizInvoiceDesign
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex">
-    <title><?= h($title . ($inv['number'] !== null ? ' ' . toPersianDigits((string)$inv['number']) : '') . ' · ' . $shop) ?></title>
+    <title><?= h($title . ($pro ? ' ' . toPersianDigits((string)$inv['proforma_no']) : ($inv['number'] !== null ? ' ' . toPersianDigits((string)$inv['number']) : '')) . ' · ' . $shop) ?></title>
     <?php foreach (assetUrls(['css/store-print.css']) as $u): ?>
     <link rel="stylesheet" href="<?= h($u) ?>">
     <?php endforeach; ?>

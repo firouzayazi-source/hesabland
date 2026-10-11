@@ -51,6 +51,8 @@ final class BizInvoices
         'open'    => 'تسویه‌نشده',
         'paid'    => 'تسویه‌شده',
         'void'    => 'باطل',
+        // ⛔ فقط سمتِ فروش (`BizDocView::docList()`)؛ پیش‌نویسِ شماره‌ی پیش‌فاکتوردار
+        'proforma' => 'پیش‌فاکتور',
     ];
 
     /** برچسب و رنگِ هر وضعیتِ نمایشی — تنها مرجعِ نشانِ وضعیت. */
@@ -191,6 +193,7 @@ final class BizInvoices
         $where[] = 'i.kind IN (' . implode(',', $in) . ')';
         switch (isset(self::FILTERS[$filter]) ? $filter : '') {
             case 'draft':   $where[] = "i.status = 'draft'"; break;
+            case 'proforma': $where[] = self::proformaReady() ? "i.status = 'draft' AND i.proforma_no IS NOT NULL" : '1 = 0'; break;
             case 'void':    $where[] = "i.status = 'void'"; break;
             case 'paid':    $where[] = "i.status = 'issued' AND i.paid >= i.total"; break;
             case 'open':    $where[] = "i.status = 'issued' AND i.paid < i.total"; break;
@@ -898,6 +901,51 @@ final class BizInvoices
             . ($voidedOrigin > 0 ? ' ' . $side . 'همراهش باطل شد — هنگامِ صدورِ دوباره ثبتش کنید.' : '')];
     }
 
+    /** ستون‌های پیش‌فاکتور آمده‌اند؟ (migration_biz_proforma) */
+    public static function proformaReady(): bool
+    {
+        return tableHasColumn('biz_invoices', 'proforma_no');
+    }
+
+    /** روزهای اعتبارِ پیش‌فرضِ پیش‌فاکتور، و سقفش. */
+    public const PROFORMA_DAYS = 7;
+    public const PROFORMA_DAYS_MAX = 365;
+
+    /**
+     * ⛔ پیش‌نویسِ فروش ← پیش‌فاکتور: شماره‌ی خودش (`MAX + 1`، زیرِ `lockShop`) و تاریخِ
+     *    اعتبار. اثری بر موجودی و مانده ندارد (هنوز پیش‌نویس است)؛ «تبدیل به فاکتور» همان
+     *    `issue()`ِ همین سند است و شماره‌ی پیش‌فاکتور رویش می‌ماند. دوباره زدن شماره را
+     *    عوض نمی‌کند، فقط اعتبار را.
+     * @return array{ok:bool, message:string, number?:int}
+     */
+    public static function markProforma(int $userId, int $id, int $days = self::PROFORMA_DAYS): array
+    {
+        if (!self::proformaReady()) { return ['ok' => false, 'message' => 'پیش‌فاکتور هنوز راه نیفتاده است (migration_biz_proforma).']; }
+        $days = max(1, min(self::PROFORMA_DAYS_MAX, $days));
+        $pdo  = Database::getConnection();
+        $pdo->beginTransaction();
+        try {
+            Biz::lockShop($pdo, $userId);
+            $st = $pdo->prepare("SELECT proforma_no FROM biz_invoices WHERE id = :id AND user_id = :u AND kind = 'sale' AND status = 'draft' FOR UPDATE");
+            $st->execute(['id' => $id, 'u' => $userId]);
+            $row = $st->fetch();
+            if (!$row) { $pdo->rollBack(); return ['ok' => false, 'message' => 'فقط پیش‌نویسِ فاکتورِ فروش پیش‌فاکتور می‌شود.']; }
+            $no = $row['proforma_no'] !== null ? (int)$row['proforma_no'] : 0;
+            if ($no === 0) {
+                $n = $pdo->prepare('SELECT COALESCE(MAX(proforma_no), 0) + 1 FROM biz_invoices WHERE user_id = :u');
+                $n->execute(['u' => $userId]);
+                $no = (int)$n->fetchColumn();
+            }
+            $pdo->prepare('UPDATE biz_invoices SET proforma_no = :n, proforma_until = :d WHERE id = :id AND user_id = :u')
+                ->execute(['n' => $no, 'd' => date('Y-m-d', strtotime(today() . " +{$days} days")), 'id' => $id, 'u' => $userId]);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+        return ['ok' => true, 'number' => $no, 'message' => 'پیش‌فاکتورِ شماره‌ی ' . toPersianDigits((string)$no) . ' آماده است؛ با «صدور» به فاکتور تبدیل می‌شود.'];
+    }
+
     /**
      * حذفِ پیش‌نویس — سندِ صادرشده حذف نمی‌شود.
      *
@@ -923,8 +971,10 @@ final class BizInvoices
                 return ['ok' => false, 'message' => 'گوشی با IMEI ' . $moved
                     . ' بعد از این سند جابه‌جا شده است؛ اول سندِ بعدی‌اش را باطل کنید، یا همین را دوباره صادر کنید.'];
             }
+            // ⛔ شماره‌ی پیش‌فاکتور هم دستِ مشتری است — همان قاعده (`markProforma()`)
+            $numbered = self::proformaReady() ? '(number IS NOT NULL OR proforma_no IS NOT NULL)' : 'number IS NOT NULL';
             $up = $pdo->prepare("UPDATE biz_invoices SET status = 'void', voided_at = NOW()
-                                 WHERE id = :id AND user_id = :u AND status = 'draft' AND number IS NOT NULL");
+                                 WHERE id = :id AND user_id = :u AND status = 'draft' AND {$numbered}");
             $up->execute(['id' => $id, 'u' => $userId]);
             $voided = $up->rowCount() > 0;
             if ($voided) { BizLog::add($pdo, $userId, 'invoice', $id, 'void', null); }
@@ -936,7 +986,8 @@ final class BizInvoices
         if ($voided) {
             return ['ok' => true, 'message' => 'این سند شماره داشت؛ حذف نشد، باطل شد تا شماره‌اش به سندِ دیگری نرسد.'];
         }
-        $st = $pdo->prepare("DELETE FROM biz_invoices WHERE id = :id AND user_id = :u AND status = 'draft' AND number IS NULL");
+        $st = $pdo->prepare("DELETE FROM biz_invoices WHERE id = :id AND user_id = :u AND status = 'draft' AND number IS NULL"
+                            . (self::proformaReady() ? ' AND proforma_no IS NULL' : ''));
         $st->execute(['id' => $id, 'u' => $userId]);
         return $st->rowCount() > 0 ? ['ok' => true, 'message' => 'پیش‌نویس حذف شد.']
                                    : ['ok' => false, 'message' => 'فقط پیش‌نویس حذف می‌شود؛ سندِ صادرشده را باطل کنید.'];

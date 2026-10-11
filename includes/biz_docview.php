@@ -347,7 +347,7 @@ final class BizDocView
 </form>
 
 <nav class="st-tabs" aria-label="وضعیت">
-    <?php foreach (BizInvoices::FILTERS as $fk => $fl): ?>
+    <?php foreach (BizInvoices::FILTERS as $fk => $fl): if ($fk === 'proforma' && ($side !== 'sale' || $tab === 'returns')) { continue; } ?>
         <a href="<?= h($url(['f' => $fk, 'page' => ''])) ?>" class="st-tab-chip<?= $fk === $filter ? ' is-active' : '' ?>"><?= h($fl) ?></a>
     <?php endforeach; ?>
 </nav>
@@ -378,7 +378,8 @@ final class BizDocView
         <tbody>
         <?php foreach ($list['rows'] as $r): ?>
             <tr class="<?= $r['status'] === 'void' ? 'is-inactive' : '' ?>">
-                <td><a class="st-row-link" href="<?= h(Biz::url(($r['status'] === 'draft' ? 'invoice-edit.php' : 'invoice.php') . '?id=' . (int)$r['id'])) ?>"><?= $r['number'] !== null ? '<span class="st-num">' . toPersianDigits((string)$r['number']) . '</span>' : 'پیش‌نویس' ?></a></td>
+                <td><a class="st-row-link" href="<?= h(Biz::url(($r['status'] === 'draft' ? 'invoice-edit.php' : 'invoice.php') . '?id=' . (int)$r['id'])) ?>"><?= $r['number'] !== null ? '<span class="st-num">' . toPersianDigits((string)$r['number']) . '</span>'
+                    : (!empty($r['proforma_no']) ? 'پیش‌فاکتورِ <span class="st-num">' . toPersianDigits((string)$r['proforma_no']) . '</span>' : 'پیش‌نویس') ?></a></td>
                 <td><span class="st-num"><?= h(toJalali((string)$r['inv_date'])) ?></span></td>
                 <td><?= $r['party_name'] !== null ? h((string)$r['party_name']) : '<span class="st-muted-i">گذری</span>' ?></td>
                 <td><?= self::pill($r) ?></td>

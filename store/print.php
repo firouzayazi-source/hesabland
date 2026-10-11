@@ -245,7 +245,8 @@ case 'invoice':
         $back = Biz::url('invoice-design.php');
     } else {
         $inv = BizInvoices::get($userId, $id);
-        if (!$inv || $inv['status'] === 'draft') { Biz::notFound(); }
+        // ⛔ پیش‌نویس چاپ نمی‌شود — جز پیش‌فاکتور (`markProforma()`) که برای همین ساخته شده
+        if (!$inv || ($inv['status'] === 'draft' && empty($inv['proforma_no']))) { Biz::notFound(); }
         Biz::requireCap(BizRights::docCap((string)$inv['kind']));
         // ⛔ «مانده‌ی قبلی / کل» — کلیدش در طراحیِ فاکتور (`show_balance`)
         $ba = $design['show_balance'] && $inv['status'] === 'issued' && $inv['party_id'] !== null
