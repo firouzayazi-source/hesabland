@@ -258,6 +258,10 @@ include __DIR__ . '/includes/header.php';
             <?php if ($chequeCount > 0): ?>
                 «خالص چک‌های در جریان» یعنی دریافتی منهای صادره، فقط برای چک‌های
                 <b>پاس‌نشده</b> — چکِ پاس‌شده پولش از قبل در موجودی حساب‌ها هست.
+                <?php foreach ($portfolio as $__cr) { if ($__cr['kind'] === 'cheques' && isset($__cr['face']) && $__cr['face'] !== $__cr['value']): ?>
+                    به <b>ارزشِ امروز</b> حساب شده (مبلغِ اسمی <span class="ltr-num"><?= ($__cr['face'] < 0 ? '−' : '') . formatMoney(abs($__cr['face'])) ?></span>)؛
+                    هر روز که به سررسید نزدیک‌تر شود به مبلغِ خودِ چک می‌رسد.
+                <?php break; endif; } ?>
                 (<a href="<?= APP_BASE_PATH ?>/cheques.php">بخش چک‌ها</a>)
             <?php endif; ?>
             <?php if ($debtCount > 0): ?>

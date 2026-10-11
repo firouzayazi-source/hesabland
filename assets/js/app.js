@@ -5819,6 +5819,21 @@ function appMain() {
 
             fillBankSelect(document.getElementById('add_cheque_bank'), direction, null);
 
+            // روش و سری از نو؛ برچسب برای چکِ صادره «دادیم» است
+            var vm = document.getElementById('add_value_method');
+            if (vm) {
+                vm.value = '';
+                document.getElementById('add_value_rate').value = '';
+                document.getElementById('add_series_count').value = '۱';
+                document.getElementById('add_loan_principal').value = '';
+                setJdpValue('add_loan_from_display', 'add_loan_from', document.getElementById('add_loan_from').defaultValue);
+                document.getElementById('add_value_label').textContent =
+                    direction === 'received' ? 'این چک را چطور گرفتیم؟' : 'این چک را چطور دادیم؟';
+                var pv = document.getElementById('addValuePreview');
+                if (pv) pv.hidden = true;
+                syncValueFields('add');
+            }
+
             var msg = document.getElementById('addChequeMessage');
             if (msg) { msg.hidden = true; msg.classList.remove('show', 'success', 'error'); }
 
@@ -5856,13 +5871,108 @@ function appMain() {
             .finally(function () { if (btnEl) btnEl.disabled = false; });
     }
 
+    // ---------- «این چک را چطور گرفتیم؟» — روش، درصد، سری و اقساطِ وام ----------
+    // ⛔ هیچ حسابی اینجا نیست: پیش‌نمایش از `api/cheque_value_preview.php` می‌آید (همان
+    //    `chequePresentValue()`/`chequeLoanPlan()` سرور)، تا فرم و کارت یک عدد بگویند.
+    setupAmountFormatter('add_loan_principal');
+    var cleanNum = function (v) { return toLatinDigitsJs(String(v || '')).replace(/[,\u066C\s]/g, ''); };
+    function syncValueFields(prefix) {
+        var sel = document.getElementById(prefix + '_value_method');
+        if (!sel) return;
+        var m = sel.value;
+        var opt = sel.options[sel.selectedIndex];
+        var hint = document.getElementById(prefix + '_value_hint');
+        if (hint) hint.textContent = opt ? (opt.getAttribute('data-hint') || '') : '';
+        var rate = document.getElementById(prefix + '_rate_group');
+        if (rate) rate.hidden = m === '';
+        if (prefix !== 'add') return;
+        var loan = m === 'loan';
+        document.getElementById('add_loan_group').hidden = !loan;
+        document.getElementById('add_amount_group').hidden = loan;
+        document.getElementById('add_cheque_amount').required = !loan;
+        document.getElementById('add_loan_principal').required = loan;
+        var n = parseInt(cleanNum(document.getElementById('add_series_count').value), 10) || 1;
+        document.getElementById('add_due_label').textContent =
+            n > 1 ? 'سررسیدِ اولین چک (بقیه ماهانه)' : (m !== '' ? 'تاریخ سررسید' : 'تاریخ سررسید (اختیاری)');
+        document.getElementById('add_amount_label').firstChild.textContent = n > 1 ? 'مبلغِ هر چک (تومان) ' : 'مبلغ (تومان) ';
+    }
+    var previewTimer = null, previewSeq = 0;
+    function refreshChequePreview() {
+        var box = document.getElementById('addValuePreview');
+        if (!box) return;
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(function () {
+            var m = document.getElementById('add_value_method').value;
+            var n = parseInt(cleanNum(document.getElementById('add_series_count').value), 10) || 1;
+            if (m === '' && n < 2) { box.hidden = true; return; }
+            var q = new URLSearchParams({
+                value_method: m,
+                value_rate: cleanNum(document.getElementById('add_value_rate').value),
+                series_count: String(n),
+                due_date: document.getElementById('add_cheque_due').value,
+                amount: cleanNum(document.getElementById('add_cheque_amount').value),
+                loan_principal: cleanNum(document.getElementById('add_loan_principal').value),
+                loan_from: document.getElementById('add_loan_from').value
+            });
+            var seq = ++previewSeq;
+            fetch(apiUrl('cheque_value_preview.php') + '?' + q.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (seq !== previewSeq) return;               // پاسخِ کهنه‌ی تایپِ قبلی
+                    if (!d.success) {
+                        box.classList.add('is-error');
+                        box.textContent = d.message || 'برای دیدنِ ارزشِ امروز، مبلغ، درصد و سررسید را کامل کنید.';
+                        box.hidden = false;
+                        return;
+                    }
+                    box.classList.remove('is-error');
+                    box.innerHTML = '';
+                    var line = function (parts) {
+                        var div = document.createElement('div');
+                        parts.forEach(function (p) {
+                            var el = document.createElement(p[1] ? 'b' : 'span');
+                            el.textContent = p[0];
+                            div.appendChild(el);
+                        });
+                        box.appendChild(div);
+                    };
+                    var fa = window.JalaliDatePicker ? window.JalaliDatePicker.toFa : function (x) { return x; };
+                    line(d.count > 1
+                        ? [[fa(String(d.count)) + ' چک', true], [' · هر چک ', false], [d.each, true], [' تومان · ماهانه از ' + d.first + ' تا ' + d.last, false]]
+                        : [['سررسید ' + d.first, false]]);
+                    line([['جمعِ مبلغِ چک‌ها ', false], [d.face, true], [' · ارزشِ امروز ', false], [d.value, true], [' تومان', false]]);
+                    if (m !== '') { line([['سودِ باقی‌مانده تا پاس شدن ', false], [d.profit, true], [' تومان', false]]); }
+                    box.hidden = false;
+                })
+                .catch(function () { box.hidden = true; });
+        }, 300);
+    }
+    ['add_value_method', 'add_value_rate', 'add_series_count', 'add_cheque_amount', 'add_loan_principal', 'add_cheque_due', 'add_loan_from']
+        .forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener(el.tagName === 'SELECT' || el.type === 'hidden' ? 'change' : 'input', function () {
+                syncValueFields('add');
+                refreshChequePreview();
+            });
+        });
+    var editMethodSel = document.getElementById('edit_value_method');
+    if (editMethodSel) editMethodSel.addEventListener('change', function () { syncValueFields('edit'); });
+
     var addChequeForm = document.getElementById('addChequeForm');
     if (addChequeForm) {
         addChequeForm.addEventListener('submit', function (e) {
             e.preventDefault();
+            var fd = new FormData(addChequeForm);
+            fd.set('amount', cleanNum(document.getElementById('add_cheque_amount').value));
+            if (document.getElementById('add_loan_principal')) {
+                fd.set('loan_principal', cleanNum(document.getElementById('add_loan_principal').value));
+                fd.set('series_count', cleanNum(document.getElementById('add_series_count').value) || '1');
+                fd.set('value_rate', cleanNum(document.getElementById('add_value_rate').value));
+            }
             submitJson(addChequeForm, apiUrl('add_cheque.php'),
                 document.getElementById('addChequeMessage'),
-                document.getElementById('addChequeSubmitBtn'), 'add_cheque_amount');
+                document.getElementById('addChequeSubmitBtn'), null, fd);
         });
     }
 
@@ -5887,6 +5997,17 @@ function appMain() {
                 document.getElementById('edit_cheque_due_display').value = '';
             }
 
+            var em = document.getElementById('edit_value_method');
+            if (em) {
+                var loanOpt = em.querySelector('option[value="loan"]');
+                // ⛔ «اقساطِ وام» اصلِ پول را از ثبتِ سری دارد؛ چکِ دیگر به آن روش نمی‌رود
+                if (loanOpt) loanOpt.disabled = this.getAttribute('data-loan') !== '1';
+                em.value = this.getAttribute('data-value-method') || '';
+                var rr = this.getAttribute('data-value-rate') || '';
+                document.getElementById('edit_value_rate').value = window.JalaliDatePicker ? window.JalaliDatePicker.toFa(rr) : rr;
+                syncValueFields('edit');
+            }
+
             var msg = document.getElementById('editChequeMessage');
             if (msg) { msg.hidden = true; msg.classList.remove('show', 'success', 'error'); }
 
@@ -5898,9 +6019,13 @@ function appMain() {
     if (editChequeForm) {
         editChequeForm.addEventListener('submit', function (e) {
             e.preventDefault();
+            var efd = new FormData(editChequeForm);
+            if (document.getElementById('edit_value_rate')) {
+                efd.set('value_rate', cleanNum(document.getElementById('edit_value_rate').value));
+            }
             submitJson(editChequeForm, apiUrl('update_cheque.php'),
                 document.getElementById('editChequeMessage'),
-                document.getElementById('editChequeSubmitBtn'), 'edit_cheque_amount');
+                document.getElementById('editChequeSubmitBtn'), 'edit_cheque_amount', efd);
         });
     }
 

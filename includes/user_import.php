@@ -179,6 +179,8 @@ function userImportSkipped(string $table): bool
 const IMPORT_SOFT_LINKS = [
     'trade_sales' => ['profit_tx_id' => 'transactions'],
     'debts'       => ['cheque_id'    => 'cheques'],
+    // ⛔ سری چک (`migration_cheque_value`): شناسه‌ی اولین چکِ سری، بی‌کلیدِ خارجی
+    'cheques'     => ['series_id'    => 'cheques'],
     'reminders'   => ['wallet_id'    => 'wallets'],
 ];
 

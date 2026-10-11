@@ -30,6 +30,7 @@ sort($files);
 // اگر روزی یکی از این‌ها نویسنده شد، باید از این فهرست برداشته شود.
 $csrfExempt = [
     'category_transactions.php',
+    'cheque_value_preview.php',
     'day_detail.php',
     'home_calendar.php',
     'savings_history.php',

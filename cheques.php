@@ -57,8 +57,13 @@ $walletJoinSql = tableHasColumn('cheques', 'settle_wallet_id')
     ? 'LEFT JOIN wallets w ON w.id = ch.settle_wallet_id'
     : '';
 
+// ⛔ «۳ از ۱۰»: تعدادِ کلِ سری از خودِ جدول (چک‌های پاس‌شده‌ی سری هم شمرده می‌شوند)
+$hasValue = tableHasColumn('cheques', 'value_method');
+$seriesCol = $hasValue
+    ? ', (SELECT COUNT(*) FROM cheques sx WHERE sx.user_id = ch.user_id AND sx.series_id = ch.series_id) AS series_total'
+    : '';
 $stmt = $pdo->prepare("
-    SELECT ch.*, b.name AS bank_name $walletJoin
+    SELECT ch.*, b.name AS bank_name $walletJoin $seriesCol
     FROM cheques ch
     LEFT JOIN banks b ON b.id = ch.bank_id
     $walletJoinSql
@@ -72,18 +77,19 @@ $received = array_values(array_filter($allCheques, fn($c) => $c['direction'] ===
 $issued   = array_values(array_filter($allCheques, fn($c) => $c['direction'] === 'issued'));
 
 // مجموع باقیمانده — مستقل از جستجو
+// ⛔ و ارزشِ امروزِ همان‌ها کنارش (`chequePresentValue()`؛ همان عددِ «خالص دارایی»)
 $totalsStmt = $pdo->prepare('
-    SELECT direction, COALESCE(SUM(amount), 0) AS total
+    SELECT direction, amount, due_date' . ($hasValue ? ', value_method, value_rate, value_base, value_from' : '') . '
     FROM cheques
-    WHERE user_id = :user_id AND ' . chequeActiveSql() . '
-    GROUP BY direction
-');
+    WHERE user_id = :user_id AND ' . chequeActiveSql()
+);
 $totalsStmt->execute(['user_id' => $userId]);
-$pendingReceived = 0;
-$pendingIssued = 0;
+$pendingReceived = 0; $pendingIssued = 0;
+$valueReceived = 0;   $valueIssued = 0;
 foreach ($totalsStmt->fetchAll() as $row) {
-    if ($row['direction'] === 'received') $pendingReceived = (int)$row['total'];
-    if ($row['direction'] === 'issued')   $pendingIssued   = (int)$row['total'];
+    $pv = chequePresentValue($row, $todayStr);
+    if ($row['direction'] === 'received') { $pendingReceived += (int)$row['amount']; $valueReceived += $pv; }
+    if ($row['direction'] === 'issued')   { $pendingIssued   += (int)$row['amount']; $valueIssued   += $pv; }
 }
 
 // بانک‌ها — دو لیست کاملاً جدا
@@ -141,9 +147,23 @@ function renderChequeCard(array $c, string $todayStr): void
                         <?php if (!empty($c['cheque_number'])): ?> &nbsp;·&nbsp; شماره چک: <?= toPersianDigits($c['cheque_number']) ?><?php endif; ?>
                     </div>
                 <?php endif; ?>
+                <?php if (!empty($c['series_no']) && !empty($c['series_total'])): ?>
+                    <div class="debt-dates">سری چک · <?= toPersianDigits((string)$c['series_no']) ?> از <?= toPersianDigits((string)$c['series_total']) ?></div>
+                <?php endif; ?>
+                <?php if ($__cap = chequeValueCaption($c, $todayStr)): ?>
+                    <div class="debt-dates cheque-value-caption"><?= h($__cap) ?></div>
+                <?php endif; ?>
                 <?php if (!empty($c['note'])): ?><div class="debt-note"><?= h($c['note']) ?></div><?php endif; ?>
             </div>
-            <div class="debt-amount"><?= formatMoney($c['amount']) ?><small> تومان</small></div>
+            <div class="debt-amount"><?= formatMoney($c['amount']) ?><small> تومان</small>
+                <?php
+                // ⛔ ارزشِ امروز فقط برای چکِ در جریانِ دارای روش (`chequePresentValue()`)
+                $__live = ($c['status'] ?? ((int)$c['is_settled'] ? 'cleared' : 'pending')) === 'pending' && !(int)$c['is_settled'];
+                if ($__live && !empty($c['value_method'])):
+                    $__pv = chequePresentValue($c, $todayStr); ?>
+                    <span class="cheque-today-value" title="ارزشِ امروز">امروز <span class="ltr-num"><?= formatMoney($__pv) ?></span></span>
+                <?php endif; ?>
+            </div>
         </div>
         <div class="debt-card-footer">
             <?php
@@ -182,7 +202,10 @@ function renderChequeCard(array $c, string $todayStr): void
                     data-sayadi="<?= h($c['sayadi_number'] ?? '') ?>"
                     data-cheque-number="<?= h($c['cheque_number'] ?? '') ?>"
                     data-note="<?= h($c['note'] ?? '') ?>"
-                    data-due-date="<?= h($c['due_date'] ?? '') ?>">ویرایش</button>
+                    data-due-date="<?= h($c['due_date'] ?? '') ?>"
+                    data-value-method="<?= h($c['value_method'] ?? '') ?>"
+                    data-value-rate="<?= h(isset($c['value_rate']) ? rtrim(rtrim((string)$c['value_rate'], '0'), '.') : '') ?>"
+                    data-loan="<?= !empty($c['value_base']) ? '1' : '0' ?>">ویرایش</button>
                 <button class="delete-btn js-delete-cheque" data-id="<?= (int)$c['id'] ?>">حذف</button>
             </div>
         </div>
@@ -195,10 +218,12 @@ function renderChequeCard(array $c, string $todayStr): void
     <div class="summary-box">
         <div class="label">چک‌های دریافتی در جریان</div>
         <div class="value stats-income"><?= formatMoney($pendingReceived) ?></div>
+        <?php if ($valueReceived !== $pendingReceived): ?><div class="summary-sub">ارزشِ امروز <span class="ltr-num"><?= formatMoney($valueReceived) ?></span></div><?php endif; ?>
     </div>
     <div class="summary-box">
         <div class="label">چک‌های صادره در جریان</div>
         <div class="value stats-expense"><?= formatMoney($pendingIssued) ?></div>
+        <?php if ($valueIssued !== $pendingIssued): ?><div class="summary-sub">ارزشِ امروز <span class="ltr-num"><?= formatMoney($valueIssued) ?></span></div><?php endif; ?>
     </div>
 </div>
 
@@ -279,8 +304,47 @@ function renderChequeCard(array $c, string $todayStr): void
 
             <?= personPicker($userId, 'add_cheque_counterparty', 'نام شخص', 'از چه کسی / به چه کسی', 'required') ?>
 
+            <?php if ($hasValue): /* ⛔ «این چک را چطور گرفتیم؟» — روش و درصدِ خودِ همین چک/سری (`CHEQUE_VALUE_METHODS`) */ ?>
             <div class="form-group">
-                <label for="add_cheque_amount">مبلغ (تومان) <span class="req">*</span></label>
+                <label for="add_value_method" id="add_value_label">این چک را چطور گرفتیم؟</label>
+                <select id="add_value_method" name="value_method">
+                    <?php foreach (CHEQUE_VALUE_METHODS as $k => $m): ?>
+                        <option value="<?= h($k) ?>" data-hint="<?= h($m['hint']) ?>"><?= h($m['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="hint" id="add_value_hint"><?= h(CHEQUE_VALUE_METHODS['']['hint']) ?></p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" id="add_rate_group" hidden>
+                    <label for="add_value_rate">درصدِ ماهانه <span class="req">*</span></label>
+                    <input type="text" inputmode="decimal" id="add_value_rate" name="value_rate" placeholder="مثلاً ۵" autocomplete="off" class="ltr-num">
+                </div>
+                <div class="form-group">
+                    <label for="add_series_count">تعداد چک</label>
+                    <input type="text" inputmode="numeric" id="add_series_count" name="series_count" value="۱" autocomplete="off" class="ltr-num">
+                </div>
+            </div>
+
+            <div id="add_loan_group" hidden>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="add_loan_principal">پولی که دادید (اصل، تومان) <span class="req">*</span></label>
+                        <input type="text" inputmode="numeric" id="add_loan_principal" name="loan_principal" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>تاریخِ دادنِ پول</label>
+                        <div class="jdp-field">
+                            <input type="text" class="jdp-display" id="add_loan_from_display" readonly placeholder="انتخاب کنید">
+                            <input type="hidden" class="jdp-hidden" id="add_loan_from" name="loan_from" value="<?= h($todayStr) ?>">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <div class="form-group" id="add_amount_group">
+                <label for="add_cheque_amount" id="add_amount_label">مبلغ (تومان) <span class="req">*</span></label>
                 <input type="text" inputmode="numeric" id="add_cheque_amount" name="amount" required autocomplete="off">
             </div>
 
@@ -301,12 +365,16 @@ function renderChequeCard(array $c, string $todayStr): void
             </div>
 
             <div class="form-group">
-                <label>تاریخ سررسید (اختیاری)</label>
+                <label id="add_due_label">تاریخ سررسید (اختیاری)</label>
                 <div class="jdp-field">
                     <input type="text" class="jdp-display" readonly placeholder="انتخاب کنید">
                     <input type="hidden" class="jdp-hidden" id="add_cheque_due" name="due_date" value="">
                 </div>
             </div>
+
+            <?php if ($hasValue): ?>
+            <div class="cheque-value-preview" id="addValuePreview" hidden aria-live="polite"></div>
+            <?php endif; ?>
 
             <div class="form-group">
                 <label for="add_cheque_note">توضیح (اختیاری)</label>
@@ -336,6 +404,25 @@ function renderChequeCard(array $c, string $todayStr): void
             <input type="hidden" name="cheque_id" id="edit_cheque_id">
 
             <?= personPicker($userId, 'edit_cheque_counterparty', 'نام شخص', '', 'required') ?>
+
+            <?php if ($hasValue): ?>
+            <input type="hidden" name="value_present" value="1">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_value_method">چطور گرفتیم؟</label>
+                    <select id="edit_value_method" name="value_method">
+                        <?php foreach (CHEQUE_VALUE_METHODS as $k => $m): ?>
+                            <option value="<?= h($k) ?>" data-hint="<?= h($m['hint']) ?>"><?= h($m['label']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group" id="edit_rate_group" hidden>
+                    <label for="edit_value_rate">درصدِ ماهانه</label>
+                    <input type="text" inputmode="decimal" id="edit_value_rate" name="value_rate" autocomplete="off" class="ltr-num">
+                </div>
+            </div>
+            <p class="hint" id="edit_value_hint"></p>
+            <?php endif; ?>
 
             <div class="form-group">
                 <label for="edit_cheque_amount">مبلغ (تومان) <span class="req">*</span></label>

@@ -1693,6 +1693,18 @@ button.status-badge:active { transform: scale(.96); }
 .debt-note { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .debt-amount { font-weight: 700; font-size: 14.5px; white-space: nowrap; }
 .debt-amount small { font-size: 10.5px; font-weight: 400; color: var(--muted); }
+/* ارزشِ امروزِ چک (`chequePresentValue()`) زیرِ مبلغِ اسمی، و روشش زیرِ تاریخ */
+.cheque-today-value { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--in); text-align: end; }
+.cheque-value-caption { color: var(--muted-2); }
+.summary-box .summary-sub { margin-top: 3px; font-size: 11px; color: var(--muted); }
+.cheque-value-preview {
+    margin: 4px 0 12px; padding: 10px 12px; border-radius: 12px;
+    background: color-mix(in srgb, var(--in) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--in) 22%, transparent);
+    font-size: 12.5px; line-height: 1.9; color: var(--ink);
+}
+.cheque-value-preview b { font-weight: 700; }
+.cheque-value-preview.is-error { background: none; border-color: var(--line); color: var(--muted); }
 .debt-card-footer {
     display: flex; align-items: center; justify-content: space-between;
     gap: 9px; flex-wrap: wrap;

@@ -32,7 +32,10 @@ if ($chequeId <= 0) {
 
 $pdo = Database::getConnection();
 
-$checkStmt = $pdo->prepare('SELECT id, user_id, direction FROM cheques WHERE id = :id');
+$hasValue  = tableHasColumn('cheques', 'value_method');
+$checkStmt = $pdo->prepare($hasValue
+    ? 'SELECT id, user_id, direction, value_method, value_base, value_from FROM cheques WHERE id = :id'
+    : 'SELECT id, user_id, direction FROM cheques WHERE id = :id');
 $checkStmt->execute(['id' => $chequeId]);
 $cheque = $checkStmt->fetch();
 
@@ -53,6 +56,16 @@ $note             = postParam('note');
 $dueDate          = postParam('due_date');
 
 $errors = [];
+// ⛔ روش و درصد هر چک جدا ویرایش می‌شود. «اقساطِ وام» اصل و شروعِ دوره‌ی خودش را از
+//    ثبتِ سری دارد؛ چکِ دیگری به آن روش نمی‌رود (اصلش معلوم نیست).
+$valueMethod = null; $valueRate = null;
+if ($hasValue && postParam('value_present') === '1') {
+    [$valueMethod, $valueRate, $valueErr] = chequeValueInput(postParam('value_method'), postParam('value_rate'), (string)$dueDate);
+    if ($valueErr !== null) { $errors[] = $valueErr; }
+    if ($valueMethod === 'loan' && empty($cheque['value_base'])) {
+        $errors[] = 'روشِ «اقساطِ وام» فقط هنگامِ ثبتِ سری چک ساخته می‌شود (اصلِ پول باید معلوم باشد).';
+    }
+}
 
 if ($counterpartyName === '' || mb_strlen($counterpartyName) > 150) {
     $errors[] = 'نام شخص الزامی است و باید کمتر از ۱۵۰ کاراکتر باشد.';
@@ -115,6 +128,13 @@ try {
         'user_id'           => $userId,
     ]);
     chequeLinkedDebtSync($pdo, $userId, $chequeId, ['amount' => $amount, 'counterparty_name' => $counterpartyName]);
+    if ($hasValue && postParam('value_present') === '1') {
+        // اصلِ قسط هرگز بیشتر از مبلغِ چک نیست (ارزشِ امروز از مبلغ بالاتر نمی‌رود)
+        $pdo->prepare('UPDATE cheques SET value_method = :m, value_rate = :r,
+                              value_base = CASE WHEN :m2 = \'loan\' THEN LEAST(value_base, :a) ELSE value_base END
+                       WHERE id = :id AND user_id = :u')
+            ->execute(['m' => $valueMethod, 'r' => $valueRate, 'm2' => (string)$valueMethod, 'a' => $amount, 'id' => $chequeId, 'u' => $userId]);
+    }
 
     jsonResponse(['success' => true, 'message' => 'چک با موفقیت ویرایش شد.']);
 } catch (PDOException $e) {

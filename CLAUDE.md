@@ -97,7 +97,7 @@ $userId = Auth::userId();   // همیشه از اینجا، هرگز از ورو
 
 1. **جداسازی کاربران:** هر کوئری روی داده‌ی کاربر باید `WHERE user_id = :uid` داشته باشد. `user_id` همیشه از `Auth::userId()` می‌آید، هرگز از `$_POST`. **استثنایی هم ندارد:** تنها استثنای قبلی `admin/all-transactions.php` بود که حذف شد (پایین‌تر در «آمار استفاده» توضیح داده شده).
 2. **کوئری‌ها:** فقط `prepare()` + پارامتر نام‌دار. اگر ناچار به ساختن پویای `WHERE` شدید، مثل `transactions.php` عمل کنید: قطعه‌های ثابت در آرایه، مقادیر همیشه bind. رشته‌ی ورودی کاربر هرگز داخل SQL درج نشود.
-3. **CSRF:** هر اندپوینتی که چیزی می‌نویسد `Csrf::verifyOrFail()` دارد. اندپوینت‌های فقط-خواندنی (`dashboard_stats`, `day_detail`, `home_calendar`, `category_transactions`, `savings_history`, `transaction_attachments`, `view_attachment`) عمداً ندارند — اگر روزی نویسنده شدند، باید اضافه شود.
+3. **CSRF:** هر اندپوینتی که چیزی می‌نویسد `Csrf::verifyOrFail()` دارد. اندپوینت‌های فقط-خواندنی (`dashboard_stats`, `day_detail`, `home_calendar`, `category_transactions`, `savings_history`, `transaction_attachments`, `view_attachment`, `cheque_value_preview`) عمداً ندارند — اگر روزی نویسنده شدند، باید اضافه شود.
 4. **خروجی HTML:** هر مقدار متغیر با `h()` یا `htmlspecialchars` فرار داده شود.
 5. **مسیرها:** لینک‌ها و آدرس دارایی‌ها با ثابت `APP_BASE_PATH` ساخته شوند تا نصب در زیرپوشه نشکند.
 6. **تاریخ:** ذخیره در دیتابیس میلادی (`DATE`)، نمایش شمسی. تبدیل فقط با توابع خود پروژه — مبدأ الگوریتم PHP و `assets/js/jalali-datepicker.js` باید یکی بماند.
@@ -292,6 +292,7 @@ sudo ./hesabland release     # همان abc1234 — و فقط همان — رو�
 - **سری‌ها با لنگر:** `advanceRecurringDate(…, jalaliDayOfDate(start_date))` و `jalaliAddMonths()` — هرگز بی‌لنگر (۳۱→۳۰ همیشگی). تولیدِ خودکارِ دوره‌ای اول سررسید را **شرطی** جلو می‌برد؛ حساب از `resolveWalletId()`.
 - **حذفِ حساب** فقط وقتی `walletUsageCount()` (همه‌ی `walletRefColumns()`) صفر است؛ ویرایشِ حساب موجودیِ اولیه‌ی منفی را دست نمی‌زند؛ تعدیل نسبی (`+ :d`)؛ پرداختِ بدهی `FOR UPDATE` (قاعده ۷۳). طلبِ چکِ برگشتی با ویرایش/حذفِ چک همگام: `chequeLinkedDebtSync()`.
 - هر جدولِ ارجاع به دسته/حساب **از دیتابیس کشف** می‌شود (`categoryRefTables()`، `walletRefColumns()`) و عملیات‌های جابه‌جایی سدِ شمارشِ پیش از `commit` دارند.
+- **ارزشِ امروزِ چک** فقط `chequePresentValue()` (روش‌ها `CHEQUE_VALUE_METHODS`، سنجه `chequeValueInput()`، وام `chequeLoanPlan()`)؛ `amount` همیشه مبلغِ اسمی، ارزش هرگز ذخیره نمی‌شود؛ سری = N ردیفِ واقعی در یک تراکنش با `series_id`؛ «اقساطِ وام» فقط از ثبتِ سری.
 - «سرمایه‌گذاری» عمداً دسته‌ی هزینه نیست. ارزش = `COALESCE(current_price, unit_price)`؛ نرخ دستی، یا خودکار از نرخِ روز (`asset_types.rate_code`، `docs/decisions/rates.md`).
 
 ### `docs/decisions/rates.md` — نرخِ روزِ ارز، طلا و سکه (شخصی و فروشگاهی)

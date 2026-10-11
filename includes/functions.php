@@ -850,26 +850,33 @@ function netWorthPortfolio(int $userId, bool $isAdmin, ?array $walletRows = null
     // ⛔ فقط چکِ **در جریان** — چکِ پاس‌شده پولش از قبل در موجودی حساب
     //    نشسته (walletBalances با settle_wallet_id)، پس آوردنش اینجا یعنی
     //    دوبار شمردن. دریافتی مثبت و صادره منفی.
+    // ⛔ و به **ارزشِ امروز** (`chequePresentValue()`)، نه مبلغِ اسمی — چکِ شش‌ماهه‌ی
+    //    ۷۰۰ میلیونی امروز ۷۰۰ میلیون ارزش ندارد (مالکِ نصب، مهر ۱۴۰۵). صادره هم همین:
+    //    بدهیِ شش ماهِ بعد امروز سبک‌تر است. چکِ بی‌روش همان مبلغ.
     $chequeNet = 0;
     $chequeCount = 0;
+    $chequeFace = 0;
     if (tableExists('cheques')) {
         try {
+            $cols = tableHasColumn('cheques', 'value_method') ? ', value_method, value_rate, value_base, value_from' : '';
             $cq = $pdo->prepare(
-                "SELECT direction, COUNT(*) AS n, COALESCE(SUM(amount), 0) AS total
+                "SELECT direction, amount, due_date{$cols}
                  FROM cheques
-                 WHERE user_id = :u AND " . chequeActiveSql() . "
-                 GROUP BY direction"
+                 WHERE user_id = :u AND " . chequeActiveSql()
             );
             $cq->execute(['u' => $userId]);
+            $today = today();
             foreach ($cq->fetchAll() as $r) {
-                $chequeCount += (int)$r['n'];
-                $chequeNet   += ($r['direction'] === 'received' ? 1 : -1) * (int)$r['total'];
+                $sign = $r['direction'] === 'received' ? 1 : -1;
+                $chequeCount++;
+                $chequeNet  += $sign * chequePresentValue($r, $today);
+                $chequeFace += $sign * (int)$r['amount'];
             }
-        } catch (PDOException $e) { $chequeCount = 0; $chequeNet = 0; }
+        } catch (PDOException $e) { $chequeCount = 0; $chequeNet = 0; $chequeFace = 0; }
     }
     if ($chequeCount > 0) {
         $rows[] = ['name' => 'خالص چک‌های در جریان', 'qty' => (float)$chequeCount,
-                   'unit' => 'چک', 'value' => $chequeNet, 'kind' => 'cheques'];
+                   'unit' => 'چک', 'value' => $chequeNet, 'kind' => 'cheques', 'face' => $chequeFace];
     }
 
     // ⛔ فقط **باقیمانده** — پرداخت‌های انجام‌شده از قبل در موجودیِ حساب‌ها
@@ -1344,6 +1351,132 @@ function chequeActiveSql(string $alias = ''): string
         return "{$p}is_settled = 0";
     }
     return "{$p}is_settled = 0 AND {$p}status = 'pending'";
+}
+
+/**
+ * ⛔ روش‌های «این چک را چطور گرفتیم؟» — تنها فهرست (`migration_cheque_value`).
+ *    کلیدِ خالی = بی‌سود (ستون `NULL`). `hint` همان جمله‌ای است که فرم و کارت می‌گویند.
+ */
+const CHEQUE_VALUE_METHODS = [
+    ''         => ['label' => 'بی‌سود — همان مبلغِ چک',        'hint' => 'ارزشِ امروز همان مبلغِ چک است (مثلاً بابتِ فروش).'],
+    'simple'   => ['label' => 'تنزیلِ ساده — مبلغ منهای درصد', 'hint' => 'ارزشِ امروز = مبلغ − مبلغ × درصدِ ماهانه × ماه‌های مانده.'],
+    'compound' => ['label' => 'تنزیلِ مرکب',                     'hint' => 'درصدِ ماهانه روی ماه‌های مانده، مرکب حساب می‌شود.'],
+    'loan'     => ['label' => 'اقساطِ وام — اصل + سودِ ماهانه',  'hint' => 'پولی که دادید (اصل) به‌علاوه‌ی سودی که تا امروز گذشته؛ روزِ سررسید همان مبلغِ چک.'],
+];
+
+/** سقفِ درصدِ ماهانه — بیشتر از این تقریباً همیشه اشتباهِ تایپی است. */
+const CHEQUE_VALUE_RATE_MAX = 50;
+
+/**
+ * ⛔ «ارزشِ امروزِ» یک چکِ در جریان — **تنها جای این حساب** (صفحه‌ی چک، خالص دارایی، فرم).
+ *
+ * خواسته‌ی مالکِ نصب (مهر ۱۴۰۵): «۱۰ روز مونده یه مبلغ، ۴ روز مونده یه مبلغ، روزِ پاس
+ * شدن خودِ مبلغِ چک — و هر چک درصدِ خودش.» ماه = ۳۰ روز (همان «درصد در ماه»ِ بازار).
+ *
+ *  - بی‌سود، بی‌سررسید، یا سررسید رسیده/گذشته ⇒ همان مبلغ.
+ *  - `simple`:   مبلغ × (۱ − درصد × ماهِ مانده)، هرگز زیرِ صفر.
+ *  - `compound`: مبلغ ÷ (۱ + درصد) ^ ماهِ مانده.
+ *  - `loan`:     اصلِ این قسط + سودش به نسبتِ روزهای گذشته از شروعِ دوره‌اش تا سررسید —
+ *                پس جمعِ سریِ «۱۰۰ میلیون، ۶٪، ۱۰ قسط» روزِ اول دقیقاً ۱۰۰ میلیون است.
+ *
+ * ⚠ فقط نمایش و جمع است: پاس شدن همان `amount` را به حساب می‌نشاند.
+ */
+function chequePresentValue(array $c, ?string $today = null): int
+{
+    $face   = (int)$c['amount'];
+    $method = (string)($c['value_method'] ?? '');
+    $due    = (string)($c['due_date'] ?? '');
+    $today  = $today ?? today();
+    if ($method === '' || !isset(CHEQUE_VALUE_METHODS[$method]) || $due === '' || $due <= $today) { return $face; }
+    $days  = (int)round((strtotime($due . ' 12:00') - strtotime($today . ' 12:00')) / 86400);
+    $rate  = max(0.0, (float)($c['value_rate'] ?? 0)) / 100;
+    switch ($method) {
+        case 'simple':
+            return max(0, (int)round($face * (1 - $rate * $days / 30)));
+        case 'compound':
+            return (int)round($face / ((1 + $rate) ** ($days / 30)));
+        case 'loan':
+            $base = min($face, (int)($c['value_base'] ?? $face));
+            $from = (string)($c['value_from'] ?? '');
+            if ($from === '' || $from >= $due) { return $face; }
+            if ($today <= $from) { return $base; }
+            $span = (strtotime($due . ' 12:00') - strtotime($from . ' 12:00')) / 86400;
+            $done = (strtotime($today . ' 12:00') - strtotime($from . ' 12:00')) / 86400;
+            return (int)round($base + ($face - $base) * min(1.0, $done / $span));
+    }
+    return $face;
+}
+
+/** سقفِ تعدادِ چکِ یک سری. */
+const CHEQUE_SERIES_MAX = 60;
+
+/**
+ * روش و درصدِ فرم → [method|null, rate|null, error|null]. ⛔ تنها سنجه‌ی هر دو اندپوینت.
+ * درصد با ارقامِ فارسی و «٫» هم خوانده می‌شود؛ روشِ دار‌سود بی‌سررسید معنا ندارد.
+ */
+function chequeValueInput(string $method, string $rawRate, string $due): array
+{
+    $method = trim($method);
+    if ($method === '' || $method === 'none') { return [null, null, null]; }
+    if (!isset(CHEQUE_VALUE_METHODS[$method])) { return [null, null, 'روشِ دریافتِ چک نامعتبر است.']; }
+    $rate = (float)str_replace(['٫', '/', ','], '.', toLatinDigits(trim($rawRate)));
+    if ($rate <= 0 || $rate > CHEQUE_VALUE_RATE_MAX) {
+        return [null, null, 'درصدِ ماهانه را بنویسید (بیشتر از صفر و تا ' . toPersianDigits((string)CHEQUE_VALUE_RATE_MAX) . ').'];
+    }
+    if ($due === '') { return [null, null, 'برای حسابِ ارزشِ امروز، تاریخِ سررسید لازم است.']; }
+    return [$method, round($rate, 3), null];
+}
+
+/** سررسیدهای ماهانه‌ی یک سری از اولین سررسید، با لنگرِ روزِ همان (۳۱ می‌ماند ۳۱). */
+function chequeSeriesDates(string $firstDue, int $count): array
+{
+    require_once __DIR__ . '/schedule.php';
+    $anchor = jalaliDayOfDate($firstDue);
+    $out = [];
+    for ($i = 0; $i < $count; $i++) { $out[] = $i === 0 ? $firstDue : jalaliAddMonths($firstDue, $i, $anchor); }
+    return $out;
+}
+
+/**
+ * ⛔ اقساطِ وام — همان حسابِ مالکِ نصب: «۱۰۰ میلیون دادم، ۶٪ در ماه، ۱۰ ماه: سود ۶۰
+ *    میلیون، کل ۱۶۰، تقسیم بر ۱۰ = هر چک ۱۶ میلیون». سود روی **کلِ اصل** و برای هر ماه
+ *    (سری: N ماه؛ یک چک: ماه‌های تا سررسید، دست‌کم یک). باقیمانده‌ی تقسیم به قسطِ آخر.
+ * @return list<array{due:string, amount:int, base:int, from:string}>
+ */
+function chequeLoanPlan(int $principal, float $ratePct, int $count, string $from, string $firstDue): array
+{
+    $dues   = chequeSeriesDates($firstDue, $count);
+    $months = $count > 1 ? $count
+            : max(1, (int)round((strtotime($firstDue . ' 12:00') - strtotime($from . ' 12:00')) / 86400 / 30));
+    $interest = (int)round($principal * $ratePct / 100 * $months);
+    $baseEach = intdiv($principal, $count);
+    $intEach  = intdiv($interest, $count);
+    $out = [];
+    foreach ($dues as $i => $due) {
+        $last = $i === $count - 1;
+        $base = $last ? $principal - $baseEach * ($count - 1) : $baseEach;
+        $int  = $last ? $interest - $intEach * ($count - 1) : $intEach;
+        $out[] = ['due' => $due, 'amount' => $base + $int, 'base' => $base, 'from' => $i === 0 ? $from : $dues[$i - 1]];
+    }
+    return $out;
+}
+
+/** جملهٔ کوتاهِ روشِ یک چک برای کارت («تنزیلِ ساده ۵٪ ماهانه · ۱۲ روز مانده»)؛ بی‌سود = ''. */
+function chequeValueCaption(array $c, ?string $today = null): string
+{
+    $method = (string)($c['value_method'] ?? '');
+    if ($method === '' || !isset(CHEQUE_VALUE_METHODS[$method])) { return ''; }
+    $rate = rtrim(rtrim(number_format((float)($c['value_rate'] ?? 0), 3, '.', ''), '0'), '.');
+    $name = ['simple' => 'تنزیلِ ساده', 'compound' => 'تنزیلِ مرکب', 'loan' => 'قسطِ وام'][$method];
+    $out  = $name . ' ' . toPersianDigits($rate) . '٪ ماهانه';
+    if ($method === 'loan' && !empty($c['value_base'])) { $out .= ' · اصل ' . formatMoney((int)$c['value_base']); }
+    $due = (string)($c['due_date'] ?? '');
+    $today = $today ?? today();
+    if ($due !== '' && $due > $today) {
+        $days = (int)round((strtotime($due . ' 12:00') - strtotime($today . ' 12:00')) / 86400);
+        $out .= ' · ' . toPersianDigits((string)$days) . ' روز مانده';
+    }
+    return $out;
 }
 
 /**

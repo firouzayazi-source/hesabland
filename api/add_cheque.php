@@ -32,8 +32,30 @@ $sayadiNumber     = postParam('sayadi_number');
 $chequeNumber     = postParam('cheque_number');
 $note             = postParam('note');
 $dueDate          = postParam('due_date');
+// ⛔ «این چک را چطور گرفتیم؟» (`migration_cheque_value`) — روش، درصدِ ماهانه، و سری
+$hasValue    = tableHasColumn('cheques', 'value_method');
+$seriesCount = $hasValue ? max(1, (int)toLatinDigits(postParam('series_count', '1'))) : 1;
+$isLoan      = $hasValue && postParam('value_method') === 'loan';
 
 $errors = [];
+if ($seriesCount > CHEQUE_SERIES_MAX) {
+    $errors[] = 'حداکثر ' . toPersianDigits((string)CHEQUE_SERIES_MAX) . ' چک در یک سری.';
+}
+[$valueMethod, $valueRate, $valueErr] = $hasValue
+    ? chequeValueInput(postParam('value_method'), postParam('value_rate'), (string)$dueDate)
+    : [null, null, null];
+if ($valueErr !== null) { $errors[] = $valueErr; }
+if ($seriesCount > 1 && $dueDate === '') { $errors[] = 'برای سری چک، سررسیدِ اولین چک لازم است.'; }
+// اقساطِ وام: مبلغِ هر چک از اصل و درصد ساخته می‌شود، نه از فیلدِ مبلغ
+$loanPrincipal = 0;
+$loanFrom      = '';
+if ($isLoan) {
+    $rawAmount     = postParam('loan_principal');
+    $loanPrincipal = sanitizeAmount($rawAmount);
+    $loanFrom      = (string)postParam('loan_from', today());
+    if (!isValidDate($loanFrom)) { $errors[] = 'تاریخِ دادنِ پول نامعتبر است.'; }
+    elseif ($dueDate !== '' && $loanFrom >= $dueDate) { $errors[] = 'تاریخِ دادنِ پول باید پیش از سررسیدِ اولین چک باشد.'; }
+}
 
 if (!in_array($direction, ['received', 'issued'], true)) {
     $errors[] = 'نوع چک نامعتبر است.';
@@ -85,27 +107,67 @@ if ($bankId !== '' && (int)$bankId > 0) {
     }
 }
 
-try {
-    $stmt = $pdo->prepare('
-        INSERT INTO cheques
-            (user_id, direction, counterparty_name, amount, bank_id, sayadi_number, cheque_number, note, due_date)
-        VALUES
-            (:user_id, :direction, :counterparty_name, :amount, :bank_id, :sayadi_number, :cheque_number, :note, :due_date)
-    ');
-    $stmt->execute([
-        'user_id'           => $userId,
-        'direction'         => $direction,
-        'counterparty_name' => $counterpartyName,
-        'amount'            => $amount,
-        'bank_id'           => $bankIdValue,
-        'sayadi_number'     => $sayadiNumber !== '' ? toLatinDigits($sayadiNumber) : null,
-        'cheque_number'     => $chequeNumber !== '' ? toLatinDigits($chequeNumber) : null,
-        'note'              => $note !== '' ? $note : null,
-        'due_date'          => $dueDate !== '' ? $dueDate : null,
-    ]);
+// ⛔ هر چکِ سری یک ردیفِ واقعی است (پاس، برگشت، یادآوری و سررسیدِ خودش)؛ سری فقط
+//    برچسبِ «۳ از ۱۰» و `series_id` است. همه در **یک** تراکنش: یا همه یا هیچ.
+$plan = [];
+if ($isLoan) {
+    foreach (chequeLoanPlan($loanPrincipal, (float)$valueRate, $seriesCount, $loanFrom, $dueDate) as $x) {
+        if ($x['amount'] <= 0 || $x['amount'] > 999999999999) {
+            jsonResponse(['success' => false, 'message' => 'مبلغِ اصل برای این تعداد قسط معتبر نیست.'], 422);
+        }
+        $plan[] = $x;
+    }
+} else {
+    foreach ($dueDate !== '' ? chequeSeriesDates($dueDate, $seriesCount) : [''] as $d) {
+        $plan[] = ['due' => $d, 'amount' => $amount, 'base' => null, 'from' => null];
+    }
+}
+// شماره‌ی چکِ عددی در سری یکی‌یکی جلو می‌رود؛ صیادی یکتای هر برگ است، پس فقط برای چکِ تنها
+$numBase = toLatinDigits($chequeNumber);
+$numStep = count($plan) > 1 && preg_match('/^\d{1,18}$/', $numBase);
 
-    jsonResponse(['success' => true, 'message' => 'چک با موفقیت ثبت شد.']);
+try {
+    $pdo->beginTransaction();
+    $stmt = $pdo->prepare($hasValue
+        ? 'INSERT INTO cheques (user_id, direction, counterparty_name, amount, bank_id, sayadi_number, cheque_number, note, due_date,
+                                value_method, value_rate, value_base, value_from, series_no)
+           VALUES (:user_id, :direction, :counterparty_name, :amount, :bank_id, :sayadi_number, :cheque_number, :note, :due_date,
+                   :vm, :vr, :vb, :vf, :sn)'
+        : 'INSERT INTO cheques (user_id, direction, counterparty_name, amount, bank_id, sayadi_number, cheque_number, note, due_date)
+           VALUES (:user_id, :direction, :counterparty_name, :amount, :bank_id, :sayadi_number, :cheque_number, :note, :due_date)');
+    $seriesId = null;
+    foreach ($plan as $i => $x) {
+        $args = [
+            'user_id'           => $userId,
+            'direction'         => $direction,
+            'counterparty_name' => $counterpartyName,
+            'amount'            => $x['amount'],
+            'bank_id'           => $bankIdValue,
+            'sayadi_number'     => $sayadiNumber !== '' && count($plan) === 1 ? toLatinDigits($sayadiNumber) : null,
+            'cheque_number'     => $chequeNumber === '' ? null
+                                   : ($numStep ? (string)((int)$numBase + $i) : ($i === 0 ? $numBase : null)),
+            'note'              => $note !== '' ? $note : null,
+            'due_date'          => $x['due'] !== '' ? $x['due'] : null,
+        ];
+        if ($hasValue) {
+            $args += ['vm' => $valueMethod, 'vr' => $valueRate, 'vb' => $x['base'], 'vf' => $x['from'],
+                      'sn' => count($plan) > 1 ? $i + 1 : null];
+        }
+        $stmt->execute($args);
+        $id = (int)$pdo->lastInsertId();
+        if (count($plan) > 1) {
+            $seriesId ??= $id;
+            $pdo->prepare('UPDATE cheques SET series_id = :s WHERE id = :id AND user_id = :u')
+                ->execute(['s' => $seriesId, 'id' => $id, 'u' => $userId]);
+        }
+    }
+    $pdo->commit();
+
+    jsonResponse(['success' => true, 'message' => count($plan) > 1
+        ? toPersianDigits((string)count($plan)) . ' چک ثبت شد' . ($isLoan ? '؛ هر کدام ' . formatMoney($plan[0]['amount']) . ' تومان.' : '.')
+        : 'چک با موفقیت ثبت شد.']);
 } catch (PDOException $e) {
+    if ($pdo->inTransaction()) { $pdo->rollBack(); }
     Log::error('api.add_cheque', $e);
     jsonResponse(['success' => false, 'message' => 'خطایی در ثبت چک رخ داد.'], 500);
 }
