@@ -48,7 +48,31 @@ final class BizSheet
         if (strncmp($bytes, "\xD0\xCF\x11\xE0", 4) === 0) {
             return ['ok' => false, 'message' => 'قالبِ قدیمیِ اکسل (xls) پشتیبانی نمی‌شود؛ فایل را با قالبِ «xlsx» یا «CSV UTF-8» ذخیره کنید.'];
         }
+        if (self::isBinary($bytes)) {
+            return ['ok' => false, 'message' => self::BINARY_MESSAGE];
+        }
         return self::readCsv($bytes);
+    }
+
+    /** پیامِ فایلِ غیرِ جدولی — گزارشِ چاپی (QRP)، PDF، تصویر و مانندِ آن. */
+    public const BINARY_MESSAGE = 'این فایل جدول نیست (مثلاً گزارشِ چاپیِ QRP، PDF یا تصویر) و خوانده نمی‌شود. '
+        . 'در همان نرم‌افزارِ حسابداری «خروجیِ اکسل» بگیرید، یا فایل را در اکسل باز کنید و با قالبِ «xlsx» ذخیره کنید.';
+
+    /**
+     * ⛔ فایلِ دودویی هرگز به‌جای CSV خوانده نمی‌شود. پیش از این گزارشِ QRPِ یک نرم‌افزارِ
+     *    حسابداری از مسیرِ «Windows-1256» (که تقریباً هر بایتی را می‌پذیرد) رد می‌شد و پیش‌نمایش
+     *    ستون‌های درهم و ۱۴۱۱ «خطا» نشان می‌داد (گزارشِ مالکِ نصب، مهر ۱۴۰۵). متنِ واقعی — حتی
+     *    Windows-1256 — بایتِ صفر ندارد و نویسه‌ی کنترلی‌اش جز تب و پایانِ خط ناچیز است.
+     *    UTF-16 (با BOM) پیش از این سنجش جدا شناخته می‌شود.
+     */
+    public static function isBinary(string $bytes): bool
+    {
+        if (strncmp($bytes, "\xFF\xFE", 2) === 0 || strncmp($bytes, "\xFE\xFF", 2) === 0) { return false; }
+        $head = substr($bytes, 0, 8192);
+        if ($head === '') { return false; }
+        if (str_starts_with($head, '%PDF') || str_contains($head, "\0")) { return true; }
+        $ctrl = strlen($head) - strlen((string)preg_replace('/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $head));
+        return $ctrl > max(8, (int)(strlen($head) * 0.02));
     }
 
     /* ---------- zip ---------- */

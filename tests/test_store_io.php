@@ -98,6 +98,16 @@ if (function_exists('iconv') && ($cpEnc = @iconv('UTF-8', 'CP1256', $cpSrc)) !==
     T::skip('CSVِ Windows-1256', 'iconv با CP1256 روی این ماشین نیست');
 }
 T::ok(!BizSheet::read("<!DOCTYPE html><html><body>x</body></html>")['ok'], 'صفحه‌ی وب به‌عنوانِ جدول پذیرفته نمی‌شود');
+// ⛔ گزارشِ چاپیِ QRP (گزارشِ مالکِ نصب، مهر ۱۴۰۵): دودویی، از مسیرِ Windows-1256 ستون‌های درهم
+//    و ۱۴۱۱ «خطا» می‌ساخت. شبیه‌سازی: سرآیند + بایت‌های صفر و کنترلی در میانِ متنِ لاتین.
+$qrp = "QRPD\x01\x00\x00\x00" . str_repeat("D\xD3L@\x00\x02\x9E\xAE5%\x83\x8B\xF9\x00\x10\x11", 200);
+$bin = BizSheet::read($qrp);
+T::ok(!$bin['ok'] && str_contains((string)($bin['message'] ?? ''), 'QRP'), '⛔ گزارشِ QRP (دودویی) جدول خوانده نمی‌شود، با راهنمای «خروجیِ اکسل»', (string)($bin['message'] ?? ''));
+$noNul = str_repeat("ab\x01\x02\x03\x04cd\x05\x06\x07\x08", 100);
+T::ok(!BizSheet::read($noNul)['ok'], '⛔ دودوییِ بی‌بایتِ صفر هم (نویسه‌ی کنترلیِ زیاد)');
+T::ok(!BizSheet::read("%PDF-1.7\nابتدای pdf")['ok'], '⛔ PDF جدول نیست');
+T::ok(!BizSheet::read(str_repeat("name,qty\x00\n", 50))['ok'], '⛔ بایتِ صفر به‌تنهایی (متنِ ظاهراً سالم) یعنی دودویی');
+T::ok(BizSheet::read("نام,قیمت\r\nالف,\x0C10\r\n")['ok'], 'یک نویسه‌ی کنترلیِ گم‌شده در CSVِ واقعی آن را رد نمی‌کند');
 
 $w = BizSheet::writeCsv([['نام', 'قیمت'], ['=HYPERLINK("x")', 5], ['-2+3', -7], ['@x', '']]);
 T::ok(strncmp($w, "\xEF\xBB\xBF", 3) === 0, 'CSVِ خروجی BOM دارد');
