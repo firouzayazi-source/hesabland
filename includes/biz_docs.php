@@ -282,7 +282,8 @@ final class BizInvoices
     public static function parseLines(int $userId, array $raw, string $priceCol = ''): array
     {
         $pdo = Database::getConnection();
-        $cols = 'id, name, unit, track_stock, has_serial, is_active, sell_price, buy_price' . (Biz::accReady() ? ', vat_exempt' : '');
+        $cols = 'id, name, unit, track_stock, has_serial, is_active, sell_price, buy_price' . (Biz::accReady() ? ', vat_exempt' : '')
+              . (BizProducts::levelsReady() ? ', price_wholesale, price_colleague' : '');
         $byId = $pdo->prepare("SELECT {$cols} FROM biz_products WHERE id = :id AND user_id = :u");
         $bySku = $pdo->prepare("SELECT {$cols} FROM biz_products WHERE sku = :s AND user_id = :u LIMIT 1");
         $byName = $pdo->prepare("SELECT {$cols} FROM biz_products WHERE name = :n AND user_id = :u ORDER BY is_active DESC, id LIMIT 1");
@@ -349,8 +350,11 @@ final class BizInvoices
             // ⛔ قیمتِ خالی = قیمتِ خودِ کالا (فروش یا خرید)، نه صفر: خانه‌ای که
             //    کاربر پاک کرده یا اسکریپتش نرسیده، فروشِ مجانی صادر می‌کرد
             //    (بازرسیِ مهر ۱۴۰۵). «۰»ِ نوشته‌شده همچنان صفر است (هدیه، نمونه).
-            $price = (trim((string)$prIn) === '' && $prod && $priceCol !== '' && isset($prod[$priceCol]))
-                ? (int)$prod[$priceCol] : sanitizeAmount($prIn);
+            // ⛔ قیمتِ سطحِ مشتری (عمده/همکار) خالی ⇒ همان قیمتِ فروش (`BizProducts::LEVELS`)
+            $col = $priceCol;
+            if ($prod && str_starts_with($col, 'price_') && (int)($prod[$col] ?? 0) <= 0) { $col = 'sell_price'; }
+            $price = (trim((string)$prIn) === '' && $prod && $col !== '' && isset($prod[$col]))
+                ? (int)$prod[$col] : sanitizeAmount($prIn);
             $disc  = sanitizeAmount($r['disc'] ?? '');
             $desc  = $prod ? (string)$prod['name'] : $item;
             $unit  = $prod ? (string)$prod['unit'] : 'عدد';
@@ -499,7 +503,8 @@ final class BizInvoices
         if (!$head['ok']) { return $head; }
         // پیش‌نویس اثری ندارد، ولی صدورش در دوره‌ی بسته رد می‌شد — همین‌جا بگو، نه بعد از تایپِ کلِ فاکتور
         if (($e = Biz::lockError($userId, $head['date'], 'فاکتور')) !== null) { return ['ok' => false, 'message' => $e]; }
-        $parsed = self::parseLines($userId, (array)($in['lines'] ?? []), $kind === 'purchase' ? 'buy_price' : 'sell_price');
+        $parsed = self::parseLines($userId, (array)($in['lines'] ?? []),
+            $kind === 'purchase' ? 'buy_price' : BizProducts::priceColFor($userId, (int)$head['party_id']));
         if ($parsed['errors']) {
             return ['ok' => false, 'message' => implode(' ', array_values($parsed['errors'])), 'errors' => $parsed['errors']];
         }
@@ -675,6 +680,13 @@ final class BizInvoices
         if ($inv['party_id'] === null && $payAmount !== (int)$inv['total']) {
             return ['ok' => false, 'message' => 'بی‌طرف‌حساب (مشتری یا فروشنده‌ی گذری) سند فقط با تسویه‌ی کامل صادر می‌شود؛ طرف‌حساب انتخاب کنید یا کلِ مبلغ را '
                 . (self::SETTLED_BY[$kind] === 'receipt' ? 'دریافت' : 'پرداخت') . ' کنید.'];
+        }
+
+        // ⛔ سقفِ اعتبارِ مشتری (`BizParties::creditError()`): فروشِ نسیه‌ای که مانده را از سقف
+        //    بالاتر ببرد رد می‌شود مگر اجازه‌ی صریح (`over_credit`، فقط با دسترسیِ «پول»)
+        if ($kind === 'sale' && $inv['party_id'] !== null && empty($pay['over_credit'])
+            && ($e = BizParties::creditError($pdo, $userId, (int)$inv['party_id'], (int)$inv['total'] - $payAmount)) !== null) {
+            return ['ok' => false, 'message' => $e, 'credit' => true];
         }
 
         // ⛔ شماره فقط هنگامِ صدور؛ پیش‌نویسِ رهاشده شماره را نمی‌سوزاند.

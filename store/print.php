@@ -137,6 +137,34 @@ case 'by_party':
     <?php BizPrint::foot($userId);
     break;
 
+case 'commission':
+    require_once __DIR__ . '/../includes/biz_staff.php';
+    $cm = BizStaff::commission($userId, $rf, $rt);
+    BizPrint::head($userId, BizPrint::DOCS['commission'], $periodBack, ['بازه' => BizReports::rangeLabel($rf, $rt)]); ?>
+    <table class="pr-table">
+        <thead><tr><th>همکار</th><th class="pr-wide">نقش</th><th class="pr-c-num">فاکتور</th><th class="pr-c-num pr-wide">فروش</th>
+            <th class="pr-c-num pr-wide">برگشت</th><th class="pr-c-num">فروشِ خالص</th><th class="pr-c-num">درصد</th><th class="pr-c-num">پورسانت</th></tr></thead>
+        <tbody>
+        <?php if (!$cm['rows']): ?><tr><td colspan="8" class="pr-empty">در این بازه فروشی نیست.</td></tr><?php endif; ?>
+        <?php foreach ($cm['rows'] as $r): ?>
+            <tr>
+                <td><?= h($r['name']) ?></td>
+                <td class="pr-wide"><?= h($r['role']) ?></td>
+                <td class="pr-c-num"><span class="pr-num"><?= toPersianDigits((string)$r['docs']) ?></span></td>
+                <td class="pr-c-num pr-wide"><?= $money($r['sales']) ?></td>
+                <td class="pr-c-num pr-wide"><?= $r['returns'] ? $money($r['returns']) : '' ?></td>
+                <td class="pr-c-num"><?= $signed($r['net']) ?></td>
+                <td class="pr-c-num"><?= $r['id'] > 0 ? '<span class="pr-num">' . h(toPersianDigits(rtrim(rtrim(number_format($r['pct'], 2, '.', ''), '0'), '.'))) . '٪</span>' : '' ?></td>
+                <td class="pr-c-num"><?= $r['id'] > 0 ? $money($r['commission']) : '' ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+        <tfoot><tr><td colspan="5">جمع</td><td class="pr-c-num"><?= $signed($cm['sums']['net']) ?></td><td></td><td class="pr-c-num"><?= $money($cm['sums']['commission']) ?></td></tr></tfoot>
+    </table>
+    <p class="pr-note">پایه‌ی پورسانت فروشِ خالصِ بی‌مالیات است؛ برگشتی از پورسانتِ همان کسی کم می‌شود که فاکتورِ اصل را ساخته. درصد همان درصدِ امروزِ صفحه‌ی «همکاران» است. مبلغ‌ها به تومان.</p>
+    <?php BizPrint::foot($userId, ['حسابدار', 'تأیید']);
+    break;
+
 case 'serials':
     $sf = isset(BizSerial::REPORT_FILTERS[$filter]) ? $filter : '';
     $sr = BizSerial::report($userId, $sf, $id);

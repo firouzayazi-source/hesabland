@@ -180,4 +180,63 @@ final class BizStaff
         Audit::log('store.staff_removed', 'user', (int)$row['staff_id'], [], null, null);
         return ['ok' => true, 'message' => '«' . $row['full_name'] . '» از همکاران برداشته شد.'];
     }
+
+    /**
+     * ⛔ پورسانتِ همکاران در بازه — تنها محاسبه‌ی پورسانت.
+     *
+     * پایه = فروشِ خالصِ **بی‌مالیات** (`net_total`ِ ردیف‌ها، همان پایه‌ی
+     * `BizReports::sales()`) از فاکتورهای فروشِ صادرشده‌ای که همان همکار ساخته
+     * (`created_by`)، منهای برگشتی‌هایی که **فاکتورِ اصلشان** را او ساخته — نه
+     * کسی که برگشت را ثبت کرد؛ وگرنه فروشنده پورسانتِ کالای پس‌آمده را نگه
+     * می‌داشت و صندوق‌دار جریمه‌اش را می‌داد. درصد همان `commission_pct`ِ امروز
+     * است (عکس گرفته نمی‌شود). فروشِ صاحب یا بی‌سازنده در ردیفِ «صاحبِ فروشگاه».
+     *
+     * @return array{rows:list<array{id:int,name:string,role:string,pct:float,sales:int,returns:int,net:int,docs:int,commission:int}>, sums:array{net:int,commission:int}}
+     */
+    public static function commission(int $ownerId, string $from, string $to): array
+    {
+        $rows = [];
+        $sums = ['net' => 0, 'commission' => 0];
+        if (!Biz::staffReady()) { return ['rows' => [], 'sums' => $sums]; }
+        $st = Database::getConnection()->prepare(
+            "SELECT COALESCE(CASE WHEN i.kind = 'sale' THEN i.created_by ELSE r.created_by END, 0) AS who,
+                    COALESCE(SUM(CASE WHEN i.kind = 'sale' THEN l.net_total ELSE 0 END), 0) AS sales,
+                    COALESCE(SUM(CASE WHEN i.kind = 'sale_return' THEN l.net_total ELSE 0 END), 0) AS returns,
+                    COUNT(DISTINCT CASE WHEN i.kind = 'sale' THEN i.id END) AS docs
+             FROM biz_invoices i
+             JOIN biz_invoice_lines l ON l.invoice_id = i.id AND l.user_id = i.user_id
+             LEFT JOIN biz_invoices r ON r.id = i.ref_invoice_id AND r.user_id = i.user_id
+             WHERE i.user_id = :u AND i.status = 'issued' AND i.kind IN ('sale','sale_return')
+               AND i.inv_date BETWEEN :f AND :t
+             GROUP BY who"
+        );
+        $st->execute(['u' => $ownerId, 'f' => $from, 't' => $to]);
+        $by = [];
+        foreach ($st->fetchAll() as $r) { $by[(int)$r['who']] = $r; }
+        $mk = static function (int $id, string $name, string $role, float $pct, ?array $r): array {
+            $sales = (int)($r['sales'] ?? 0);
+            $ret   = (int)($r['returns'] ?? 0);
+            $net   = $sales - $ret;
+            return ['id' => $id, 'name' => $name, 'role' => $role, 'pct' => $pct, 'sales' => $sales, 'returns' => $ret,
+                    'net' => $net, 'docs' => (int)($r['docs'] ?? 0),
+                    'commission' => $net > 0 ? (int)round($net * $pct / 100) : 0];
+        };
+        foreach (self::list($ownerId) as $s) {
+            $sid = (int)$s['staff_id'];
+            $row = $mk($sid, (string)($s['full_name'] ?: $s['username']), (string)(Biz::STAFF_ROLES[$s['role']]['label'] ?? $s['role']),
+                       (float)$s['commission_pct'], $by[$sid] ?? null);
+            unset($by[$sid]);
+            if ($row['net'] === 0 && $row['docs'] === 0 && $row['returns'] === 0) { continue; }   // بی‌گردش در بازه
+            $rows[] = $row;
+        }
+        // صاحب، بی‌سازنده (پیش از همکاران) و همکارِ حذف‌شده — پورسانت ندارند
+        $rest = null;
+        foreach ($by as $r) {
+            $rest ??= ['sales' => 0, 'returns' => 0, 'docs' => 0];
+            foreach (['sales', 'returns', 'docs'] as $k) { $rest[$k] += (int)$r[$k]; }
+        }
+        if ($rest !== null) { $rows[] = $mk(0, 'صاحبِ فروشگاه و سایر', '', 0.0, $rest); }
+        foreach ($rows as $r) { $sums['net'] += $r['net']; $sums['commission'] += $r['commission']; }
+        return ['rows' => $rows, 'sums' => $sums];
+    }
 }

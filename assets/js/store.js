@@ -171,6 +171,7 @@
         Array.prototype.forEach.call(dl.options, function (o) {
             var unit = !!o.dataset.imei1;
             var p = { id: o.dataset.id, name: unit ? o.dataset.name : o.value, sku: o.dataset.sku || '', sell: o.dataset.sell, buy: o.dataset.buy,
+                      wholesale: o.dataset.wholesale || '', colleague: o.dataset.colleague || '',
                       unit: o.dataset.unit, stock: parseFloat(o.dataset.stock || '0'), track: o.dataset.track === '1',
                       serial: o.dataset.serial === '1', imei1: unit ? o.dataset.imei1 : '', imei2: unit ? (o.dataset.imei2 || '') : '',
                       vex: o.dataset.vex === '1' };
@@ -276,7 +277,7 @@
             var m = document.createElement('span');
             var bits = [];
             if (p.imei1) { bits.push('IMEI ' + p.imei1); } else if (p.sku) { bits.push(p.sku); }
-            if (p[priceKeyOf(input)] && p[priceKeyOf(input)] !== '0') { bits.push(fmt(parseInt(p[priceKeyOf(input)], 10))); }
+            var pv = priceOf(input, p); if (pv && pv !== '0') { bits.push(fmt(parseInt(pv, 10))); }
             if (p.imei1) { bits.push('گوشیِ در انبار'); } else if (p.track) { bits.push('موجودی ' + fmt(p.stock)); } else { bits.push('خدمت'); }
             m.textContent = bits.join(' · ');
             if (!p.imei1 && p.track && p.stock <= 0) { o.classList.add('is-out'); }
@@ -309,7 +310,16 @@
     }
     function priceKeyOf(input) {
         var f = input.closest('form');
-        return f && f.dataset.price === 'buy' ? 'buy' : 'sell';
+        if (f && f.dataset.price === 'buy') { return 'buy'; }
+        // ⛔ سطحِ قیمتِ مشتریِ انتخاب‌شده (`BizProducts::LEVELS`): retail → sell
+        var sel = f && f.querySelector('[data-party]'), o = sel && sel.selectedOptions && sel.selectedOptions[0];
+        var lv = o && o.dataset.level;
+        return lv === 'wholesale' || lv === 'colleague' ? lv : 'sell';
+    }
+    /** قیمتِ کالا برای همین فرم؛ سطحِ خالیِ کالا = قیمتِ فروشِ معمولی (همان `parseLines`). */
+    function priceOf(input, p) {
+        var k = priceKeyOf(input);
+        return (p[k] && p[k] !== '0') ? p[k] : (k === 'buy' ? p.buy : p.sell);
     }
     /** کلیدهای فهرست؛ true یعنی رویداد مصرف شد. */
     function acKey(e) {
@@ -438,7 +448,7 @@
                 }
                 imeiBox(row, p.serial);
                 if (p.serial && !p.imei1 && field(row, 'imei1').value.trim() === '') { field(row, 'imei1').focus(); }
-                if (price.value.trim() === '' && p[priceKey] && p[priceKey] !== '0') { price.value = p[priceKey]; }
+                var pv = priceOf(item, p); if (price.value.trim() === '' && pv && pv !== '0') { price.value = pv; }
                 row.__p = p;
                 overMark(row);
                 item.title = p.track ? ('موجودی: ' + fmt(p.stock) + ' ' + (p.unit || '')) : '';

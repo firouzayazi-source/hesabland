@@ -301,6 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'full'       => $form['pay_mode'] === 'full',
                 'amount'     => $form['pay_mode'] === 'part' ? $form['pay_amount'] : '0',
                 'part'       => $form['pay_mode'] === 'part',
+                // ⛔ گذر از سقفِ اعتبار فقط با دسترسیِ مالی و تیکِ صریح
+                'over_credit' => postParam('over_credit') === '1' && Biz::can('money'),
             ]);
             // پیش‌نویس در هر حال ساخته شده: ارسالِ دوباره همان را باز می‌کند، نه سندِ دوم
             BizOnce::done(Biz::url(($r['ok'] ? 'invoice.php?id=' : 'invoice-edit.php?id=') . $id));
@@ -416,7 +418,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <select name="party_id" data-party>
                     <option value="0"><?= $isSale ? 'مشتریِ گذری (نقدی)' : 'فروشنده‌ی گذری (نقدی)' ?></option>
                     <?php foreach ($parties as $p): ?>
-                        <option value="<?= (int)$p['id'] ?>" data-balance="<?= (int)$p['balance'] ?>"<?= (int)$p['id'] === (int)$form['party_id'] ? ' selected' : '' ?>><?= h($p['name']) ?></option>
+                        <option value="<?= (int)$p['id'] ?>" data-balance="<?= (int)$p['balance'] ?>" data-level="<?= h((string)($p['price_level'] ?? 'retail')) ?>"<?= (int)$p['id'] === (int)$form['party_id'] ? ' selected' : '' ?>><?= h($p['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <a class="st-field-link" href="<?= h(Biz::url('party.php?kind=' . ($isSale ? 'customer' : 'supplier'))) ?>">+ <?= h($partyLbl) ?>ِ تازه</a>
@@ -601,6 +603,9 @@ require __DIR__ . '/../includes/biz_head.php';
     </section>
 
     <div class="st-actionbar">
+        <?php if ($isSale && Biz::can('money') && BizParties::termsReady()): ?>
+        <label class="st-check st-over-credit"><input type="checkbox" name="over_credit" value="1"> گذر از سقفِ اعتبار</label>
+        <?php endif; ?>
         <button type="submit" name="action" value="issue_print" class="st-btn">صدور و چاپ</button>
         <button type="submit" name="action" value="issue" class="st-btn st-btn-ghost">صدور</button>
         <button type="submit" name="action" value="save" class="st-btn st-btn-ghost" formnovalidate>ذخیره‌ی پیش‌نویس</button>

@@ -177,6 +177,49 @@ final class BizCommon
 final class BizProducts
 {
     /**
+     * ⛔ سطح‌های قیمت — تنها مرجع (مشتری `biz_parties.price_level`، کالا ستونِ هر سطح).
+     *    قیمتِ سطحِ خالی ⇒ همان قیمتِ فروش (`parseLines()`)؛ پس تعریفِ نکردنِ قیمتِ عمده
+     *    یعنی «مثلِ تک‌فروشی»، نه صفر.
+     */
+    public const LEVELS = [
+        'retail'    => ['label' => 'تک‌فروشی', 'col' => 'sell_price'],
+        'wholesale' => ['label' => 'عمده',     'col' => 'price_wholesale'],
+        'colleague' => ['label' => 'همکار',    'col' => 'price_colleague'],
+    ];
+
+    public static function levelsReady(): bool
+    {
+        return tableHasColumn('biz_products', 'price_wholesale');
+    }
+
+    /** ستونِ قیمتِ فروش برای یک مشتری (گذری/بی‌سطح ⇒ `sell_price`). */
+    public static function priceColFor(int $userId, int $partyId): string
+    {
+        if ($partyId <= 0 || !self::levelsReady()) { return 'sell_price'; }
+        $st = Database::getConnection()->prepare('SELECT price_level FROM biz_parties WHERE id = :id AND user_id = :u');
+        $st->execute(['id' => $partyId, 'u' => $userId]);
+        return self::LEVELS[(string)$st->fetchColumn()]['col'] ?? 'sell_price';
+    }
+
+    /** قیمتِ عمده و همکارِ یک کالا (فرمِ کالا) — خالی = همان قیمتِ فروش. @return array{ok:bool, message:string} */
+    public static function savePrices(int $userId, int $id, array $in): array
+    {
+        if (!self::levelsReady()) { return ['ok' => true, 'message' => '']; }
+        $vals = [];
+        foreach (['price_wholesale' => 'قیمتِ عمده', 'price_colleague' => 'قیمتِ همکار'] as $col => $lbl) {
+            $raw = trim((string)($in[$col] ?? ''));
+            // ⛔ `sanitizeAmount()` علامت را دور می‌ریزد؛ «−۵» نباید بی‌صدا «۵» شود
+            if (preg_match('/^[-−‐]/u', $raw)) { return ['ok' => false, 'message' => $lbl . ' نمی‌تواند منفی باشد.']; }
+            $v = $raw === '' ? null : sanitizeAmount($raw);
+            if ($v !== null && ($e = BizCommon::moneyError($v, $lbl)) !== null) { return ['ok' => false, 'message' => $e]; }
+            $vals[$col] = $v !== null && $v > 0 ? $v : null;
+        }
+        Database::getConnection()->prepare('UPDATE biz_products SET price_wholesale = :w, price_colleague = :c WHERE id = :id AND user_id = :u')
+            ->execute(['w' => $vals['price_wholesale'], 'c' => $vals['price_colleague'], 'id' => $id, 'u' => $userId]);
+        return ['ok' => true, 'message' => ''];
+    }
+
+    /**
      * ⛔ تنها مرجعِ واحدها؛ مقدار یعنی «اعشار می‌پذیرد؟». عدد و بسته
      *    نصفه فروخته نمی‌شوند، کیلوگرم و متر می‌شوند.
      */
@@ -1395,6 +1438,43 @@ final class BizStock
    ================================================================= */
 final class BizParties
 {
+    /** سطحِ قیمت و سقفِ اعتبار آمده‌اند؟ (migration_biz_pricing) */
+    public static function termsReady(): bool
+    {
+        return tableHasColumn('biz_parties', 'credit_limit');
+    }
+
+    /**
+     * ⛔ سقفِ اعتبار — از `issueTx` (همان تراکنش، پس با موجودیِ قفل‌شده). `$add` = آنچه این
+     *    فروش به مانده اضافه می‌کند (جمع منهای دریافتِ همراه). سقفِ صفر = بی‌سقف؛ فروشی که
+     *    مانده را **پایین** می‌آورد (یا دست نمی‌زند) هیچ‌وقت رد نمی‌شود.
+     */
+    public static function creditError(PDO $pdo, int $userId, int $partyId, int $add): ?string
+    {
+        if ($add <= 0 || !self::termsReady()) { return null; }
+        $st = $pdo->prepare('SELECT p.name, p.credit_limit, ' . self::BALANCE_SQL . ' AS bal FROM biz_parties p WHERE p.id = :id AND p.user_id = :u');
+        $st->execute(['id' => $partyId, 'u' => $userId]);
+        $r = $st->fetch();
+        if (!$r || (int)$r['credit_limit'] <= 0) { return null; }
+        $after = (int)$r['bal'] + $add;
+        if ($after <= (int)$r['credit_limit']) { return null; }
+        return 'سقفِ اعتبارِ «' . $r['name'] . '» ' . formatMoney((int)$r['credit_limit']) . ' تومان است؛ با این فروش مانده‌اش '
+             . formatMoney($after) . ' می‌شود. بخشی را نقد بگیرید یا (با دسترسیِ مالی) «گذر از سقفِ اعتبار» را بزنید.';
+    }
+
+    /** سطحِ قیمت و سقفِ اعتبارِ یک طرف‌حساب (فرمِ طرف‌حساب). @return array{ok:bool, message:string} */
+    public static function saveTerms(int $userId, int $id, array $in): array
+    {
+        if (!self::termsReady()) { return ['ok' => true, 'message' => '']; }
+        $level = (string)($in['price_level'] ?? 'retail');
+        if (!isset(BizProducts::LEVELS[$level])) { $level = 'retail'; }
+        $limit = sanitizeAmount((string)($in['credit_limit'] ?? ''));
+        if (($e = BizCommon::moneyError($limit, 'سقفِ اعتبار')) !== null) { return ['ok' => false, 'message' => $e]; }
+        Database::getConnection()->prepare('UPDATE biz_parties SET price_level = :l, credit_limit = :c WHERE id = :id AND user_id = :u')
+            ->execute(['l' => $level, 'c' => $limit, 'id' => $id, 'u' => $userId]);
+        return ['ok' => true, 'message' => ''];
+    }
+
     /** قدیمی‌ترین تاریخِ سند یا دریافت/پرداختِ این طرف‌حساب ('' اگر هیچ). */
     public static function firstDocDate(int $userId, int $partyId): string
     {

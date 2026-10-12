@@ -126,7 +126,10 @@ final class BizDocView
                  . '" data-buy="' . (int)$p['buy_price'] . '" data-unit="' . h((string)$p['unit']) . '" data-stock="'
                  . h((string)(float)$p['stock_qty']) . '" data-track="' . (int)$p['track_stock'] . '" data-serial="'
                  . (BizProducts::typeOf($p) === 'phone' ? 1 : 0) . '"'
-                 . ((int)($p['vat_exempt'] ?? 0) === 1 ? ' data-vex="1"' : '');
+                 . ((int)($p['vat_exempt'] ?? 0) === 1 ? ' data-vex="1"' : '')
+                 // ⛔ قیمتِ سطحِ مشتری (`BizProducts::LEVELS`) — `store.js` با سطحِ مشتریِ انتخاب‌شده می‌نشاندش
+                 . ((int)($p['price_wholesale'] ?? 0) > 0 ? ' data-wholesale="' . (int)$p['price_wholesale'] . '"' : '')
+                 . ((int)($p['price_colleague'] ?? 0) > 0 ? ' data-colleague="' . (int)$p['price_colleague'] . '"' : '');
         };
         foreach ($rows as $p) {
             $byId[(int)$p['id']] = $p;

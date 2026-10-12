@@ -34,7 +34,10 @@ $form = [
     'economic_code'  => (string)($party['economic_code'] ?? ''),
     'postal_code'    => (string)($party['postal_code'] ?? ''),
     'code'           => (string)($party['code'] ?? ''),
+    'price_level'    => (string)($party['price_level'] ?? 'retail'),
+    'credit_limit'   => (int)($party['credit_limit'] ?? 0) > 0 ? number_format((int)$party['credit_limit']) : '',
 ];
+$hasTerms = $party ? array_key_exists('credit_limit', $party) : BizParties::termsReady();
 // ⚠ همان شگرد: ردیفِ موجود می‌گوید ستونِ «کد» آمده یا نه
 $hasPcode = $party ? array_key_exists('code', $party) : BizParties::hasPartyCode();
 // ردیفِ موجود (`p.*`) خودش می‌گوید ستون‌ها آمده‌اند — بی‌کوئریِ نقشه‌ی ساختار
@@ -46,6 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'save') {
         $res = BizParties::save($userId, $_POST, $id);
+        // ⛔ سطحِ قیمت و سقفِ اعتبار جدا (`saveTerms()`) — ورود از فایل آن‌ها را نمی‌فرستد
+        if ($res['ok'] && isset($_POST['terms_form'])) {
+            $tr = BizParties::saveTerms($userId, (int)$res['id'], $_POST);
+            if (!$tr['ok']) { redirectWithMessage(Biz::url('party.php?id=' . (int)$res['id']), 'error', 'طرف‌حساب ذخیره شد، ولی ' . $tr['message']); }
+        }
         if ($res['ok']) {
             redirectWithMessage(Biz::url('party.php?id=' . (int)$res['id']), 'success', $res['message']);
         }
@@ -96,6 +104,9 @@ require __DIR__ . '/../includes/biz_head.php';
         <?php else: ?>
             <span class="st-kpi-value st-num <?= $bal > 0 ? 'is-pos' : 'is-neg' ?>"><?= formatMoney(abs($bal)) ?></span>
             <span class="st-kpi-sub"><?= $bal > 0 ? 'تومان — او به فروشگاه بدهکار است' : 'تومان — فروشگاه به او بدهکار است' ?></span>
+        <?php endif; ?>
+        <?php $lim = (int)($party['credit_limit'] ?? 0); if ($lim > 0): $room = $lim - max(0, $bal); ?>
+            <span class="st-kpi-sub" data-credit-room>سقفِ اعتبار <?= formatMoney($lim) ?> · <?= $room >= 0 ? 'جای خالی ' . formatMoney($room) : '<span class="is-neg">بیش از سقف ' . formatMoney(-$room) . '</span>' ?></span>
         <?php endif; ?>
     </div>
 </div>
@@ -193,6 +204,19 @@ require __DIR__ . '/../includes/biz_head.php';
             </label>
         </div>
     </fieldset>
+    <?php if ($hasTerms): ?>
+    <fieldset class="st-fieldset">
+        <legend>قیمت و اعتبار</legend>
+        <input type="hidden" name="terms_form" value="1">
+        <div class="st-row2">
+            <label class="st-field"><span>سطحِ قیمت</span>
+                <select name="price_level"><?php foreach (BizProducts::LEVELS as $lk => $lv): ?><option value="<?= h($lk) ?>"<?= $lk === $form['price_level'] ? ' selected' : '' ?>><?= h($lv['label']) ?></option><?php endforeach; ?></select></label>
+            <label class="st-field"><span>سقفِ اعتبار (تومان) <small class="st-muted">— خالی = بی‌سقف</small></span>
+                <input type="text" name="credit_limit" inputmode="numeric" dir="ltr" value="<?= h((string)$form['credit_limit']) ?>"></label>
+        </div>
+        <p class="st-muted">فاکتورِ این طرف‌حساب با قیمتِ همین سطح پر می‌شود (اگر برای کالا تعریف شده باشد). فروشِ نسیه‌ای که مانده را از سقف بالاتر ببرد صادر نمی‌شود، مگر کسی با دسترسیِ مالی «گذر از سقف» را بزند.</p>
+    </fieldset>
+    <?php endif; ?>
     <label class="st-field">
         <span>یادداشت <small class="st-muted">(اختیاری)</small></span>
         <textarea name="note" rows="2" maxlength="<?= BizParties::LIMITS['note'] ?>"><?= h((string)$form['note']) ?></textarea>

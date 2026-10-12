@@ -46,6 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // ⛔ مالیات و شناسه‌ی مودیان هم جدا (`saveTax()`) — ورود از فایل آن‌ها را نمی‌فرستد
             // ⛔ گارانتیِ پیش‌فرضِ کالا — جدا (`BizWarranty::saveProduct()`)؛ عکسش هنگامِ صدور روی ردیف
+            // ⛔ قیمتِ عمده/همکار جدا (`savePrices()`) — خالی = همان قیمتِ فروش
+            if (isset($_POST['levels_form'])) {
+                $lp = BizProducts::savePrices($userId, (int)$res['id'], $_POST);
+                if (!$lp['ok']) { redirectWithMessage(Biz::url('product.php?id=' . (int)$res['id']), 'error', 'کالا ذخیره شد، ولی ' . $lp['message']); }
+            }
             if (isset($_POST['warranty_form'])) {
                 require_once __DIR__ . '/../includes/biz_repairs.php';
                 $wr = BizWarranty::saveProduct($userId, (int)$res['id'], postParam('warranty_months'), postParam('warranty_label'));
@@ -288,6 +293,18 @@ require __DIR__ . '/../includes/biz_head.php';
         </div>
         <p class="st-muted">گوشی: هر دستگاه با IMEIِ خودش خرید و فروش می‌شود (فاکتورِ خرید، یک ردیف برای هر گوشی). خدمت موجودی ندارد.</p>
     </fieldset>
+    <?php if (BizProducts::levelsReady()): ?>
+    <fieldset class="st-fieldset">
+        <legend>قیمتِ عمده و همکار</legend>
+        <input type="hidden" name="levels_form" value="1">
+        <div class="st-row2">
+            <label class="st-field"><span>قیمتِ عمده <small class="st-muted">(خالی = قیمتِ فروش)</small></span>
+                <input type="text" name="price_wholesale" inputmode="numeric" dir="ltr" value="<?= h($numVal($_POST['price_wholesale'] ?? ($product['price_wholesale'] ?? ''))) ?>"></label>
+            <label class="st-field"><span>قیمتِ همکار <small class="st-muted">(خالی = قیمتِ فروش)</small></span>
+                <input type="text" name="price_colleague" inputmode="numeric" dir="ltr" value="<?= h($numVal($_POST['price_colleague'] ?? ($product['price_colleague'] ?? ''))) ?>"></label>
+        </div>
+    </fieldset>
+    <?php endif; ?>
     <?php if (tableHasColumn('biz_products', 'warranty_months')): ?>
     <fieldset class="st-fieldset">
         <legend>گارانتی</legend>

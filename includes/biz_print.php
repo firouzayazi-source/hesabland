@@ -32,6 +32,7 @@ final class BizPrint
         'account'    => 'گردشِ صندوق و بانک',
         'cheques'    => 'دفترِ چک',
         'repair'     => 'قبضِ پذیرشِ تعمیر',
+        'commission' => 'پورسانتِ همکاران',
     ];
 
     /**
@@ -43,7 +44,7 @@ final class BizPrint
         'prices' => null, 'invoice' => null, 'payment' => null, 'party' => 'receive',
         'stock' => 'reports', 'parties' => 'reports', 'kardex' => 'reports', 'sales' => 'reports',
         'by_product' => 'reports', 'by_invoice' => 'reports', 'by_party' => 'reports', 'serials' => 'reports',
-        'account' => 'money', 'cheques' => 'money', 'repair' => 'repairs',
+        'account' => 'money', 'cheques' => 'money', 'repair' => 'repairs', 'commission' => 'reports',
     ];
 
     /** عنوانِ سندهای دوسویه — `?k=sale|purchase`. */
@@ -93,6 +94,8 @@ final class BizPrint
              'desc' => 'هر فاکتورِ فروش و برگشتی با مشتری، مبلغ، دریافت‌شده، مانده و سود.'],
             ['doc' => 'by_invoice', 'k' => 'purchase', 'label' => 'خرید به تفکیکِ فاکتور', 'input' => 'period',
              'desc' => 'هر فاکتورِ خرید و برگشتی با فروشنده، مبلغ، پرداخت‌شده و مانده.'],
+            ['doc' => 'commission', 'label' => 'پورسانتِ همکاران', 'input' => 'period',
+             'desc' => 'فروشِ خالصِ بی‌مالیاتِ هر همکار (منهای برگشتیِ فاکتورهای خودش) و پورسانتش.'],
         ],
         'خزانه' => [
             ['doc' => 'account', 'label' => 'گردشِ حسابِ صندوق و بانک', 'input' => 'account',
