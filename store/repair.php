@@ -146,10 +146,10 @@ require __DIR__ . '/../includes/biz_head.php';
     <label class="st-field"><span>ایراد</span><textarea name="problem" rows="2" required maxlength="<?= BizRepairs::LIMITS['problem'] ?>"><?= h((string)$form['problem']) ?></textarea></label>
     <label class="st-field"><span>لوازمِ همراه <small class="st-muted">(قاب، شارژر، سیم‌کارت…)</small></span><input type="text" name="accessories" maxlength="<?= BizRepairs::LIMITS['accessories'] ?>" value="<?= h((string)$form['accessories']) ?>"></label>
     <div class="st-row2">
-        <label class="st-field"><span>برآوردِ هزینه (تومان)</span><input type="text" name="estimate" inputmode="numeric" dir="ltr" value="<?= h((string)$form['estimate']) ?>"></label>
-        <label class="st-field"><span>تاریخِ پذیرش</span><input type="text" name="received_on" dir="ltr" value="<?= h((string)$form['received_on']) ?>"></label>
+        <label class="st-field"><span>برآوردِ هزینه (تومان)</span><input data-money type="text" name="estimate" inputmode="numeric" dir="ltr" value="<?= h((string)$form['estimate']) ?>"></label>
+        <label class="st-field"><span>تاریخِ پذیرش</span><input data-num type="text" name="received_on" dir="ltr" value="<?= h((string)$form['received_on']) ?>"></label>
     </div>
-    <label class="st-field st-field-sm"><span>قولِ تحویل <small class="st-muted">(اختیاری)</small></span><input type="text" name="promised_on" dir="ltr" value="<?= h((string)$form['promised_on']) ?>" placeholder="۱۴۰۵/۰۷/۲۵"></label>
+    <label class="st-field st-field-sm"><span>قولِ تحویل <small class="st-muted">(اختیاری)</small></span><input data-num type="text" name="promised_on" dir="ltr" value="<?= h((string)$form['promised_on']) ?>" placeholder="۱۴۰۵/۰۷/۲۵"></label>
     <label class="st-field"><span>یادداشت</span><textarea name="note" rows="2" maxlength="<?= BizRepairs::LIMITS['note'] ?>"><?= h((string)$form['note']) ?></textarea></label>
     </fieldset>
     <?php if (!$closed): ?>

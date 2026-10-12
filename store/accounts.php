@@ -113,7 +113,7 @@ require __DIR__ . '/../includes/biz_head.php';
             </label>
             <label class="st-field">
                 <span>موجودیِ اولیه (تومان)</span>
-                <input type="text" name="opening_balance" inputmode="numeric" dir="ltr" value="<?= h((string)$form['opening_balance']) ?>">
+                <input data-money type="text" name="opening_balance" inputmode="numeric" dir="ltr" value="<?= h((string)$form['opening_balance']) ?>">
             </label>
         </div>
         <div class="st-danger-row">

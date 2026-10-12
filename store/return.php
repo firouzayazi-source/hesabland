@@ -84,7 +84,7 @@ require __DIR__ . '/../includes/biz_head.php';
                         <td class="st-td-num st-hide-sm"><?= BizDocView::money($unitNet) ?></td>
                         <td class="st-td-num">
                             <?php if ($x['left'] > 0): ?>
-                            <input class="st-qty-in" type="text" name="qty[<?= (int)$lid ?>]" value="<?= h((string)($form['qty'][$lid] ?? '')) ?>" inputmode="decimal" dir="ltr" placeholder="۰" aria-label="تعدادِ برگشتِ <?= h((string)$o['description']) ?>">
+                            <input data-num class="st-qty-in" type="text" name="qty[<?= (int)$lid ?>]" value="<?= h((string)($form['qty'][$lid] ?? '')) ?>" inputmode="decimal" dir="ltr" placeholder="۰" aria-label="تعدادِ برگشتِ <?= h((string)$o['description']) ?>">
                             <?php else: ?><span class="st-muted-i">—</span><?php endif; ?>
                         </td>
                     </tr>
@@ -114,7 +114,7 @@ require __DIR__ . '/../includes/biz_head.php';
             <?php if ($orig['party_id'] === null): ?><p class="st-muted">فاکتورِ اصلی گذری است، پس پول همین حالا برمی‌گردد.</p><?php endif; ?>
         </section>
         <section class="st-card st-form">
-            <label class="st-field"><span>تاریخِ برگشت</span><input type="text" name="ret_date" value="<?= h((string)$form['date']) ?>" dir="ltr" inputmode="numeric"></label>
+            <label class="st-field"><span>تاریخِ برگشت</span><input data-num type="text" name="ret_date" value="<?= h((string)$form['date']) ?>" dir="ltr" inputmode="numeric"></label>
             <label class="st-field"><span>علت یا توضیح <small class="st-muted">(اختیاری)</small></span><textarea name="note" rows="2" maxlength="<?= BizInvoices::NOTE_MAX ?>"><?= h((string)$form['note']) ?></textarea></label>
         </section>
     </div>

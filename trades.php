@@ -335,7 +335,7 @@ if ($planRO) { echo planReadOnlyNotice('trades'); }
                 </div>
                 <div class="form-group">
                     <label for="trade_qty">تعداد / مقدار</label>
-                    <input type="text" inputmode="decimal" id="trade_qty" name="qty" value="1"
+                    <input type="text" inputmode="decimal" id="trade_qty" data-num name="qty" value="1"
                            placeholder="۱">
                 </div>
             </div>
@@ -412,7 +412,7 @@ if ($planRO) { echo planReadOnlyNotice('trades'); }
                 </div>
                 <div class="form-group">
                     <label for="asset_sell_qty">مقدار</label>
-                    <input type="text" inputmode="decimal" id="asset_sell_qty" name="qty" required>
+                    <input type="text" inputmode="decimal" id="asset_sell_qty" data-num name="qty" required>
                     <p class="hint" id="assetSellRemaining"></p>
                 </div>
             </div>
@@ -464,7 +464,7 @@ if ($planRO) { echo planReadOnlyNotice('trades'); }
                 </div>
                 <div class="form-group">
                     <label for="sell_qty">تعداد</label>
-                    <input type="text" inputmode="decimal" id="sell_qty" name="qty" value="1">
+                    <input type="text" inputmode="decimal" id="sell_qty" data-num name="qty" value="1">
                     <p class="hint" id="sellRemainingHint"></p>
                 </div>
             </div>

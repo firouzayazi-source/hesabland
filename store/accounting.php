@@ -123,8 +123,8 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
 <form method="get" class="st-card st-form st-inline-form" action="<?= h(Biz::url('accounting.php')) ?>">
     <input type="hidden" name="t" value="<?= h($t) ?>"><input type="hidden" name="p" value="custom">
     <div class="st-row3">
-        <label class="st-field"><span>از</span><input type="text" name="from" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate($rFrom)) ?>"></label>
-        <label class="st-field"><span>تا</span><input type="text" name="to" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate($rTo)) ?>"></label>
+        <label class="st-field"><span>از</span><input data-num type="text" name="from" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate($rFrom)) ?>"></label>
+        <label class="st-field"><span>تا</span><input data-num type="text" name="to" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate($rTo)) ?>"></label>
         <div class="st-field"><span>&nbsp;</span><button type="submit" class="st-btn st-btn-ghost">نمایش</button></div>
     </div>
 </form>
@@ -148,7 +148,7 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
 <form method="get" class="st-card st-form st-inline-form" action="<?= h(Biz::url('accounting.php')) ?>">
     <input type="hidden" name="t" value="balance">
     <div class="st-row3">
-        <label class="st-field"><span>ترازنامه در تاریخِ</span><input type="text" name="at" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate($at)) ?>"></label>
+        <label class="st-field"><span>ترازنامه در تاریخِ</span><input data-num type="text" name="at" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate($at)) ?>"></label>
         <div class="st-field"><span>&nbsp;</span><button type="submit" class="st-btn st-btn-ghost">نمایش</button></div>
     </div>
 </form>
@@ -348,7 +348,7 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
 <form method="post" action="<?= h($self) ?>" class="st-card st-form" data-jv>
     <?= Csrf::field() ?><input type="hidden" name="action" value="jv_save">
     <div class="st-row2">
-        <label class="st-field"><span>تاریخ</span><input type="text" name="jdate" dir="ltr" inputmode="numeric" required value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
+        <label class="st-field"><span>تاریخ</span><input data-num type="text" name="jdate" dir="ltr" inputmode="numeric" required value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
         <label class="st-field"><span>شرحِ سند</span><input type="text" name="description" required maxlength="<?= BizJournal::DESC_MAX ?>"></label>
     </div>
     <div class="st-table-wrap st-flat"><table class="st-table st-table-compact">
@@ -444,7 +444,7 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
                 <?php if ($gone): ?>
                     <form method="post" action="<?= h($self) ?>" class="st-inline"><?= Csrf::field() ?><input type="hidden" name="action" value="fa_undispose"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><button type="submit" class="st-link-btn">برگرداندن</button></form>
                 <?php else: ?>
-                    <form method="post" action="<?= h($self) ?>" class="st-inline"><?= Csrf::field() ?><input type="hidden" name="action" value="fa_dispose"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><input type="text" name="date" dir="ltr" inputmode="numeric" size="10" aria-label="تاریخِ کنار گذاشتن" value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>"><button type="submit" class="st-link-btn">کنار گذاشتن</button></form>
+                    <form method="post" action="<?= h($self) ?>" class="st-inline"><?= Csrf::field() ?><input type="hidden" name="action" value="fa_dispose"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><input data-num type="text" name="date" dir="ltr" inputmode="numeric" size="10" aria-label="تاریخِ کنار گذاشتن" value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>"><button type="submit" class="st-link-btn">کنار گذاشتن</button></form>
                     <?php if (Biz::can('void')): ?>
                     <form method="post" action="<?= h($self) ?>" class="st-inline" onsubmit="return confirm('دارایی حذف و پرداختِ خریدش باطل شود؟');"><?= Csrf::field() ?><input type="hidden" name="action" value="fa_remove"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><button type="submit" class="st-link-btn">حذف</button></form>
                     <?php endif; ?>
@@ -460,11 +460,11 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
     <h2 class="st-h3">دارایی‌ی تازه</h2>
     <div class="st-row3">
         <label class="st-field"><span>نام</span><input type="text" name="name" required maxlength="<?= BizAssets::NAME_MAX ?>"></label>
-        <label class="st-field"><span>تاریخِ خرید</span><input type="text" name="acq_date" dir="ltr" inputmode="numeric" required value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
+        <label class="st-field"><span>تاریخِ خرید</span><input data-num type="text" name="acq_date" dir="ltr" inputmode="numeric" required value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
         <label class="st-field"><span>بهای خرید (تومان)</span><input type="text" name="cost" required inputmode="numeric" dir="ltr" data-money></label>
     </div>
     <div class="st-row3">
-        <label class="st-field"><span>عمرِ مفید (ماه)</span><input type="text" name="life_months" required inputmode="numeric" dir="ltr" value="60"></label>
+        <label class="st-field"><span>عمرِ مفید (ماه)</span><input data-num type="text" name="life_months" required inputmode="numeric" dir="ltr" value="60"></label>
         <label class="st-field"><span>ارزشِ اسقاط <small class="st-muted">(اختیاری)</small></span><input type="text" name="salvage" inputmode="numeric" dir="ltr" data-money></label>
         <label class="st-field"><span>پول از کجا</span><select name="funding"><?php foreach (BizAssets::FUNDING as $fk => $fl): ?><option value="<?= h($fk) ?>"><?= h($fl) ?></option><?php endforeach; ?></select></label>
     </div>

@@ -505,7 +505,7 @@ $shSold    = $storeShare !== null ? (int)($storeShare['sold_count'] ?? 0) : 0;
             <div class="form-row">
                 <div class="form-group">
                     <label for="add_asset_qty">مقدار <span class="req">*</span></label>
-                    <input type="text" inputmode="decimal" id="add_asset_qty" name="quantity" required placeholder="مثلاً ۲٫۵">
+                    <input type="text" inputmode="decimal" id="add_asset_qty" data-num name="quantity" required placeholder="مثلاً ۲٫۵">
                 </div>
                 <div class="form-group">
                     <label>تاریخ</label>
@@ -556,7 +556,7 @@ $shSold    = $storeShare !== null ? (int)($storeShare['sold_count'] ?? 0) : 0;
             <div class="form-row">
                 <div class="form-group">
                     <label for="edit_asset_qty">مقدار <span class="req">*</span></label>
-                    <input type="text" inputmode="decimal" id="edit_asset_qty" name="quantity" required>
+                    <input type="text" inputmode="decimal" id="edit_asset_qty" data-num name="quantity" required>
                 </div>
                 <div class="form-group">
                     <label>تاریخ</label>

@@ -99,7 +99,7 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
              ردیفِ فاکتور، خواندنِ بارکد، Toast، حالتِ شب). هر فرم بی‌آن هم کار
              می‌کند و جمع را همیشه سرور حساب می‌کند؛ کشوی منو، «+ ثبت» و
              جست‌وجو اصلاً به آن بند نیستند. */ ?>
-    <?php foreach (assetUrls(['js/client-errors.js', 'js/store.js']) as $__u): ?>
+    <?php foreach (assetUrls(['js/client-errors.js', 'js/num-input.js', 'js/store.js']) as $__u): ?>
     <script defer src="<?= h($__u) ?>"></script>
     <?php endforeach; ?>
     <meta name="theme-color" content="<?= h(Biz::PALETTES[$__bizPal]['theme']) ?>">

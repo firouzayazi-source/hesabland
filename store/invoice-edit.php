@@ -440,7 +440,7 @@ require __DIR__ . '/../includes/biz_head.php';
             </label>
             <label class="st-field">
                 <span>تاریخ</span>
-                <input type="text" name="inv_date" value="<?= h((string)$form['inv_date']) ?>" dir="ltr" placeholder="۱۴۰۵/۰۷/۰۵" inputmode="numeric">
+                <input data-num type="text" name="inv_date" value="<?= h((string)$form['inv_date']) ?>" dir="ltr" placeholder="۱۴۰۵/۰۷/۰۵" inputmode="numeric">
             </label>
         </div>
         <?php if ($warehouses): ?>
@@ -484,8 +484,8 @@ require __DIR__ . '/../includes/biz_head.php';
             <label class="st-field"><span>کد یا بارکد <small class="st-muted">(اختیاری)</small></span><input type="text" name="np[sku]" value="<?= h($np['sku']) ?>" dir="ltr" maxlength="<?= BizProducts::LIMITS['sku'] ?>"></label>
         </div>
         <div class="st-row2">
-            <label class="st-field"><span>قیمتِ خرید</span><input type="text" name="np[buy]" value="<?= h($np['buy']) ?>" inputmode="numeric" dir="ltr"></label>
-            <label class="st-field"><span>قیمتِ فروش</span><input type="text" name="np[sell]" value="<?= h($np['sell']) ?>" inputmode="numeric" dir="ltr"></label>
+            <label class="st-field"><span>قیمتِ خرید</span><input data-money type="text" name="np[buy]" value="<?= h($np['buy']) ?>" inputmode="numeric" dir="ltr"></label>
+            <label class="st-field"><span>قیمتِ فروش</span><input data-money type="text" name="np[sell]" value="<?= h($np['sell']) ?>" inputmode="numeric" dir="ltr"></label>
         </div>
         <div class="st-row2" data-np-imei>
             <label class="st-field"><span>IMEI ۱ <small class="st-muted">(فقط گوشی)</small></span><input type="text" name="np[imei1]" value="<?= h($np['imei1']) ?>" inputmode="numeric" dir="ltr" autocomplete="off"></label>
@@ -552,13 +552,13 @@ require __DIR__ . '/../includes/biz_head.php';
         <?php endif; ?>
         <div class="st-row2">
             <?php if (!$sp['serial']): ?>
-            <label class="st-field"><span>تعداد (<?= h($sp['unit']) ?>)</span><input type="text" name="sp[qty]" value="<?= h($sp['qty']) ?>" inputmode="decimal" dir="ltr"></label>
+            <label class="st-field"><span>تعداد (<?= h($sp['unit']) ?>)</span><input data-num type="text" name="sp[qty]" value="<?= h($sp['qty']) ?>" inputmode="decimal" dir="ltr"></label>
             <?php endif; ?>
-            <label class="st-field"><span>قیمتِ خریدِ هر <?= h($sp['unit'] !== '' ? $sp['unit'] : 'واحد') ?></span><input type="text" name="sp[buy]" value="<?= h($sp['buy']) ?>" inputmode="numeric" dir="ltr"></label>
+            <label class="st-field"><span>قیمتِ خریدِ هر <?= h($sp['unit'] !== '' ? $sp['unit'] : 'واحد') ?></span><input data-money type="text" name="sp[buy]" value="<?= h($sp['buy']) ?>" inputmode="numeric" dir="ltr"></label>
         </div>
         <div class="st-row2">
-            <label class="st-field"><span>قیمتِ فروش</span><input type="text" name="sp[sell]" value="<?= h($sp['sell']) ?>" inputmode="numeric" dir="ltr"></label>
-            <label class="st-field"><span>تاریخِ خرید</span><input type="text" name="sp[date]" value="<?= h($sp['date']) ?>" inputmode="numeric" dir="ltr"></label>
+            <label class="st-field"><span>قیمتِ فروش</span><input data-money type="text" name="sp[sell]" value="<?= h($sp['sell']) ?>" inputmode="numeric" dir="ltr"></label>
+            <label class="st-field"><span>تاریخِ خرید</span><input data-num type="text" name="sp[date]" value="<?= h($sp['date']) ?>" inputmode="numeric" dir="ltr"></label>
         </div>
         <div class="st-row2">
             <div class="st-seg st-seg-sm" role="radiogroup" aria-label="پرداخت">
@@ -577,15 +577,15 @@ require __DIR__ . '/../includes/biz_head.php';
     <div class="st-doc-foot">
         <section class="st-card st-sumbox">
             <div class="st-sum-line"><span>جمعِ ردیف‌ها</span><b class="st-num" data-subtotal><?= formatMoney($tot['subtotal']) ?></b></div>
-            <label class="st-sum-line"><span>تخفیفِ فاکتور</span><input type="text" name="discount" value="<?= h((string)$form['discount']) ?>" inputmode="numeric" dir="ltr" data-discount></label>
+            <label class="st-sum-line"><span>تخفیفِ فاکتور</span><input data-money type="text" name="discount" value="<?= h((string)$form['discount']) ?>" inputmode="numeric" dir="ltr" data-discount></label>
             <?php if ($loyaltyOn): $lb = (int)$form['party_id'] > 0 ? BizLoyalty::balance($userId, (int)$form['party_id'], $inv ? (int)$id : 0) : null; ?>
             <div class="st-sum-line" data-loyalty-box><span>امتیازِ باشگاه<?= $lb !== null ? ' <small class="st-muted-i">(موجود ' . toPersianDigits((string)$lb['balance']) . ')</small>' : '' ?></span>
-                <span><input type="text" name="loyalty_points" value="<?= h((string)$form['loyalty_points']) ?>" inputmode="numeric" dir="ltr" size="5">
+                <span><input data-num type="text" name="loyalty_points" value="<?= h((string)$form['loyalty_points']) ?>" inputmode="numeric" dir="ltr" size="5">
                 <button type="submit" name="action" value="loyalty_apply" class="st-link-btn" formnovalidate>به تخفیف</button></span></div>
             <?php endif; ?>
-            <label class="st-sum-line"><span>حمل و هزینه‌ی دیگر</span><input type="text" name="extra" value="<?= h((string)$form['extra']) ?>" inputmode="numeric" dir="ltr" data-extra></label>
+            <label class="st-sum-line"><span>حمل و هزینه‌ی دیگر</span><input data-money type="text" name="extra" value="<?= h((string)$form['extra']) ?>" inputmode="numeric" dir="ltr" data-extra></label>
             <?php if ($vatShow): /* ⛔ مالیات بر ارزش افزوده — نرخِ همین سند؛ کالای معاف صفر */ ?>
-            <label class="st-sum-line"><span>مالیات بر ارزش افزوده (٪)</span><input type="text" name="vat_rate" value="<?= h((string)$form['vat_rate']) ?>" inputmode="decimal" dir="ltr" data-vat-rate></label>
+            <label class="st-sum-line"><span>مالیات بر ارزش افزوده (٪)</span><input data-num type="text" name="vat_rate" value="<?= h((string)$form['vat_rate']) ?>" inputmode="decimal" dir="ltr" data-vat-rate></label>
             <div class="st-sum-line"><span>مبلغِ مالیات</span><b class="st-num" data-tax><?= formatMoney($tot['tax']) ?></b></div>
             <?php endif; ?>
             <div class="st-sum-line st-sum-total"><span>مبلغِ فاکتور</span><b class="st-num" data-total><?= formatMoney($tot['total']) ?></b></div>
@@ -613,7 +613,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <?php endforeach; ?>
             </div>
             <div class="st-row2">
-                <label class="st-field"><span>مبلغ (برای «بخشی»)</span><input type="text" name="pay_amount" value="<?= h((string)$form['pay_amount']) ?>" inputmode="numeric" dir="ltr" data-payamount></label>
+                <label class="st-field"><span>مبلغ (برای «بخشی»)</span><input data-money type="text" name="pay_amount" value="<?= h((string)$form['pay_amount']) ?>" inputmode="numeric" dir="ltr" data-payamount></label>
                 <label class="st-field"><span>روش</span>
                     <select name="method"><?php foreach (BizPay::quickMethods() as $mk => $ml): ?><option value="<?= h($mk) ?>"<?= $mk === $form['method'] ? ' selected' : '' ?>><?= h($ml) ?></option><?php endforeach; ?></select>
                 </label>
@@ -641,7 +641,7 @@ require __DIR__ . '/../includes/biz_head.php';
         <?php if ($isSale && BizInvoices::proformaReady()): ?>
         <span class="st-proforma-act">
             <button type="submit" name="action" value="proforma" class="st-btn st-btn-ghost" formnovalidate><?= !empty($inv['proforma_no']) ? 'به‌روزرسانی و چاپِ پیش‌فاکتور' : 'پیش‌فاکتور و چاپ' ?></button>
-            <label class="st-inline-label">اعتبار <input type="text" name="proforma_days" inputmode="numeric" dir="ltr" size="3" value="<?= (int)BizInvoices::PROFORMA_DAYS ?>" aria-label="اعتبارِ پیش‌فاکتور (روز)"> روز</label>
+            <label class="st-inline-label">اعتبار <input data-num type="text" name="proforma_days" inputmode="numeric" dir="ltr" size="3" value="<?= (int)BizInvoices::PROFORMA_DAYS ?>" aria-label="اعتبارِ پیش‌فاکتور (روز)"> روز</label>
         </span>
         <?php endif; ?>
     </div>

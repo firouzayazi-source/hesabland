@@ -201,9 +201,9 @@ final class BizDocView
                   . '</div>'
                   . '<input type="text" name="lines[' . $i . '][note]" value="' . h($note) . '" maxlength="' . BizInvoices::LINE_NOTE_MAX . '" autocomplete="off" placeholder="توضیح (رنگ، گارانتی…)" aria-label="شرحِ کالا" class="st-line-notein" data-note' . ($showNote ? '' : ' hidden') . '>'
                   . '</td>'
-                  . '<td class="st-line-qty"><input type="text" name="lines[' . $i . '][qty]" value="' . h($qty) . '" inputmode="decimal" dir="ltr" placeholder="۱" aria-label="تعداد" data-qty></td>'
-                  . '<td class="st-line-price"><input type="text" name="lines[' . $i . '][price]" value="' . h((string)$price) . '" inputmode="numeric" dir="ltr" aria-label="فی" data-price></td>'
-                  . '<td class="st-line-disc st-hide-sm"><input type="text" name="lines[' . $i . '][disc]" value="' . h((string)$disc) . '" inputmode="numeric" dir="ltr" aria-label="تخفیف" data-disc></td>'
+                  . '<td class="st-line-qty"><input type="text" name="lines[' . $i . '][qty]" value="' . h($qty) . '" inputmode="decimal" dir="ltr" placeholder="۱" aria-label="تعداد" data-qty data-num></td>'
+                  . '<td class="st-line-price"><input type="text" name="lines[' . $i . '][price]" value="' . h((string)$price) . '" inputmode="numeric" dir="ltr" aria-label="فی" data-price data-money></td>'
+                  . '<td class="st-line-disc st-hide-sm"><input type="text" name="lines[' . $i . '][disc]" value="' . h((string)$disc) . '" inputmode="numeric" dir="ltr" aria-label="تخفیف" data-disc data-money></td>'
                   . '<td class="st-td-num"><span class="st-num" data-lt>' . $lt . '</span></td>'
                   . '</tr>';
         }
@@ -280,7 +280,7 @@ final class BizDocView
             [$d, $t] = array_pad(explode(' ', (string)$g['created_at']), 2, '');
             $was = is_array($g['snapshot']) && isset($g['snapshot']['total']) ? (int)$g['snapshot']['total'] : null;
             $out .= '<li class="st-list-row"><span><b>' . h((string)$g['label']) . '</b> <span class="st-muted-i st-num">'
-                  . h(toJalali($d) . ' ' . substr($t, 0, 5)) . '</span>'
+                  . h(toPersianDigits(toJalali($d) . ' ' . substr($t, 0, 5))) . '</span>'
                   . ((string)($g['actor'] ?? '') !== '' ? ' <span class="st-muted-i">· ' . h((string)$g['actor']) . '</span>' : '') . '</span>'
                   . '<span class="st-num">' . ($was !== null && $g['amount'] !== null && $was !== (int)$g['amount']
                         ? h(formatMoney($was)) . ' ← ' : ($was !== null && $g['amount'] === null ? h(formatMoney($was)) : ''))
@@ -344,8 +344,8 @@ final class BizDocView
     <?php if ($tab === 'returns'): ?><input type="hidden" name="t" value="returns"><?php endif; ?>
     <?php if ($filter !== ''): ?><input type="hidden" name="f" value="<?= h($filter) ?>"><?php endif; ?>
     <input type="search" name="q" value="<?= h($q) ?>" placeholder="شماره، نامِ <?= h($cfg['party']) ?> یا IMEI…" aria-label="جست‌وجو">
-    <input type="text" name="from" value="<?= h($keep['from']) ?>" placeholder="از تاریخ ۱۴۰۵/۰۱/۰۱" dir="ltr" class="st-date-in" aria-label="از تاریخ">
-    <input type="text" name="to" value="<?= h($keep['to']) ?>" placeholder="تا تاریخ" dir="ltr" class="st-date-in" aria-label="تا تاریخ">
+    <input data-num type="text" name="from" value="<?= h($keep['from']) ?>" placeholder="از تاریخ ۱۴۰۵/۰۱/۰۱" dir="ltr" class="st-date-in" aria-label="از تاریخ">
+    <input data-num type="text" name="to" value="<?= h($keep['to']) ?>" placeholder="تا تاریخ" dir="ltr" class="st-date-in" aria-label="تا تاریخ">
     <button type="submit" class="st-btn st-btn-ghost">بگرد</button>
 </form>
 

@@ -204,7 +204,7 @@ require __DIR__ . '/../includes/biz_head.php';
         <div class="st-row2">
             <label class="st-field">
                 <span>مبلغ (تومان)</span>
-                <input type="text" name="opening_amount" inputmode="numeric" dir="ltr" value="<?= h((string)$form['opening_amount'] === '0' ? '' : (string)$form['opening_amount']) ?>">
+                <input data-money type="text" name="opening_amount" inputmode="numeric" dir="ltr" value="<?= h((string)$form['opening_amount'] === '0' ? '' : (string)$form['opening_amount']) ?>">
             </label>
             <label class="st-field">
                 <span>جهت</span>
@@ -223,7 +223,7 @@ require __DIR__ . '/../includes/biz_head.php';
             <label class="st-field"><span>سطحِ قیمت</span>
                 <select name="price_level"><?php foreach (BizProducts::LEVELS as $lk => $lv): ?><option value="<?= h($lk) ?>"<?= $lk === $form['price_level'] ? ' selected' : '' ?>><?= h($lv['label']) ?></option><?php endforeach; ?></select></label>
             <label class="st-field"><span>سقفِ اعتبار (تومان) <small class="st-muted">— خالی = بی‌سقف</small></span>
-                <input type="text" name="credit_limit" inputmode="numeric" dir="ltr" value="<?= h((string)$form['credit_limit']) ?>"></label>
+                <input data-money type="text" name="credit_limit" inputmode="numeric" dir="ltr" value="<?= h((string)$form['credit_limit']) ?>"></label>
         </div>
         <p class="st-muted">فاکتورِ این طرف‌حساب با قیمتِ همین سطح پر می‌شود (اگر برای کالا تعریف شده باشد). فروشِ نسیه‌ای که مانده را از سقف بالاتر ببرد صادر نمی‌شود، مگر کسی با دسترسیِ مالی «گذر از سقف» را بزند.</p>
     </fieldset>

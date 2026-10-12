@@ -49,7 +49,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <?php foreach ($opts as $v => $l): ?>
                 <label class="st-seg-opt">
                     <input type="radio" name="<?= h($k) ?>" value="<?= h($v) ?>"<?= $p[$k] === $v ? ' checked' : '' ?>>
-                    <span><?= h($l) ?></span>
+                    <?php /* «A4»/«A5» نامِ استاندارد است نه عدد — عمداً لاتین (`test_num_input`) */ ?><span<?= preg_match('/^[\x20-\x7E]+$/', (string)$l) ? ' data-latin' : '' ?>><?= h($l) ?></span>
                 </label>
                 <?php endforeach; ?>
             </div>

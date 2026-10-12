@@ -219,11 +219,11 @@ require __DIR__ . '/../includes/biz_head.php';
     <div class="st-row2">
         <label class="st-field">
             <span>قیمتِ خرید (تومان)</span>
-            <input type="text" name="buy_price" inputmode="numeric" dir="ltr" value="<?= h($numVal($form['buy_price'])) ?>">
+            <input data-money type="text" name="buy_price" inputmode="numeric" dir="ltr" value="<?= h($numVal($form['buy_price'])) ?>">
         </label>
         <label class="st-field">
             <span>قیمتِ فروش (تومان)<?= $rateOn ? ' <small class="st-muted">— از نرخِ روز</small>' : '' ?></span>
-            <input type="text" name="sell_price" inputmode="numeric" dir="ltr" value="<?= h($numVal($form['sell_price'])) ?>"<?= $rateOn ? ' readonly' : '' ?>>
+            <input data-money type="text" name="sell_price" inputmode="numeric" dir="ltr" value="<?= h($numVal($form['sell_price'])) ?>"<?= $rateOn ? ' readonly' : '' ?>>
         </label>
     </div>
     <?php /* ⛔ قیمتِ فروش از نرخِ روز (`includes/rates.php`) — اختیاری. وصل که
@@ -239,11 +239,11 @@ require __DIR__ . '/../includes/biz_head.php';
             </label>
             <label class="st-field">
                 <span>قیمتِ پایه</span>
-                <input type="text" name="rate_base" inputmode="decimal" dir="ltr" value="<?= h($rateOn ? rtrim(rtrim((string)$form['rate_base'], '0'), '.') : '') ?>" placeholder="مثلاً 250 (دلار، گرم، عدد…)">
+                <input data-money type="text" name="rate_base" inputmode="decimal" dir="ltr" value="<?= h($rateOn ? rtrim(rtrim((string)$form['rate_base'], '0'), '.') : '') ?>" placeholder="مثلاً 250 (دلار، گرم، عدد…)">
             </label>
             <label class="st-field">
                 <span>درصدِ سود <small class="st-muted">(اختیاری)</small></span>
-                <input type="text" name="rate_margin" inputmode="decimal" dir="ltr" value="<?= h($rateOn && (float)$form['rate_margin'] != 0 ? rtrim(rtrim((string)$form['rate_margin'], '0'), '.') : '') ?>" placeholder="0">
+                <input data-num type="text" name="rate_margin" inputmode="decimal" dir="ltr" value="<?= h($rateOn && (float)$form['rate_margin'] != 0 ? rtrim(rtrim((string)$form['rate_margin'], '0'), '.') : '') ?>" placeholder="0">
             </label>
         </div>
         <p class="st-muted">
@@ -267,7 +267,7 @@ require __DIR__ . '/../includes/biz_head.php';
         </label>
         <label class="st-field">
             <span>هشدارِ کم‌موجودی از <small class="st-muted">(۰ = خاموش)</small></span>
-            <input type="text" name="min_stock" inputmode="decimal" dir="ltr" value="<?= h((float)($form['min_stock'] ?: 0) > 0 ? rtrim(rtrim((string)$form['min_stock'], '0'), '.') : '') ?>">
+            <input data-num type="text" name="min_stock" inputmode="decimal" dir="ltr" value="<?= h((float)($form['min_stock'] ?: 0) > 0 ? rtrim(rtrim((string)$form['min_stock'], '0'), '.') : '') ?>">
         </label>
     </div>
 
@@ -277,11 +277,11 @@ require __DIR__ . '/../includes/biz_head.php';
         <div class="st-row2">
             <label class="st-field">
                 <span>تعداد یا مقدار</span>
-                <input type="text" name="opening_qty" inputmode="decimal" dir="ltr" value="<?= h((string)($_POST['opening_qty'] ?? '')) ?>">
+                <input data-num type="text" name="opening_qty" inputmode="decimal" dir="ltr" value="<?= h((string)($_POST['opening_qty'] ?? '')) ?>">
             </label>
             <label class="st-field">
                 <span>بهای خریدِ هر واحد <small class="st-muted">(خالی = قیمتِ خرید)</small></span>
-                <input type="text" name="opening_cost" inputmode="numeric" dir="ltr" value="<?= h((string)($_POST['opening_cost'] ?? '')) ?>">
+                <input data-money type="text" name="opening_cost" inputmode="numeric" dir="ltr" value="<?= h((string)($_POST['opening_cost'] ?? '')) ?>">
             </label>
         </div>
     </fieldset>
@@ -302,9 +302,9 @@ require __DIR__ . '/../includes/biz_head.php';
         <input type="hidden" name="levels_form" value="1">
         <div class="st-row2">
             <label class="st-field"><span>قیمتِ عمده <small class="st-muted">(خالی = قیمتِ فروش)</small></span>
-                <input type="text" name="price_wholesale" inputmode="numeric" dir="ltr" value="<?= h($numVal($_POST['price_wholesale'] ?? ($product['price_wholesale'] ?? ''))) ?>"></label>
+                <input data-money type="text" name="price_wholesale" inputmode="numeric" dir="ltr" value="<?= h($numVal($_POST['price_wholesale'] ?? ($product['price_wholesale'] ?? ''))) ?>"></label>
             <label class="st-field"><span>قیمتِ همکار <small class="st-muted">(خالی = قیمتِ فروش)</small></span>
-                <input type="text" name="price_colleague" inputmode="numeric" dir="ltr" value="<?= h($numVal($_POST['price_colleague'] ?? ($product['price_colleague'] ?? ''))) ?>"></label>
+                <input data-money type="text" name="price_colleague" inputmode="numeric" dir="ltr" value="<?= h($numVal($_POST['price_colleague'] ?? ($product['price_colleague'] ?? ''))) ?>"></label>
         </div>
     </fieldset>
     <?php endif; ?>
@@ -314,7 +314,7 @@ require __DIR__ . '/../includes/biz_head.php';
         <input type="hidden" name="warranty_form" value="1">
         <div class="st-row2">
             <label class="st-field"><span>مدتِ گارانتی (ماه) <small class="st-muted">— ۰ = ندارد</small></span>
-                <input type="text" name="warranty_months" inputmode="numeric" dir="ltr" value="<?= h((string)($_POST['warranty_months'] ?? ($product['warranty_months'] ?? '0'))) ?>"></label>
+                <input data-num type="text" name="warranty_months" inputmode="numeric" dir="ltr" value="<?= h((string)($_POST['warranty_months'] ?? ($product['warranty_months'] ?? '0'))) ?>"></label>
             <label class="st-field"><span>نوع <small class="st-muted">(مثلاً شرکتی، فروشگاه)</small></span>
                 <input type="text" name="warranty_label" maxlength="40" value="<?= h((string)($_POST['warranty_label'] ?? ($product['warranty_label'] ?? ''))) ?>"></label>
         </div>
@@ -408,13 +408,13 @@ require __DIR__ . '/../includes/biz_head.php';
         <?php endif; ?>
         <div class="st-row2">
             <?php if (!$qbSerial): ?>
-            <label class="st-field"><span>تعداد (<?= h($unit) ?>)</span><input type="text" name="qb_qty" inputmode="decimal" dir="ltr"></label>
+            <label class="st-field"><span>تعداد (<?= h($unit) ?>)</span><input data-num type="text" name="qb_qty" inputmode="decimal" dir="ltr"></label>
             <?php endif; ?>
-            <label class="st-field"><span>قیمتِ خریدِ هر <?= h($unit) ?></span><input type="text" name="qb_buy" inputmode="numeric" dir="ltr" value="<?= (int)$product['buy_price'] > 0 ? h((string)(int)$product['buy_price']) : '' ?>"></label>
+            <label class="st-field"><span>قیمتِ خریدِ هر <?= h($unit) ?></span><input data-money type="text" name="qb_buy" inputmode="numeric" dir="ltr" value="<?= (int)$product['buy_price'] > 0 ? h((string)(int)$product['buy_price']) : '' ?>"></label>
         </div>
         <div class="st-row2">
-            <label class="st-field"><span>قیمتِ فروش</span><input type="text" name="qb_sell" inputmode="numeric" dir="ltr" value="<?= h((string)(int)$product['sell_price']) ?>"></label>
-            <label class="st-field"><span>تاریخِ خرید</span><input type="text" name="qb_date" inputmode="numeric" dir="ltr" value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>"></label>
+            <label class="st-field"><span>قیمتِ فروش</span><input data-money type="text" name="qb_sell" inputmode="numeric" dir="ltr" value="<?= h((string)(int)$product['sell_price']) ?>"></label>
+            <label class="st-field"><span>تاریخِ خرید</span><input data-num type="text" name="qb_date" inputmode="numeric" dir="ltr" value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>"></label>
         </div>
         <div class="st-row2">
             <div class="st-seg st-seg-sm" role="radiogroup" aria-label="پرداخت">
@@ -436,7 +436,7 @@ require __DIR__ . '/../includes/biz_head.php';
         <div class="st-row2">
             <label class="st-field">
                 <span>موجودیِ واقعی (<?= h($unit) ?>)</span>
-                <input type="text" name="actual_qty" inputmode="decimal" dir="ltr" required>
+                <input data-num type="text" name="actual_qty" inputmode="decimal" dir="ltr" required>
             </label>
             <label class="st-field">
                 <span>توضیح <small class="st-muted">(اختیاری)</small></span>
@@ -458,11 +458,11 @@ require __DIR__ . '/../includes/biz_head.php';
         <div class="st-row2">
             <label class="st-field">
                 <span>مقدار (<?= h($unit) ?>)</span>
-                <input type="text" name="opening_qty" inputmode="decimal" dir="ltr" value="<?= $opening ? h(formatQty($opening['qty'])) : '' ?>">
+                <input data-num type="text" name="opening_qty" inputmode="decimal" dir="ltr" value="<?= $opening ? h(formatQty($opening['qty'])) : '' ?>">
             </label>
             <label class="st-field">
                 <span>بهای خریدِ هر واحد</span>
-                <input type="text" name="opening_cost" inputmode="numeric" dir="ltr" value="<?= $opening ? h((string)(int)$opening['unit_cost']) : '' ?>">
+                <input data-money type="text" name="opening_cost" inputmode="numeric" dir="ltr" value="<?= $opening ? h((string)(int)$opening['unit_cost']) : '' ?>">
             </label>
         </div>
         <button type="submit" class="st-btn st-btn-ghost">ذخیره‌ی موجودیِ اول دوره</button>

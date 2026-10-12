@@ -82,12 +82,12 @@ require __DIR__ . '/../includes/biz_head.php';
         <h2 class="st-h3">پرداختِ حقوق</h2>
         <label class="st-field"><span>کارمند</span><?= $empSelect() ?></label>
         <div class="st-row2">
-            <label class="st-field"><span>حقوقِ کامل (تومان)</span><input type="text" name="gross" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['gross']) ?>"></label>
-            <label class="st-field"><span>کسرِ مساعده <small class="st-muted">(اختیاری)</small></span><input type="text" name="deduct" inputmode="numeric" dir="ltr" value="<?= h((string)$form['deduct']) ?>"></label>
+            <label class="st-field"><span>حقوقِ کامل (تومان)</span><input data-money type="text" name="gross" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['gross']) ?>"></label>
+            <label class="st-field"><span>کسرِ مساعده <small class="st-muted">(اختیاری)</small></span><input data-money type="text" name="deduct" inputmode="numeric" dir="ltr" value="<?= h((string)$form['deduct']) ?>"></label>
         </div>
         <div class="st-row2">
             <label class="st-field"><span>از صندوق</span><?= $accSelect() ?></label>
-            <label class="st-field"><span>تاریخ</span><input type="text" name="date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['date']) ?>"></label>
+            <label class="st-field"><span>تاریخ</span><input data-num type="text" name="date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['date']) ?>"></label>
         </div>
         <label class="st-field"><span>توضیح <small class="st-muted">(مثلاً حقوقِ مهر)</small></span><input type="text" name="note" maxlength="300" value="<?= h((string)$form['note']) ?>"></label>
         <p class="st-muted">کلِ حقوق هزینه‌ی «حقوق و دستمزد» می‌شود؛ از صندوق فقط «حقوق − کسر» بیرون می‌رود و مساعده به همان اندازه تسویه می‌شود.</p>
@@ -98,10 +98,10 @@ require __DIR__ . '/../includes/biz_head.php';
         <h2 class="st-h3">پرداختِ مساعده</h2>
         <label class="st-field"><span>کارمند</span><?= $empSelect() ?></label>
         <div class="st-row2">
-            <label class="st-field"><span>مبلغ (تومان)</span><input type="text" name="amount" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['amount']) ?>"></label>
+            <label class="st-field"><span>مبلغ (تومان)</span><input data-money type="text" name="amount" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['amount']) ?>"></label>
             <label class="st-field"><span>از صندوق</span><?= $accSelect() ?></label>
         </div>
-        <label class="st-field"><span>تاریخ</span><input type="text" name="date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['date']) ?>"></label>
+        <label class="st-field"><span>تاریخ</span><input data-num type="text" name="date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['date']) ?>"></label>
         <input type="hidden" name="note" value="">
         <p class="st-muted">مساعده هزینه نیست؛ کارمند بدهکار می‌شود تا هنگامِ حقوق کسر شود.</p>
         <button type="submit" class="st-btn st-btn-ghost">ثبتِ مساعده</button>

@@ -76,7 +76,7 @@ if (!isset($pageDesk)) {
          اول شروع به گرفتنش می‌کند و موازی با خواندن HTML دانلود می‌شود،
          ولی اجرایش مثل قبل بعد از ساخته‌شدن کل صفحه است. -->
     <script>window.APP_BASE = '<?= APP_BASE_PATH ?>';</script>
-    <?php foreach (assetUrls(['js/client-errors.js', 'js/jalali-datepicker.js', 'js/sms-core.js', 'js/app.js']) as $__u): ?>
+    <?php foreach (assetUrls(['js/client-errors.js', 'js/num-input.js', 'js/jalali-datepicker.js', 'js/sms-core.js', 'js/app.js']) as $__u): ?>
     <script defer src="<?= h($__u) ?>"></script>
     <?php endforeach; ?>
     <?php /* ⛔ پیش‌گیریِ صفحه‌ی بعد — تصمیم و فهرستِ استثناها در

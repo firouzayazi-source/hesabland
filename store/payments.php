@@ -54,8 +54,8 @@ require __DIR__ . '/../includes/biz_head.php';
         <option value="">همه‌ی صندوق‌ها</option>
         <?php foreach ($accounts as $a): ?><option value="<?= (int)$a['id'] ?>"<?= (int)$a['id'] === $acc ? ' selected' : '' ?>><?= h($a['name']) ?></option><?php endforeach; ?>
     </select>
-    <input type="text" name="from" value="<?= h($keep['from']) ?>" placeholder="از تاریخ" dir="ltr" class="st-date-in" aria-label="از تاریخ">
-    <input type="text" name="to" value="<?= h($keep['to']) ?>" placeholder="تا تاریخ" dir="ltr" class="st-date-in" aria-label="تا تاریخ">
+    <input data-num type="text" name="from" value="<?= h($keep['from']) ?>" placeholder="از تاریخ" dir="ltr" class="st-date-in" aria-label="از تاریخ">
+    <input data-num type="text" name="to" value="<?= h($keep['to']) ?>" placeholder="تا تاریخ" dir="ltr" class="st-date-in" aria-label="تا تاریخ">
     <button type="submit" class="st-btn st-btn-ghost">بگرد</button>
 </form>
 

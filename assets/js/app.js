@@ -712,19 +712,14 @@ function appMain() {
         el.selectedIndex = 0;
     }
 
+    // ⛔ قالب‌بندیِ هنگامِ تایپ فقط در `num-input.js` است (مشترکِ دو پوسته، با نگه
+    //    داشتنِ جای مکان‌نما)؛ اینجا فقط خانه برچسبِ `data-money` می‌گیرد. پیش از این
+    //    همین‌جا یک قالب‌گرِ دوم بود که مکان‌نما را به تهِ عدد می‌پراند.
     function setupAmountFormatter(inputId) {
         var input = document.getElementById(inputId);
         if (!input) return;
-        input.addEventListener('input', function () {
-            // ⚠ اول تبدیل، بعد پاک‌سازی: `\d` بی‌پرچمِ `u` فقط ۰-۹ِ لاتین است و ارقامِ
-            //   عربیِ ٠-٩ را بی‌صدا حذف می‌کرد.
-            var raw = toLatinDigitsJs(this.value).replace(/[^0-9]/g, '');
-            if (raw === '') {
-                this.value = '';
-                return;
-            }
-            this.value = fmtMoneyJs(raw);
-        });
+        input.setAttribute('data-money', '');
+        if (window.numInput) { window.numInput.format(input); }
     }
 
     setupAmountFormatter('amount');

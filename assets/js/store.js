@@ -155,6 +155,8 @@
         if (t === '') { return null; }
         var n = parseFloat(t); return isNaN(n) ? 0 : n;
     }
+    // ⛔ مقداری که اینجا در خانه گذاشته می‌شود همان شکلِ تایپ را می‌گیرد (`num-input.js`)
+    function fx(el) { if (window.numInput) { window.numInput.format(el); } }
     function fmt(n) {
         var neg = n < 0; n = Math.round(Math.abs(n));
         var s = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '٬');
@@ -444,11 +446,11 @@
                 if (p.imei1) {                                  // یک گوشیِ مشخص: IMEIها و مقدارِ ۱
                     field(row, 'imei1').value = p.imei1;
                     field(row, 'imei2').value = p.imei2 || '';
-                    field(row, 'qty').value = '1';
+                    field(row, 'qty').value = '1'; fx(field(row, 'qty'));
                 }
                 imeiBox(row, p.serial);
                 if (p.serial && !p.imei1 && field(row, 'imei1').value.trim() === '') { field(row, 'imei1').focus(); }
-                var pv = priceOf(item, p); if (price.value.trim() === '' && pv && pv !== '0') { price.value = pv; }
+                var pv = priceOf(item, p); if (price.value.trim() === '' && pv && pv !== '0') { price.value = pv; fx(price); }
                 row.__p = p;
                 overMark(row);
                 item.title = p.track ? ('موجودی: ' + fmt(p.stock) + ' ' + (p.unit || '')) : '';
@@ -597,7 +599,7 @@
                 var same = rows().filter(function (x) { return field(x, 'pid').value === p.id; })[0];
                 if (same) {
                     var q = qty(field(same, 'qty').value);
-                    field(same, 'qty').value = String(Math.round(((q === null ? 1 : q) + 1) * 1000) / 1000);
+                    field(same, 'qty').value = String(Math.round(((q === null ? 1 : q) + 1) * 1000) / 1000); fx(field(same, 'qty'));
                     apply(same, p);
                 } else {
                     apply(firstEmpty(), p);

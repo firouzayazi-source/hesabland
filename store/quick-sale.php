@@ -124,7 +124,7 @@ require __DIR__ . '/../includes/biz_head.php';
     <div class="st-doc-foot">
         <section class="st-card st-sumbox">
             <div class="st-sum-line"><span>جمعِ ردیف‌ها</span><b class="st-num" data-subtotal><?= formatMoney($tot['subtotal']) ?></b></div>
-            <label class="st-sum-line"><span>تخفیف</span><input type="text" name="discount" value="<?= h((string)$form['discount']) ?>" inputmode="numeric" dir="ltr" data-discount></label>
+            <label class="st-sum-line"><span>تخفیف</span><input data-money type="text" name="discount" value="<?= h((string)$form['discount']) ?>" inputmode="numeric" dir="ltr" data-discount></label>
             <?php if ($vatQs > 0): ?>
             <input type="hidden" value="<?= h(BizInvoices::rateText($vatQs)) ?>" data-vat-rate>
             <div class="st-sum-line"><span>مالیات بر ارزش افزوده (<?= h(BizView::pct($vatQs)) ?>)</span><b class="st-num" data-tax><?= formatMoney($tot['tax']) ?></b></div>
@@ -153,7 +153,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <label class="st-seg-opt"><input type="radio" name="pay_mode" value="<?= $pm ?>"<?= $form['pay_mode'] === $pm ? ' checked' : '' ?>><span><?= h($pl) ?></span></label>
                 <?php endforeach; ?>
             </div>
-            <label class="st-field"><span>مبلغِ دریافتی (برای «بخشی»)</span><input type="text" name="pay_amount" value="<?= h((string)$form['pay_amount']) ?>" inputmode="numeric" dir="ltr"></label>
+            <label class="st-field"><span>مبلغِ دریافتی (برای «بخشی»)</span><input data-money type="text" name="pay_amount" value="<?= h((string)$form['pay_amount']) ?>" inputmode="numeric" dir="ltr"></label>
         </section>
     </div>
     <div class="st-actionbar st-actionbar-sticky">

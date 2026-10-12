@@ -82,7 +82,7 @@ require __DIR__ . '/../includes/biz_head.php';
             <label class="st-field"><span>نام کاربری (برای ورود)</span><input type="text" name="username" required maxlength="50" dir="ltr" autocomplete="off"></label>
             <label class="st-field"><span>رمز</span><input type="password" name="password" required autocomplete="new-password"></label>
         </div>
-        <label class="st-field st-field-sm"><span>پورسانت از فروشِ خالص (٪) — اختیاری</span><input type="text" name="commission_pct" inputmode="decimal" dir="ltr" placeholder="۰"></label>
+        <label class="st-field st-field-sm"><span>پورسانت از فروشِ خالص (٪) — اختیاری</span><input data-num type="text" name="commission_pct" inputmode="decimal" dir="ltr" placeholder="۰"></label>
         <button type="submit" class="st-btn">افزودنِ همکار</button>
     </form>
 </section>
@@ -106,7 +106,7 @@ require __DIR__ . '/../includes/biz_head.php';
             <label class="st-field"><span>نقش</span>
                 <select name="role"><?php foreach ($roles as $rk => $rl): ?><option value="<?= h($rk) ?>"<?= $rk === $s['role'] ? ' selected' : '' ?>><?= h($rl) ?></option><?php endforeach; ?></select>
             </label>
-            <label class="st-field st-field-sm"><span>پورسانت (٪)</span><input type="text" name="commission_pct" inputmode="decimal" dir="ltr" value="<?= h(rtrim(rtrim((string)$s['commission_pct'], '0'), '.')) ?>"></label>
+            <label class="st-field st-field-sm"><span>پورسانت (٪)</span><input data-num type="text" name="commission_pct" inputmode="decimal" dir="ltr" value="<?= h(rtrim(rtrim((string)$s['commission_pct'], '0'), '.')) ?>"></label>
             <label class="st-check"><input type="checkbox" name="is_active" value="1"<?= (int)$s['is_active'] === 1 ? ' checked' : '' ?>> فعال</label>
             <button type="submit" class="st-btn st-btn-ghost">ذخیره</button>
         </form>

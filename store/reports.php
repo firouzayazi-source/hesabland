@@ -60,8 +60,8 @@ require __DIR__ . '/../includes/biz_head.php';
 </nav>
 <form class="st-filters" method="get" action="<?= h(Biz::url('reports.php')) ?>">
     <input type="hidden" name="p" value="custom">
-    <input type="text" name="from" value="<?= $period === 'custom' ? h(BizDocView::jDate($rFrom)) : '' ?>" placeholder="از تاریخ ۱۴۰۵/۰۱/۰۱" dir="ltr" class="st-date-in" aria-label="از تاریخ">
-    <input type="text" name="to" value="<?= $period === 'custom' ? h(BizDocView::jDate($rTo)) : '' ?>" placeholder="تا تاریخ" dir="ltr" class="st-date-in" aria-label="تا تاریخ">
+    <input data-num type="text" name="from" value="<?= $period === 'custom' ? h(BizDocView::jDate($rFrom)) : '' ?>" placeholder="از تاریخ ۱۴۰۵/۰۱/۰۱" dir="ltr" class="st-date-in" aria-label="از تاریخ">
+    <input data-num type="text" name="to" value="<?= $period === 'custom' ? h(BizDocView::jDate($rTo)) : '' ?>" placeholder="تا تاریخ" dir="ltr" class="st-date-in" aria-label="تا تاریخ">
     <button type="submit" class="st-btn st-btn-ghost">بازه‌ی دلخواه</button>
 </form>
 
@@ -138,7 +138,7 @@ require __DIR__ . '/../includes/biz_head.php';
 </div>
 
 <h2 class="st-h2 st-section-title" id="all">همه‌ی گزارش‌ها</h2>
-<p class="st-muted">گزارش‌های دوره‌ای بازه‌ی بالای همین صفحه را می‌گیرند (<b><?= h(BizReports::rangeLabel($rFrom, $rTo)) ?></b>). کاغذ: <?= h(Biz::PRINT_OPTIONS['paper'][$prefs['paper']]) ?> —
+<p class="st-muted">گزارش‌های دوره‌ای بازه‌ی بالای همین صفحه را می‌گیرند (<b><?= h(BizReports::rangeLabel($rFrom, $rTo)) ?></b>). کاغذ: <bdi data-latin><?= h(Biz::PRINT_OPTIONS['paper'][$prefs['paper']]) ?></bdi> —
     <a href="<?= h(Biz::url('print-settings.php')) ?>">تنظیماتِ چاپ</a></p>
 
 <div class="st-hub">

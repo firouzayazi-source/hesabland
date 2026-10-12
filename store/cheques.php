@@ -113,7 +113,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <select name="bank_id" aria-label="<?= $in ? 'واریز به' : 'برداشت از' ?>">
                     <?php foreach ($banks as $b): ?><option value="<?= (int)$b['id'] ?>"<?= $b['kind'] === 'bank' ? ' selected' : '' ?>><?= h($b['name']) ?></option><?php endforeach; ?>
                 </select>
-                <input type="text" name="clear_date" value="<?= h($today) ?>" dir="ltr" class="st-date-in" aria-label="تاریخِ وصول">
+                <input data-num type="text" name="clear_date" value="<?= h($today) ?>" dir="ltr" class="st-date-in" aria-label="تاریخِ وصول">
                 <button type="submit" class="st-btn st-btn-sm"><?= $in ? 'وصول شد' : 'پاس شد' ?></button>
             </form>
             <?php if ($in && $payees): ?>
@@ -125,7 +125,7 @@ require __DIR__ . '/../includes/biz_head.php';
                     <option value="">واگذاری به…</option>
                     <?php foreach ($payees as $pp): if ((int)$pp['id'] === (int)$r['party_id']) { continue; } ?><option value="<?= (int)$pp['id'] ?>"><?= h((string)$pp['name']) ?></option><?php endforeach; ?>
                 </select>
-                <input type="text" name="endorse_date" value="<?= h($today) ?>" dir="ltr" class="st-date-in" aria-label="تاریخِ واگذاری">
+                <input data-num type="text" name="endorse_date" value="<?= h($today) ?>" dir="ltr" class="st-date-in" aria-label="تاریخِ واگذاری">
                 <button type="submit" class="st-btn st-btn-sm st-btn-ghost">خرج کردن (واگذاری)</button>
             </form>
             <?php endif; ?>

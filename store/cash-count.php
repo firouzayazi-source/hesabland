@@ -59,8 +59,8 @@ require __DIR__ . '/../includes/biz_head.php';
         <select name="account_id"><?php foreach ($accounts as $a): ?><option value="<?= (int)$a['id'] ?>"<?= (int)$a['id'] === (int)$form['account_id'] ? ' selected' : '' ?>><?= h($a['name']) ?> — دفتر: <?= h(formatMoney((int)$a['balance'])) ?></option><?php endforeach; ?></select>
     </label>
     <div class="st-row2">
-        <label class="st-field"><span>پولِ شمرده‌شده (تومان)</span><input type="text" name="counted" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['counted']) ?>" autofocus></label>
-        <label class="st-field"><span>تاریخ</span><input type="text" name="date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['date']) ?>"></label>
+        <label class="st-field"><span>پولِ شمرده‌شده (تومان)</span><input data-money type="text" name="counted" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['counted']) ?>" autofocus></label>
+        <label class="st-field"><span>تاریخ</span><input data-num type="text" name="date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['date']) ?>"></label>
     </div>
     <label class="st-field"><span>توضیح <small class="st-muted">(اختیاری)</small></span><input type="text" name="note" maxlength="300" value="<?= h((string)$form['note']) ?>"></label>
     <button type="submit" class="st-btn">ثبتِ شمارش</button>

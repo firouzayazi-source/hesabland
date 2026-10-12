@@ -318,11 +318,11 @@ function renderChequeCard(array $c, string $todayStr): void
             <div class="form-row">
                 <div class="form-group" id="add_rate_group" hidden>
                     <label for="add_value_rate">درصدِ ماهانه <span class="req">*</span></label>
-                    <input type="text" inputmode="decimal" id="add_value_rate" name="value_rate" placeholder="مثلاً ۵" autocomplete="off" class="ltr-num">
+                    <input type="text" inputmode="decimal" id="add_value_rate" data-num name="value_rate" placeholder="مثلاً ۵" autocomplete="off" class="ltr-num">
                 </div>
                 <div class="form-group">
                     <label for="add_series_count">تعداد چک</label>
-                    <input type="text" inputmode="numeric" id="add_series_count" name="series_count" value="۱" autocomplete="off" class="ltr-num">
+                    <input type="text" inputmode="numeric" id="add_series_count" data-num name="series_count" value="۱" autocomplete="off" class="ltr-num">
                 </div>
             </div>
 
@@ -418,7 +418,7 @@ function renderChequeCard(array $c, string $todayStr): void
                 </div>
                 <div class="form-group" id="edit_rate_group" hidden>
                     <label for="edit_value_rate">درصدِ ماهانه</label>
-                    <input type="text" inputmode="decimal" id="edit_value_rate" name="value_rate" autocomplete="off" class="ltr-num">
+                    <input type="text" inputmode="decimal" id="edit_value_rate" data-num name="value_rate" autocomplete="off" class="ltr-num">
                 </div>
             </div>
             <p class="hint" id="edit_value_hint"></p>

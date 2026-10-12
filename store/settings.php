@@ -291,7 +291,7 @@ require __DIR__ . '/../includes/biz_head.php';
     <?= Csrf::field() ?>
     <input type="hidden" name="action" value="accounting">
     <label class="st-field"><span>نرخِ مالیات بر ارزش افزوده (٪) <small class="st-muted">(۰ = خاموش؛ نرخِ امروز ۱۰)</small></span>
-        <input type="text" name="vat_rate" value="<?= h(BizInvoices::rateText(Biz::vatRate($userId))) ?>" inputmode="decimal" dir="ltr" maxlength="5"></label>
+        <input data-num type="text" name="vat_rate" value="<?= h(BizInvoices::rateText(Biz::vatRate($userId))) ?>" inputmode="decimal" dir="ltr" maxlength="5"></label>
     <p class="st-muted">نرخ روی هر فاکتورِ <b>تازه</b> می‌نشیند و در خودِ فاکتور عوض‌شدنی است؛ فاکتورِ صادرشده با نرخِ خودش می‌ماند. کالای معاف را در صفحه‌ی همان کالا علامت بزنید. گزارشِ فصلی در <a href="<?= h(Biz::url('accounting.php?t=vat')) ?>">دفاتر و مالیات</a>.</p>
     <div class="st-row2">
         <label class="st-field"><span>شناسه‌ی یکتای حافظه‌ی مالیاتی <small class="st-muted">(۶ نویسه، از کارپوشه)</small></span>
@@ -322,7 +322,7 @@ $prevEnd  = date('Y-m-d', strtotime(startOfJalaliMonth() . ' -1 day'));   // پ�
         : 'الان هیچ دوره‌ای بسته نیست.' ?></p>
     <label class="st-field">
         <span>بستن تا تاریخِ (خالی = باز کردنِ همه)</span>
-        <input type="text" name="lock_date" value="<?= $lockAt !== null ? h(BizDocView::jDate($lockAt)) : '' ?>" placeholder="۱۴۰۵/۰۶/۳۱" dir="ltr" class="st-date-in">
+        <input data-num type="text" name="lock_date" value="<?= $lockAt !== null ? h(BizDocView::jDate($lockAt)) : '' ?>" placeholder="۱۴۰۵/۰۶/۳۱" dir="ltr" class="st-date-in">
     </label>
     <?php if ($lockAt !== null): ?>
     <label class="st-check">

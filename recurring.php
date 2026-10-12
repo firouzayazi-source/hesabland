@@ -184,7 +184,7 @@ if ($planRO) { echo planReadOnlyNotice('recurring'); }
                 </div>
                 <div class="form-group">
                     <label for="recurring_interval">هر چند دوره یک‌بار</label>
-                    <input type="text" inputmode="numeric" id="recurring_interval" name="interval_count" value="1">
+                    <input type="text" inputmode="numeric" id="recurring_interval" data-num name="interval_count" value="1">
                 </div>
             </div>
 

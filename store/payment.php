@@ -198,8 +198,8 @@ require __DIR__ . '/../includes/biz_head.php';
         <label class="st-field"><span>شرح <small class="st-muted">(اختیاری)</small></span><input type="text" name="title" maxlength="<?= BizPay::TITLE_MAX ?>" value="<?= h((string)$form['title']) ?>"></label>
     <?php endif; ?>
     <div class="st-row2">
-        <label class="st-field"><span>مبلغ (تومان)</span><input type="text" name="amount" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['amount']) ?>" autofocus></label>
-        <label class="st-field"><span>تاریخ</span><input type="text" name="pay_date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['pay_date']) ?>"></label>
+        <label class="st-field"><span>مبلغ (تومان)</span><input data-money type="text" name="amount" required inputmode="numeric" dir="ltr" value="<?= h((string)$form['amount']) ?>" autofocus></label>
+        <label class="st-field"><span>تاریخ</span><input data-num type="text" name="pay_date" dir="ltr" inputmode="numeric" value="<?= h((string)$form['pay_date']) ?>"></label>
     </div>
     <div class="st-row2">
         <label class="st-field"><span><?= $kind === 'transfer' ? 'از صندوق' : 'صندوق' ?></span>
@@ -219,7 +219,7 @@ require __DIR__ . '/../includes/biz_head.php';
     <fieldset class="st-fieldset" data-cheque-fields>
         <legend>مشخصاتِ چک <small class="st-muted">(فقط وقتی روش «چک» است)</small></legend>
         <div class="st-row3">
-            <label class="st-field"><span>سررسید</span><input type="text" name="cheque_due" dir="ltr" inputmode="numeric" placeholder="۱۴۰۵/۰۸/۱۵" value="<?= h((string)$form['cheque_due']) ?>"></label>
+            <label class="st-field"><span>سررسید</span><input data-num type="text" name="cheque_due" dir="ltr" inputmode="numeric" placeholder="۱۴۰۵/۰۸/۱۵" value="<?= h((string)$form['cheque_due']) ?>"></label>
             <label class="st-field"><span>شماره‌ی چک</span><input type="text" name="cheque_no" dir="ltr" inputmode="numeric" maxlength="30" value="<?= h((string)$form['cheque_no']) ?>"></label>
             <label class="st-field"><span>بانک</span><input type="text" name="cheque_bank" maxlength="60" value="<?= h((string)$form['cheque_bank']) ?>" placeholder="مثلاً ملت"></label>
         </div>

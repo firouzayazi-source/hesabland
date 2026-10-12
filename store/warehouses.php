@@ -85,13 +85,13 @@ require __DIR__ . '/../includes/biz_head.php';
     <h2 class="st-h2">انتقال بینِ انبارها</h2>
     <div class="st-row3">
         <label class="st-field"><span>کالا</span><input type="text" name="item" list="bizProducts" required autocomplete="off"></label>
-        <label class="st-field"><span>مقدار</span><input type="text" name="qty" inputmode="decimal" dir="ltr" required value="1"></label>
+        <label class="st-field"><span>مقدار</span><input data-num type="text" name="qty" inputmode="decimal" dir="ltr" required value="1"></label>
         <label class="st-field"><span>IMEI <small class="st-muted">(فقط گوشی)</small></span><input type="text" name="imei" inputmode="numeric" dir="ltr" maxlength="20"></label>
     </div>
     <div class="st-row3">
         <label class="st-field"><span>از</span><select name="from"><option value="0"><?= h(BizWarehouses::MAIN) ?></option><?php foreach ($active as $w): ?><option value="<?= (int)$w['id'] ?>"><?= h((string)$w['name']) ?></option><?php endforeach; ?></select></label>
         <label class="st-field"><span>به</span><select name="to"><option value="0"><?= h(BizWarehouses::MAIN) ?></option><?php foreach ($active as $i => $w): ?><option value="<?= (int)$w['id'] ?>"<?= $i === 0 ? ' selected' : '' ?>><?= h((string)$w['name']) ?></option><?php endforeach; ?></select></label>
-        <label class="st-field"><span>تاریخ</span><input type="text" name="tdate" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
+        <label class="st-field"><span>تاریخ</span><input data-num type="text" name="tdate" dir="ltr" inputmode="numeric" value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
     </div>
     <label class="st-field"><span>توضیح <small class="st-muted">(اختیاری)</small></span><input type="text" name="note" maxlength="200"></label>
     <button type="submit" class="st-btn">انتقال</button>

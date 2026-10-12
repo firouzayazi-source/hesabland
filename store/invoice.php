@@ -260,8 +260,8 @@ require __DIR__ . '/../includes/biz_head.php';
     <?php elseif ($canPlan): ?>
     <form method="post" class="st-inline-form" action="<?= h($self) ?>">
         <?= Csrf::field() ?><input type="hidden" name="action" value="plan">
-        <label class="st-field st-field-sm"><span>تعدادِ قسط</span><input type="text" name="count" inputmode="numeric" dir="ltr" required value="۶"></label>
-        <label class="st-field st-field-sm"><span>قسطِ اول</span><input type="text" name="first_due" dir="ltr" required value="<?= h(BizDocView::jDate(date('Y-m-d', strtotime('+1 month')))) ?>"></label>
+        <label class="st-field st-field-sm"><span>تعدادِ قسط</span><input data-num type="text" name="count" inputmode="numeric" dir="ltr" required value="۶"></label>
+        <label class="st-field st-field-sm"><span>قسطِ اول</span><input data-num type="text" name="first_due" dir="ltr" required value="<?= h(BizDocView::jDate(date('Y-m-d', strtotime('+1 month')))) ?>"></label>
         <label class="st-field st-field-sm"><span>فاصله</span><select name="every"><?php foreach (BizInstallments::EVERY as $ek => $el): ?><option value="<?= h($ek) ?>"><?= h($el) ?></option><?php endforeach; ?></select></label>
         <button type="submit" class="st-btn st-btn-ghost">ساختِ اقساط</button>
     </form>
@@ -283,7 +283,7 @@ require __DIR__ . '/../includes/biz_head.php';
         </div>
         <div class="st-row2">
             <label class="st-field"><span>IMEI</span><input type="text" name="ti_imei" inputmode="numeric" dir="ltr" maxlength="20" required></label>
-            <label class="st-field"><span>ارزشِ گوشیِ کهنه (تومان)</span><input type="text" name="ti_value" inputmode="numeric" dir="ltr" required></label>
+            <label class="st-field"><span>ارزشِ گوشیِ کهنه (تومان)</span><input data-money type="text" name="ti_value" inputmode="numeric" dir="ltr" required></label>
         </div>
         <p class="st-muted">یک فاکتورِ خرید از همین مشتری ثبت می‌شود (گوشی با IMEI وارد انبار)، و ارزشش از ماندهِ این فاکتور کم می‌شود — بی‌جابه‌جاییِ پولِ نقد.</p>
         <button type="submit" class="st-btn st-btn-ghost">ثبتِ معاوضه</button>
