@@ -59,6 +59,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $res = Biz::saveAccounting($userId, $_POST);
         redirectWithMessage(Biz::url('settings.php') . '#accounting', $res['ok'] ? 'success' : 'error', $res['message']);
     }
+    if (postParam('action') === 'comms' || postParam('action') === 'share_rotate') {
+        $rot = postParam('action') === 'share_rotate';
+        $res = BizComms::saveSettings($userId, $rot ? BizComms::settings($userId) : $_POST, $rot);
+        redirectWithMessage(Biz::url('settings.php') . '#comms', $res['ok'] ? 'success' : 'error', $res['message']);
+    }
     if (postParam('action') === 'invoice_prefs') {
         $res = Biz::saveInvoicePrefs($userId, $_POST);
         redirectWithMessage(Biz::url('settings.php') . '#invoice', $res['ok'] ? 'success' : 'error', $res['message']);
@@ -254,6 +259,29 @@ require __DIR__ . '/../includes/biz_head.php';
         </select>
     </label>
     <button type="submit" class="st-btn">ذخیره‌ی گزینه‌ها</button>
+</form>
+<?php endif; ?>
+
+<?php if (BizComms::ready()): $cm = BizComms::settings($userId); $smsWhy = BizComms::smsBlocked($userId); ?>
+<h2 class="st-h2 st-section-title" id="comms">ارتباط با مشتری</h2>
+<form method="post" class="st-card st-form" action="<?= h(Biz::url('settings.php')) ?>">
+    <?= Csrf::field() ?>
+    <input type="hidden" name="action" value="comms">
+    <label class="st-check"><input type="checkbox" name="sms_on" value="1"<?= $cm['sms_on'] ? ' checked' : '' ?>>
+        <span>پیامک به مشتری (فاکتور، یادآوریِ مانده و قسط، «گوشی آماده است») — فقط با دکمه، هرگز خودکار</span></label>
+    <p class="st-muted"><?= $smsWhy === null ? 'آماده است. این ماه ' . toPersianDigits((string)BizComms::sentThisMonth($userId)) . ' از ' . toPersianDigits((string)BizComms::SMS_MONTHLY) . ' پیامک.' : h($smsWhy) ?></p>
+    <label class="st-check"><input type="checkbox" name="loyalty_on" value="1"<?= $cm['loyalty_on'] ? ' checked' : '' ?>>
+        <span>باشگاهِ مشتری (امتیازِ وفاداری)</span></label>
+    <div class="st-row2">
+        <label class="st-field"><span>هر چند تومان خرید = یک امتیاز</span><input type="text" name="earn_per" inputmode="numeric" dir="ltr" value="<?= h(number_format($cm['earn_per'])) ?>" data-money></label>
+        <label class="st-field"><span>ارزشِ هر امتیاز (تومان تخفیف)</span><input type="text" name="point_value" inputmode="numeric" dir="ltr" value="<?= h(number_format($cm['point_value'])) ?>" data-money></label>
+    </div>
+    <button type="submit" class="st-btn">ذخیره</button>
+</form>
+<form method="post" class="st-card st-form" action="<?= h(Biz::url('settings.php')) ?>" onsubmit="return confirm('همه‌ی لینک‌های فاکتور که تا حالا برای مشتری‌ها فرستاده‌اید باطل شوند؟');">
+    <?= Csrf::field() ?><input type="hidden" name="action" value="share_rotate">
+    <p class="st-muted">لینکِ فاکتور (برای مشتری، بی‌ورود) امضا دارد و فقط همان فاکتور را نشان می‌دهد.</p>
+    <button type="submit" class="st-btn st-btn-ghost">باطل کردنِ همه‌ی لینک‌های فاکتور</button>
 </form>
 <?php endif; ?>
 

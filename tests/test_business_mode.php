@@ -50,11 +50,11 @@ const STORE_BUDGET = [
     //    (خلاصه + بدهکار + بستانکار) — ۲۴ → ۲۳ (یک کوئریِ گروهیِ «قدیمی‌ترین» ماند).
     'store/index.php'    => 23,
     'store/search.php'   => 14,   // پنج فهرستِ دامنه (هر کدام شمارش + ردیف) + شماره‌ی چک + صندوق‌ها
-    'store/settings.php' => 7,   // +۲: نرخ‌های روز (نقشه‌ی جدول‌ها برای «راه افتاده؟» + یک SELECT)
+    'store/settings.php' => 9,   // +۲ (migration_biz_comms): تنظیماتِ ارتباط و شمارِ پیامکِ این ماه؛ +۲: نرخ‌های روز (نقشه‌ی جدول‌ها برای «راه افتاده؟» + یک SELECT)
     'store/products.php' => 10,
     'store/product.php'  => 16,  // +۱ (migration_biz_warehouses): «چندانباره؟» برای انتخابِ انبارِ شمارش;  // +۳: کارتِ «خرید و افزودنِ موجودی» (`BizQuickBuy`) — فروشنده‌ها، آخرین فروشنده، صندوق‌ها؛ +۳: «از چه کسی خریده شد» و «خرید خورده، موجودی نخورده» (پیش‌نویس‌ها، ردیف‌های آزاد)
     'store/parties.php'  => 9,
-    'store/party.php'    => 8,
+    'store/party.php'    => 10,  // +۲ (migration_biz_comms): تنظیماتِ ارتباط با مشتری (باشگاه، پیامک) و سنجشِ migration
     'store/products-io.php'    => 5,
     'store/import.php'         => 4,   // ورود از نرم‌افزارِ دیگر — بی‌پیش‌نمایش (همان پوسته)
     'store/products-cleanup.php' => 6,
@@ -65,8 +65,8 @@ const STORE_BUDGET = [
     'store/sales.php'          => 6,
     'store/purchases.php'      => 6,
     'store/quick-sale.php'     => 9,   // +۱: گوشی‌های در انبار (IMEI) در فهرستِ جست‌وجو؛ +۱: نقشه‌ی جدول‌ها برای `first_issued_at` (سرگذشتِ IMEI، بازرسیِ مهر ۱۴۰۵)
-    'store/invoice.php'        => 16,   // +۳: «مانده‌ی قبلی / کل» از `statement()` (طرف‌حساب، اسناد، پرداخت‌ها); +۱: «سرگذشتِ سند» (`BizLog`); +۳: اقساط (جدول، برنامه) و گوشی‌های معاوضه — فقط فروشِ صادرشده‌ی مشتری‌دار
-    'store/invoice-edit.php'   => 14,  // +۱ (migration_biz_warehouses): «چندانباره؟» برای انتخابِ انبارِ سند;  // +۱: همان، برای فاکتورِ فروش؛ +۱: همان نقشه‌ی جدول‌ها؛ +۱: کسریِ موجودی برای «+ موجودی» (یک IN، فاکتورِ تازه هم)
+    'store/invoice.php'        => 17,  // +۱ (migration_biz_comms): نمکِ لینکِ فاکتورِ مشتری;   // +۳: «مانده‌ی قبلی / کل» از `statement()` (طرف‌حساب، اسناد، پرداخت‌ها); +۱: «سرگذشتِ سند» (`BizLog`); +۳: اقساط (جدول، برنامه) و گوشی‌های معاوضه — فقط فروشِ صادرشده‌ی مشتری‌دار
+    'store/invoice-edit.php'   => 15,  // +۱ (migration_biz_comms): «باشگاهِ مشتری روشن است؟»;  // +۱ (migration_biz_warehouses): «چندانباره؟» برای انتخابِ انبارِ سند;  // +۱: همان، برای فاکتورِ فروش؛ +۱: همان نقشه‌ی جدول‌ها؛ +۱: کسریِ موجودی برای «+ موجودی» (یک IN، فاکتورِ تازه هم)
     'store/return.php'         => 8,
     'store/payments.php'       => 7,
     'store/payment.php'        => 7,   // +۱: «سرگذشتِ سند» (`BizLog`)
@@ -88,7 +88,8 @@ const STORE_BUDGET = [
 ];
 // ⚠ `errors.php` فقط برای مدیرِ نصب است؛ حسابِ فروشگاهیِ این تست فقط ۴۰۴ِ خنثی
 //   می‌گیرد (`test_store_errors`، قاعده ۷۵).
-const STORE_NO_BUDGET = ['store/login.php', 'store/logout.php', 'store/errors.php'];
+// `view.php` = فاکتورِ مشتری با لینکِ امضاشده، بی‌ورود — سنجشش در `test_store_comms`
+const STORE_NO_BUDGET = ['store/login.php', 'store/logout.php', 'store/errors.php', 'store/view.php'];
 
 try {
     $pdo = Database::getConnection();

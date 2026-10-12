@@ -527,6 +527,12 @@ final class BizInvoices
         $t = self::totals($parsed['lines'], $head['discount'], $head['extra'], (float)$vat['rate']);
         if ($t['net'] < 0) { return ['ok' => false, 'message' => 'تخفیف از جمعِ فاکتور بیشتر است.']; }
         if (($e = BizCommon::moneyError($t['total'], 'جمعِ فاکتور')) !== null) { return ['ok' => false, 'message' => $e]; }
+        // ⛔ امتیازِ مصرفیِ وفاداری (فقط فروش و فقط وقتی فرم فرستاده) — سنجشِ کافی بودن هنگامِ صدور
+        $loyalty = null;
+        if ($kind === 'sale' && array_key_exists('loyalty_points', $in) && BizComms::ready()) {
+            $loyalty = (int)toLatinDigits(trim((string)$in['loyalty_points']));
+            if ($loyalty < 0 || $loyalty > 1000000) { return ['ok' => false, 'message' => 'امتیازِ مصرفی معتبر نیست.']; }
+        }
         // ⛔ انبارِ سند فقط وقتی فرم فرستاده (فروشگاهِ چندانباره)؛ نبودنِ کلید = دست نزن
         $wh = false;
         if (array_key_exists('warehouse_id', $in) && BizWarehouses::ready()) {
@@ -569,6 +575,10 @@ final class BizInvoices
                     ->execute(['r' => (float)$vat['rate'], 'tx' => $t['tax'], 'id' => $id, 'u' => $userId]);
             }
             self::writeLines($pdo, $userId, $id, $t['lines']);
+            if ($loyalty !== null) {
+                $pdo->prepare('UPDATE biz_invoices SET loyalty_points = :l WHERE id = :id AND user_id = :u')
+                    ->execute(['l' => $loyalty, 'id' => $id, 'u' => $userId]);
+            }
             if ($wh !== false) {
                 $pdo->prepare('UPDATE biz_invoices SET warehouse_id = :w WHERE id = :id AND user_id = :u')
                     ->execute(['w' => $wh, 'id' => $id, 'u' => $userId]);
@@ -698,6 +708,8 @@ final class BizInvoices
             && ($e = BizParties::creditError($pdo, $userId, (int)$inv['party_id'], (int)$inv['total'] - $payAmount)) !== null) {
             return ['ok' => false, 'message' => $e, 'credit' => true];
         }
+        // ⛔ امتیازِ وفاداری = همان تخفیفِ فاکتور؛ امتیازِ ناکافی یا بی‌تخفیف صادر نمی‌شود
+        if (($e = BizLoyalty::issueError($userId, $inv)) !== null) { return ['ok' => false, 'message' => $e]; }
 
         // ⛔ شماره فقط هنگامِ صدور؛ پیش‌نویسِ رهاشده شماره را نمی‌سوزاند.
         if ($inv['number'] === null) {
@@ -2605,3 +2617,5 @@ final class BizLog
 
 // لایه‌ی حسابداری (سرفصل‌ها، دفتر، مودیان…) — `BizPay::createTx()` سرفصل را از آن می‌پرسد
 require_once __DIR__ . '/biz_acc.php';
+// ارتباط با مشتری — `issueTx()` سدِ امتیازِ وفاداری را از آن می‌پرسد
+require_once __DIR__ . '/biz_comms.php';

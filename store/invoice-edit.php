@@ -67,7 +67,10 @@ $form = [
     'lines'    => $inv ? $inv['lines'] : [],
     'pay_mode' => 'none', 'pay_amount' => '', 'account_id' => (int)($accounts[0]['id'] ?? 0), 'method' => 'cash',
     'warehouse_id' => (int)($inv['warehouse_id'] ?? 0),
+    'loyalty_points' => (string)(int)($inv['loyalty_points'] ?? 0),
 ];
+// ⛔ امتیازِ وفاداری فقط روی فروش و فقط وقتی باشگاهِ مشتری روشن است (`BizLoyalty`)
+$loyaltyOn = $kind === 'sale' && BizComms::ready() && BizComms::settings($userId)['loyalty_on'];
 // ⛔ انتخابِ انبار فقط در فروشگاهِ چندانباره (`BizWarehouses::any()`)؛ تک‌انبار هیچ چیزِ تازه‌ای نمی‌بیند
 $warehouses = BizWarehouses::any($userId) ? BizWarehouses::list($userId, true) : [];
 $blank = $inv ? 2 : 4;
@@ -97,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'vat_rate' => isset($_POST['vat_rate']) ? postParam('vat_rate') : null,
     ];
     if ($warehouses && isset($_POST['warehouse_id'])) { $in['warehouse_id'] = (int)postParam('warehouse_id'); }
+    if ($loyaltyOn && isset($_POST['loyalty_points'])) { $in['loyalty_points'] = trim(postParam('loyalty_points')) === '' ? '0' : postParam('loyalty_points'); }
     $rawLines = array_values(array_filter($in['lines'], 'is_array'));
     $filled   = fn($l) => trim((string)($l['item'] ?? '')) !== '' || trim((string)($l['price'] ?? '')) !== ''
                           || trim((string)($l['imei1'] ?? '')) !== '';
@@ -112,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'discount' => $in['discount'], 'extra' => $in['extra'], 'note' => $in['note'], 'lines' => array_values($in['lines']),
         'vat_rate' => $in['vat_rate'] ?? $form['vat_rate'],
         'warehouse_id' => (int)($in['warehouse_id'] ?? $form['warehouse_id']),
+        'loyalty_points' => (string)($in['loyalty_points'] ?? $form['loyalty_points']),
         'pay_mode' => in_array(postParam('pay_mode'), ['none', 'full', 'part'], true) ? postParam('pay_mode') : 'none',
         'pay_amount' => postParam('pay_amount'), 'account_id' => (int)postParam('account_id'),
         'method' => isset(BizPay::quickMethods()[postParam('method')]) ? postParam('method') : 'cash',
@@ -276,6 +281,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // فقط بستنِ پنل — فرم همان‌طور که بود دوباره نشان داده می‌شود
     } elseif ($action === 'addrows') {
         $blank = 6;
+    } elseif ($action === 'loyalty_apply' && $loyaltyOn) {
+        // «اعمالِ امتیاز»: ارزشِ امتیاز به تخفیفِ فرم اضافه می‌شود (بی‌ذخیره) — مصرف = همان تخفیف
+        $pts = max(0, (int)toLatinDigits((string)$form['loyalty_points']));
+        $form['discount'] = (string)(sanitizeAmount((string)$form['discount']) + $pts * (int)BizComms::settings($userId)['point_value']);
+        $notice = toPersianDigits((string)$pts) . ' امتیاز به تخفیف اضافه شد؛ با صدور مصرف می‌شود.';
     } elseif (!($dd = BizDocView::docDate((string)postParam('inv_date'), 'تاریخِ فاکتور'))['ok']) {
         // ⛔ تاریخِ نامعتبر «امروز» نمی‌شود — همان‌جا گفته می‌شود
         $error = $dd['message'];
@@ -568,6 +578,11 @@ require __DIR__ . '/../includes/biz_head.php';
         <section class="st-card st-sumbox">
             <div class="st-sum-line"><span>جمعِ ردیف‌ها</span><b class="st-num" data-subtotal><?= formatMoney($tot['subtotal']) ?></b></div>
             <label class="st-sum-line"><span>تخفیفِ فاکتور</span><input type="text" name="discount" value="<?= h((string)$form['discount']) ?>" inputmode="numeric" dir="ltr" data-discount></label>
+            <?php if ($loyaltyOn): $lb = (int)$form['party_id'] > 0 ? BizLoyalty::balance($userId, (int)$form['party_id'], $inv ? (int)$id : 0) : null; ?>
+            <div class="st-sum-line" data-loyalty-box><span>امتیازِ باشگاه<?= $lb !== null ? ' <small class="st-muted-i">(موجود ' . toPersianDigits((string)$lb['balance']) . ')</small>' : '' ?></span>
+                <span><input type="text" name="loyalty_points" value="<?= h((string)$form['loyalty_points']) ?>" inputmode="numeric" dir="ltr" size="5">
+                <button type="submit" name="action" value="loyalty_apply" class="st-link-btn" formnovalidate>به تخفیف</button></span></div>
+            <?php endif; ?>
             <label class="st-sum-line"><span>حمل و هزینه‌ی دیگر</span><input type="text" name="extra" value="<?= h((string)$form['extra']) ?>" inputmode="numeric" dir="ltr" data-extra></label>
             <?php if ($vatShow): /* ⛔ مالیات بر ارزش افزوده — نرخِ همین سند؛ کالای معاف صفر */ ?>
             <label class="st-sum-line"><span>مالیات بر ارزش افزوده (٪)</span><input type="text" name="vat_rate" value="<?= h((string)$form['vat_rate']) ?>" inputmode="decimal" dir="ltr" data-vat-rate></label>

@@ -452,9 +452,11 @@ final class BizInvoiceDesign
 <?php if (!$embed): ?>
 <div class="pr-bar">
     <button type="button" class="pr-btn pr-btn-main" onclick="window.print()">چاپ</button>
+    <?php if (empty($opt['public'])): /* ⛔ لینکِ عمومیِ مشتری (`store/view.php`) هیچ راهی به داخلِ فروشگاه ندارد */ ?>
     <a class="pr-btn" href="<?= h($opt['back']) ?>">بازگشت</a>
     <a class="pr-btn" href="<?= h(Biz::url('invoice-design.php')) ?>">طراحیِ فاکتور</a>
     <a class="pr-btn" href="<?= h(Biz::url('print-settings.php')) ?>">تنظیماتِ چاپ</a>
+    <?php endif; ?>
     <span class="pr-bar-note"><?= h(Biz::PRINT_OPTIONS['paper'][$p['paper']]) ?><?= $roll ? '' : ' · ' . h(Biz::PRINT_OPTIONS['orient'][$p['orient']]) ?></span>
 </div>
 <?php endif; ?>

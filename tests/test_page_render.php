@@ -166,6 +166,7 @@ const EXPECT = [
     'store/cash-count.php'      => 'blocked',
     'store/payroll.php'         => 'blocked',
     'store/login.php'       => 'away',
+    'store/view.php'        => 'blocked',   // بی‌امضا ۴۰۴ِ خنثی (`BizShare::verify()`)
     'store/logout.php'      => 'skip',
 ];
 

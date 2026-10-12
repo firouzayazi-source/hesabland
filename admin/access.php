@@ -48,6 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ⛔ ورود با پیامک هم پیش‌فرض خاموش است و فقط از همین‌جا روشن
         //    می‌شود: یک راهِ ورودِ تازه به هر حسابی است.
         setSetting(SMS_LOGIN_SETTING, postParam('allow_sms_login') === '1' ? '1' : '0');
+        // ⛔ پیامکِ فروشگاه‌ها به مشتریانشان با همین پنل و به هزینه‌ی مالکِ نصب — پیش‌فرض خاموش
+        //    (همان کلیدِ `BizComms::ADMIN_KEY`)
+        setSetting('store_sms_enabled', postParam('allow_store_sms') === '1' ? '1' : '0');
 
         $smsMethodIn = postParam('sms_method');
         if (!array_key_exists($smsMethodIn, smsProviders())) { $smsMethodIn = ''; }
@@ -205,6 +208,12 @@ include __DIR__ . '/../includes/header.php';
             <span class="switch-track"><span class="switch-knob"></span></span>
             <span class="switch-text">ورود با کد پیامکی</span>
         </label>
+        <label class="switch" style="margin-bottom:8px;">
+            <input type="checkbox" name="allow_store_sms" value="1" <?= getSetting('store_sms_enabled', '0') === '1' ? 'checked' : '' ?>>
+            <span class="switch-track"><span class="switch-knob"></span></span>
+            <span class="switch-text">پیامکِ فروشگاه‌ها به مشتریانشان (فاکتور، یادآوری، «آماده‌ی تحویل»)</span>
+        </label>
+        <p class="hint" style="margin-bottom:14px;">با همین پنل و به هزینه‌ی شما؛ هر فروشگاه هم باید خودش روشن کند و سقفِ ماهانه دارد.</p>
         <p class="hint" style="margin-bottom:14px;">
             <?php if (!$smsTableReady): ?>
                 ⛔ جدولش هنوز ساخته نشده. اول <code>migration_sms_login</code> را اجرا کنید.

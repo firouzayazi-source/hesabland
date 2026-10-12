@@ -124,7 +124,7 @@ const NO_BUDGET = [
     // ⛔ محیطِ فروشگاهی: برای کاربرِ شخصیِ این تست فقط ۴۰۴ است؛ بودجه‌ی
     //    واقعی‌شان با یک حسابِ **فروشگاهی** در `test_business_mode`
     //    (`STORE_BUDGET`، فهرستِ بسته‌ی خودش) سنجیده می‌شود.
-    'store/index.php', 'store/search.php', 'store/settings.php', 'store/login.php', 'store/logout.php',
+    'store/index.php', 'store/search.php', 'store/settings.php', 'store/login.php', 'store/logout.php', 'store/view.php',
     'store/products.php', 'store/product.php', 'store/parties.php', 'store/party.php',
     'store/products-io.php', 'store/import.php', 'store/reports.php', 'store/print-settings.php', 'store/print.php',
     'store/accounts.php', 'store/cheques.php', 'store/categories.php', 'store/invoice-edit.php', 'store/invoice.php',

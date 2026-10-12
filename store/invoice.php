@@ -52,6 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
     }
+    // ⛔ پیامک به مشتری فقط از `BizComms::send()` — متن از خودِ سند، سه در و سقفِ ماهانه
+    if ($action === 'sms_invoice' || $action === 'sms_installment') {
+        Biz::requireCap($action === 'sms_invoice' ? 'sell' : 'receive');
+        $r = BizComms::send($userId, $action === 'sms_invoice' ? 'invoice' : 'installment', $id);
+        redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
+    }
     if ($action === 'void') {
         $r = BizInvoices::void($userId, $id);
     } elseif ($action === 'unissue') {
@@ -202,6 +208,20 @@ require __DIR__ . '/../includes/biz_head.php';
     <?php endif; ?>
 </div>
 
+<?php if ($inv['kind'] === 'sale' && $inv['status'] === 'issued' && BizComms::ready()): $shareUrl = BizShare::url($userId, $id); ?>
+<section class="st-card" id="share">
+    <h2 class="st-h2">برای مشتری</h2>
+    <label class="st-field"><span>لینکِ فاکتور (بی‌ورود، فقط همین فاکتور)</span>
+        <input type="text" readonly dir="ltr" value="<?= h($shareUrl) ?>" onclick="this.select()" data-share-link></label>
+    <?php if ($inv['party_id'] !== null): ?>
+    <form method="post" action="<?= h($self) ?>" class="st-inline">
+        <?= Csrf::field() ?><input type="hidden" name="action" value="sms_invoice">
+        <button type="submit" class="st-btn st-btn-ghost">پیامکِ فاکتور به مشتری</button>
+    </form>
+    <?php endif; ?>
+    <?php if ((int)($inv['loyalty_points'] ?? 0) > 0): ?><p class="st-muted">امتیازِ مصرف‌شده روی این فاکتور: <?= toPersianDigits((string)(int)$inv['loyalty_points']) ?></p><?php endif; ?>
+</section>
+<?php endif; ?>
 <?php if ($inv['kind'] === 'sale' && $inv['status'] === 'issued' && $inv['party_id'] !== null):
     require_once __DIR__ . '/../includes/biz_sales_ext.php';
     $sched = BizInstallments::schedule($userId, $id);
@@ -228,6 +248,10 @@ require __DIR__ . '/../includes/biz_head.php';
     </div>
     <p class="st-muted">هر دریافت از همین مشتری (از «ثبتِ دریافت») به ترتیبِ سررسید قسط‌ها را پر می‌کند.</p>
     <?php if (Biz::can('receive')): ?>
+    <form method="post" action="<?= h($self) ?>" class="st-inline">
+        <?= Csrf::field() ?><input type="hidden" name="action" value="sms_installment">
+        <button type="submit" class="st-link-btn">پیامکِ یادآوریِ قسط</button>
+    </form>
     <form method="post" action="<?= h($self) ?>" onsubmit="return confirm('برنامه‌ی اقساط برداشته شود؟ فاکتور و دریافت‌ها دست نمی‌خورند.');">
         <?= Csrf::field() ?><input type="hidden" name="action" value="plan_delete">
         <button type="submit" class="st-link-btn st-link-danger">برداشتنِ برنامه</button>

@@ -59,6 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $error = $res['message'];
         foreach ($form as $k => $_) { if (isset($_POST[$k])) { $form[$k] = (string)$_POST[$k]; } }
+    } elseif ($party && $action === 'sms_debt') {
+        Biz::requireCap('receive');
+        $res = BizComms::send($userId, 'debt', $id);
+        redirectWithMessage($self, $res['ok'] ? 'success' : 'error', $res['message']);
     } elseif ($party && $action === 'toggle') {
         $on = (int)$party['is_active'] !== 1;
         $res = BizParties::setActive($userId, $id, $on);
@@ -107,6 +111,13 @@ require __DIR__ . '/../includes/biz_head.php';
         <?php endif; ?>
         <?php $lim = (int)($party['credit_limit'] ?? 0); if ($lim > 0): $room = $lim - max(0, $bal); ?>
             <span class="st-kpi-sub" data-credit-room>سقفِ اعتبار <?= formatMoney($lim) ?> · <?= $room >= 0 ? 'جای خالی ' . formatMoney($room) : '<span class="is-neg">بیش از سقف ' . formatMoney(-$room) . '</span>' ?></span>
+        <?php endif; ?>
+        <?php if (BizComms::ready() && BizComms::settings($userId)['loyalty_on'] && $party['kind'] !== 'supplier'): $lp = BizLoyalty::balance($userId, $id); ?>
+            <span class="st-kpi-sub" data-loyalty>امتیازِ باشگاه: <?= toPersianDigits((string)$lp['balance']) ?> (کسب‌شده <?= toPersianDigits((string)$lp['earned']) ?>، مصرف‌شده <?= toPersianDigits((string)$lp['used']) ?>)</span>
+        <?php endif; ?>
+        <?php if ($bal > 0 && BizComms::ready() && Biz::can('receive')): ?>
+            <form method="post" action="<?= h($self) ?>" class="st-inline"><?= Csrf::field() ?><input type="hidden" name="action" value="sms_debt">
+                <button type="submit" class="st-link-btn">پیامکِ یادآوریِ مانده</button></form>
         <?php endif; ?>
     </div>
 </div>

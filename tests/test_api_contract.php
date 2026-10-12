@@ -6974,7 +6974,9 @@ foreach (array_merge($storeFiles70, [__DIR__ . '/../includes/biz_head.php', __DI
     if (preg_match('~(header|sidebar|footer|add_tx_sheet|edit_tx_modal)\.php|js/app\.js|css/style\.css~', $src)) {
         $bBad[] = "{$rel} — چیزی از پوسته‌ی شخصی لود می‌کند";
     }
-    if (str_starts_with($rel, 'store/') && !in_array(basename($f), ['login.php', 'logout.php'], true)
+    // ⛔ `view.php` = فاکتورِ مشتری با لینکِ امضاشده (`BizShare::verify()`)، عمداً بی‌ورود — سنجشِ
+    //    خودش در `test_store_comms` (امضای غلط، سندِ غیرِ فروش، نمکِ عوض‌شده همه ۴۰۴)
+    if (str_starts_with($rel, 'store/') && !in_array(basename($f), ['login.php', 'logout.php', 'view.php'], true)
         && !preg_match('/Auth::initSession\(\);\s*Biz::requirePage\(\);/', $src)) {
         $bBad[] = "{$rel} — درست بعد از initSession() دروازه‌ی Biz::requirePage() ندارد";
     }
@@ -7088,7 +7090,7 @@ foreach (array_keys($flat70) as $nf) {
 foreach ($storeFiles70 as $f) {
     $bn = basename($f);
     // ⚠ `errors.php` عمداً بیرونِ منوی مشترک است: فقط مدیرِ نصب، با لینکِ خودش در `biz_head.php` (قاعده ۷۵)
-    if (!isset($flat70[$bn]) && !isset(Biz::NAV_PARENT[$bn]) && !in_array($bn, ['login.php', 'logout.php', 'print.php', 'errors.php'], true)) {
+    if (!isset($flat70[$bn]) && !isset(Biz::NAV_PARENT[$bn]) && !in_array($bn, ['login.php', 'logout.php', 'print.php', 'errors.php', 'view.php'], true)) {
         $bBad[] = "store/{$bn} در Biz::NAV نیست و هیچ راهی از منو ندارد";
     }
 }

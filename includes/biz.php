@@ -58,6 +58,9 @@ final class Biz
         'biz_stock_moves'       => ['warehouse_id' => 'biz_warehouses'],
         'biz_invoices'          => ['warehouse_id' => 'biz_warehouses'],
         'biz_stock_transfers'   => ['product_id' => 'biz_products', 'from_wh' => 'biz_warehouses', 'to_wh' => 'biz_warehouses'],
+        // گزارشِ پیامک: فقط طرف‌حساب نگاشت می‌شود؛ `ref_id` چندریختی است و فقط برای سدِ «همین حالا
+        // فرستاده شد» (ده دقیقه) به کار می‌آید — شناسه‌ی کهنه‌اش زیانی ندارد
+        'biz_sms_log'           => ['party_id' => 'biz_parties'],
     ];
 
     /** ⛔ تنها مرجعِ نوع‌های حساب. کلیدِ اول پیش‌فرض است. */
@@ -664,7 +667,7 @@ final class Biz
      *    صفحه‌های دوحالته (فاکتورِ فروش یا خرید) کارِ دقیق‌تر را خودشان با `can()` می‌کنند.
      */
     public const PAGE_CAPS = [
-        'index.php' => null, 'search.php' => null, 'account.php' => null, 'login.php' => null, 'logout.php' => null,
+        'index.php' => null, 'search.php' => null, 'account.php' => null, 'login.php' => null, 'logout.php' => null, 'view.php' => null,
         'errors.php' => null, 'products.php' => null, 'product.php' => null, 'parties.php' => null, 'party.php' => null,
         'invoice.php' => null, 'invoice-edit.php' => null, 'print.php' => null, 'payment.php' => null,
         'quick-sale.php' => 'sell', 'sales.php' => 'sell', 'return.php' => null,

@@ -36,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $r = BizRepairs::setStatus($userId, $id, postParam('status'));
         redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
     }
+    if ($action === 'sms_ready' && $rep) {
+        $r = BizComms::send($userId, 'repair', $id);
+        redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
+    }
     if ($action === 'invoice' && $rep) {
         Biz::requireCap('sell');
         $r = BizRepairs::toInvoice($userId, $id);
@@ -95,6 +99,10 @@ require __DIR__ . '/../includes/biz_head.php';
         </form>
     <?php endforeach; ?>
     </div>
+    <?php if ($rep['status'] === 'ready' && BizComms::ready()): ?>
+    <form method="post" action="<?= h($self) ?>" class="st-inline"><?= Csrf::field() ?><input type="hidden" name="action" value="sms_ready">
+        <button type="submit" class="st-btn st-btn-sm">پیامکِ «آماده‌ی تحویل» به مشتری</button></form>
+    <?php endif; ?>
     <div class="st-repair-bill">
         <?php if ($rep['invoice_id'] !== null && $rep['invoice_status'] !== 'void'): ?>
             <p>هزینه: <a class="st-row-link" href="<?= h(Biz::url(($rep['invoice_status'] === 'draft' ? 'invoice-edit.php' : 'invoice.php') . '?id=' . (int)$rep['invoice_id'])) ?>">
