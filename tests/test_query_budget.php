@@ -131,7 +131,7 @@ const NO_BUDGET = [
     'store/payment.php', 'store/payments.php', 'store/purchases.php', 'store/quick-sale.php',
     'store/return.php', 'store/sales.php', 'store/products-cleanup.php', 'store/invoice-design.php',
     'store/account.php', 'store/accounting.php', 'store/cash-count.php', 'store/payroll.php',
-    'store/errors.php', 'store/staff.php', 'store/repairs.php', 'store/repair.php', 'store/installments.php',
+    'store/errors.php', 'store/staff.php', 'store/repairs.php', 'store/repair.php', 'store/installments.php', 'store/warehouses.php',
 ];
 
 // ---------------------------------------------------------------

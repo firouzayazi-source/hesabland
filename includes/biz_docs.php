@@ -527,6 +527,12 @@ final class BizInvoices
         $t = self::totals($parsed['lines'], $head['discount'], $head['extra'], (float)$vat['rate']);
         if ($t['net'] < 0) { return ['ok' => false, 'message' => 'تخفیف از جمعِ فاکتور بیشتر است.']; }
         if (($e = BizCommon::moneyError($t['total'], 'جمعِ فاکتور')) !== null) { return ['ok' => false, 'message' => $e]; }
+        // ⛔ انبارِ سند فقط وقتی فرم فرستاده (فروشگاهِ چندانباره)؛ نبودنِ کلید = دست نزن
+        $wh = false;
+        if (array_key_exists('warehouse_id', $in) && BizWarehouses::ready()) {
+            $wh = BizWarehouses::pick($userId, $in['warehouse_id']);
+            if ($wh === false) { return ['ok' => false, 'message' => 'انبار پیدا نشد یا غیرفعال است.']; }
+        }
 
         $pdo = Database::getConnection();
         $pdo->beginTransaction();
@@ -563,6 +569,10 @@ final class BizInvoices
                     ->execute(['r' => (float)$vat['rate'], 'tx' => $t['tax'], 'id' => $id, 'u' => $userId]);
             }
             self::writeLines($pdo, $userId, $id, $t['lines']);
+            if ($wh !== false) {
+                $pdo->prepare('UPDATE biz_invoices SET warehouse_id = :w WHERE id = :id AND user_id = :u')
+                    ->execute(['w' => $wh, 'id' => $id, 'u' => $userId]);
+            }
             // ⛔ سرگذشت: ویرایشِ پیش‌نویسی که **شماره دارد** (صادر شده بود و برای
             //    اصلاح برگشت) با عکسِ پیش از ویرایش — همان سندی که دستِ مشتری است.
             if (isset($before) && $before !== null && $before['number'] !== null) {

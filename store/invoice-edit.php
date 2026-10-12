@@ -66,7 +66,10 @@ $form = [
     'vat_rate' => BizInvoices::rateText($inv ? (float)($inv['vat_rate'] ?? 0) : Biz::vatRate($userId)),
     'lines'    => $inv ? $inv['lines'] : [],
     'pay_mode' => 'none', 'pay_amount' => '', 'account_id' => (int)($accounts[0]['id'] ?? 0), 'method' => 'cash',
+    'warehouse_id' => (int)($inv['warehouse_id'] ?? 0),
 ];
+// ⛔ انتخابِ انبار فقط در فروشگاهِ چندانباره (`BizWarehouses::any()`)؛ تک‌انبار هیچ چیزِ تازه‌ای نمی‌بیند
+$warehouses = BizWarehouses::any($userId) ? BizWarehouses::list($userId, true) : [];
 $blank = $inv ? 2 : 4;
 $error = '';
 $notice = '';
@@ -93,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'lines'    => is_array($_POST['lines'] ?? null) ? $_POST['lines'] : [],
         'vat_rate' => isset($_POST['vat_rate']) ? postParam('vat_rate') : null,
     ];
+    if ($warehouses && isset($_POST['warehouse_id'])) { $in['warehouse_id'] = (int)postParam('warehouse_id'); }
     $rawLines = array_values(array_filter($in['lines'], 'is_array'));
     $filled   = fn($l) => trim((string)($l['item'] ?? '')) !== '' || trim((string)($l['price'] ?? '')) !== ''
                           || trim((string)($l['imei1'] ?? '')) !== '';
@@ -107,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'party_id' => $in['party_id'], 'inv_date' => postParam('inv_date'),
         'discount' => $in['discount'], 'extra' => $in['extra'], 'note' => $in['note'], 'lines' => array_values($in['lines']),
         'vat_rate' => $in['vat_rate'] ?? $form['vat_rate'],
+        'warehouse_id' => (int)($in['warehouse_id'] ?? $form['warehouse_id']),
         'pay_mode' => in_array(postParam('pay_mode'), ['none', 'full', 'part'], true) ? postParam('pay_mode') : 'none',
         'pay_amount' => postParam('pay_amount'), 'account_id' => (int)postParam('account_id'),
         'method' => isset(BizPay::quickMethods()[postParam('method')]) ? postParam('method') : 'cash',
@@ -428,6 +433,15 @@ require __DIR__ . '/../includes/biz_head.php';
                 <input type="text" name="inv_date" value="<?= h((string)$form['inv_date']) ?>" dir="ltr" placeholder="۱۴۰۵/۰۷/۰۵" inputmode="numeric">
             </label>
         </div>
+        <?php if ($warehouses): ?>
+        <label class="st-field">
+            <span>انبار</span>
+            <select name="warehouse_id">
+                <option value="0"><?= h(BizWarehouses::MAIN) ?></option>
+                <?php foreach ($warehouses as $w): ?><option value="<?= (int)$w['id'] ?>"<?= (int)$w['id'] === (int)$form['warehouse_id'] ? ' selected' : '' ?>><?= h((string)$w['name']) ?></option><?php endforeach; ?>
+            </select>
+        </label>
+        <?php endif; ?>
     </section>
 
     <section class="st-card st-lines-card">

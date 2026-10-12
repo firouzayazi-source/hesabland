@@ -20,6 +20,7 @@
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/biz.php';      // `Biz::lockError()` — بستنِ دوره
+require_once __DIR__ . '/biz_warehouses.php';   // چند انبار — سدِ منفیِ هر انبار در `write()`
 
 /** ابزارهای مشترکِ این فایل. */
 final class BizCommon
@@ -1221,6 +1222,11 @@ final class BizStock
                 if ($ownTx) { $pdo->rollBack(); }
                 return ['ok' => false, 'message' => 'با این تغییر موجودیِ کالا منفی می‌شود؛ انجام نشد.'];
             }
+            // ⛔ و هیچ انباری هم منفی نشود (فقط فروشگاهِ چندانباره — `BizWarehouses::any()`)
+            if (($e = BizWarehouses::negError($pdo, $userId, $productId)) !== null) {
+                if ($ownTx) { $pdo->rollBack(); }
+                return ['ok' => false, 'message' => $e];
+            }
             if ($ownTx) { $pdo->commit(); }
             return ['ok' => true, 'message' => 'موجودی به‌روز شد.'];
         } catch (Throwable $e) {
@@ -1269,7 +1275,7 @@ final class BizStock
      * انبارگردانی — «موجودیِ واقعیِ شمارش‌شده این است»؛ تفاوت یک حرکت
      * می‌شود. ورودِ اضافه به میانگینِ جاری ارزش‌گذاری می‌شود.
      */
-    public static function adjustTo(int $userId, int $productId, float $actual, string $note = ''): array
+    public static function adjustTo(int $userId, int $productId, float $actual, string $note = '', ?int $warehouseId = null): array
     {
         if ($actual < 0) { return ['ok' => false, 'message' => 'موجودیِ واقعی نمی‌تواند منفی باشد.']; }
         if (($e = BizCommon::qtyError($actual, 'موجودیِ واقعی')) !== null) { return ['ok' => false, 'message' => $e]; }
@@ -1277,7 +1283,7 @@ final class BizStock
         if (($e = Biz::lockError($userId, $today, 'انبارگردانی')) !== null) { return ['ok' => false, 'message' => $e]; }
         $note = mb_substr(BizCommon::line($note), 0, 200);
         $changed = false;
-        $res = self::write($userId, $productId, function (PDO $pdo, array $p) use ($userId, $productId, $actual, $note, $today, &$changed): ?string {
+        $res = self::write($userId, $productId, function (PDO $pdo, array $p) use ($userId, $productId, $actual, $note, $today, $warehouseId, &$changed): ?string {
             if (!BizProducts::qtyFits((string)$p['unit'], $actual)) {
                 return 'موجودی برای واحدِ «' . $p['unit'] . '» باید عددِ صحیح باشد.';
             }
@@ -1287,16 +1293,27 @@ final class BizStock
             //    می‌ساخت، و خریدِ تاریخِ آینده شمارشِ درست را با «منفی می‌شود» رد
             //    می‌کرد (بازبینیِ مهر ۱۴۰۵، بازتولید شد). انبارگردانی در ترتیبِ
             //    `recalc()` آخرِ همان روز است، پس «تا امروز» = همه‌ی حرکت‌های تا امروز.
-            $q = $pdo->prepare("SELECT COALESCE(SUM(qty), 0) FROM biz_stock_moves
-                                WHERE user_id = :u AND product_id = :p AND (move_date <= :d OR kind = 'opening')");
-            $q->execute(['u' => $userId, 'p' => $productId, 'd' => $today]);
-            $delta = round($actual - (float)$q->fetchColumn(), 3);
+            // ⛔ فروشگاهِ چندانباره: شمارشِ **یک انبار** (پیش‌فرض اصلی) با موجودیِ همان انبار تا امروز
+            $multi = BizWarehouses::any($userId);
+            if ($multi) {
+                $have = (float)(BizWarehouses::walk($pdo, $userId, $productId, $today)['now'][$warehouseId ?? 0] ?? 0.0);
+            } else {
+                $q = $pdo->prepare("SELECT COALESCE(SUM(qty), 0) FROM biz_stock_moves
+                                    WHERE user_id = :u AND product_id = :p AND (move_date <= :d OR kind = 'opening')");
+                $q->execute(['u' => $userId, 'p' => $productId, 'd' => $today]);
+                $have = (float)$q->fetchColumn();
+            }
+            $delta = round($actual - $have, 3);
             if (abs($delta) < 0.0005) { return null; }
             $changed = true;
             $pdo->prepare(
                 "INSERT INTO biz_stock_moves (user_id, product_id, move_date, kind, qty, unit_cost, note)
                  VALUES (:u, :p, :d, 'adjust', :q, NULL, :n)"
             )->execute(['u' => $userId, 'p' => $productId, 'd' => $today, 'q' => $delta, 'n' => $note === '' ? null : $note]);
+            if ($multi && $warehouseId !== null) {
+                $pdo->prepare('UPDATE biz_stock_moves SET warehouse_id = :w WHERE id = :id AND user_id = :u')
+                    ->execute(['w' => $warehouseId, 'id' => (int)$pdo->lastInsertId(), 'u' => $userId]);
+            }
             return null;
         });
         if ($res['ok'] && !$changed) { $res['message'] = 'موجودی همان عدد بود؛ چیزی عوض نشد.'; }
@@ -1327,9 +1344,11 @@ final class BizStock
         $ids = array_values(array_unique(array_map('intval', array_merge(array_keys($moves), $clear))));
         sort($ids);
         $avg = [];
+        // ⛔ انبارِ سند (سرِ فاکتور، برگشت از اصلش) — فقط فروشگاهِ چندانباره؛ بقیه `NULL` = اصلی
+        $wh = BizWarehouses::forDoc(Database::getConnection(), $userId, $refId);
         foreach ($ids as $pid) {
             $list = $moves[$pid] ?? [];
-            $res = self::write($userId, $pid, function (PDO $pdo, array $p) use ($userId, $pid, $kind, $refId, $list, &$avg): ?string {
+            $res = self::write($userId, $pid, function (PDO $pdo, array $p) use ($userId, $pid, $kind, $refId, $list, $wh, &$avg): ?string {
                 $avg[$pid] = (float)$p['avg_cost'];
                 $pdo->prepare('DELETE FROM biz_stock_moves WHERE user_id = :u AND product_id = :p AND ref_type = :rt AND ref_id = :r')
                     ->execute(['u' => $userId, 'p' => $pid, 'rt' => self::REF_INVOICE, 'r' => $refId]);
@@ -1343,6 +1362,10 @@ final class BizStock
                     }
                     $ins->execute(['u' => $userId, 'p' => $pid, 'd' => $m['date'], 'k' => $kind, 'q' => round((float)$m['qty'], 3),
                                    'c' => $m['unit_cost'] ?? (int)round((float)$p['avg_cost']), 'rt' => self::REF_INVOICE, 'r' => $refId]);
+                    if ($wh !== null) {
+                        $pdo->prepare('UPDATE biz_stock_moves SET warehouse_id = :w WHERE id = :id AND user_id = :u')
+                            ->execute(['w' => $wh, 'id' => (int)$pdo->lastInsertId(), 'u' => $userId]);
+                    }
                 }
                 return null;
             }, false);

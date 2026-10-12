@@ -101,7 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (sanitizeQty(postParam('actual_qty')) > (float)$product['stock_qty'] + 0.0005 && trim(postParam('note')) === '') {
             redirectWithMessage($self, 'error', 'افزایشِ موجودی با انبارگردانی دلیل می‌خواهد (مثلاً «اضافه‌ی شمارش»). اگر خریده‌اید، از «خرید و افزودنِ موجودی» ثبت کنید تا فروشنده و بهای خرید معلوم باشد.');
         }
-        $res = BizStock::adjustTo($userId, $id, sanitizeQty(postParam('actual_qty')), postParam('note'));
+        // ⛔ فروشگاهِ چندانباره: شمارشِ یک انبار (۰ = اصلی)؛ انبارِ نامعتبر رد، نه «اصلی»ِ بی‌صدا
+        $wh = isset($_POST['warehouse_id']) ? BizWarehouses::pick($userId, postParam('warehouse_id')) : null;
+        if ($wh === false) { redirectWithMessage($self, 'error', 'انبار پیدا نشد یا غیرفعال است.'); }
+        $res = BizStock::adjustTo($userId, $id, sanitizeQty(postParam('actual_qty')), postParam('note'), $wh);
         redirectWithMessage($self, $res['ok'] ? 'success' : 'error', $res['message']);
     } elseif ($product && $action === 'delete_move') {
         $res = BizStock::deleteMove($userId, (int)postParam('move_id'));
@@ -440,6 +443,10 @@ require __DIR__ . '/../includes/biz_head.php';
                 <input type="text" name="note" maxlength="200" placeholder="مثلاً شکستگی، شمارشِ پایانِ ماه">
             </label>
         </div>
+        <?php if (BizWarehouses::any($userId)): ?>
+        <label class="st-field"><span>کدام انبار شمرده شد</span>
+            <select name="warehouse_id"><option value="0"><?= h(BizWarehouses::MAIN) ?></option><?php foreach (BizWarehouses::list($userId, true) as $w): ?><option value="<?= (int)$w['id'] ?>"><?= h((string)$w['name']) ?></option><?php endforeach; ?></select></label>
+        <?php endif; ?>
         <button type="submit" class="st-btn st-btn-ghost">ثبتِ انبارگردانی</button>
     </form>
 
