@@ -54,6 +54,14 @@ final class BizSheet
         return self::readCsv($bytes);
     }
 
+    /** ردیف‌های ذخیره‌شده‌ی یک پیش‌نمایش از فایلی دودویی آمده‌اند؟ (همان `isBinary()` روی متنِ خانه‌ها) */
+    public static function rowsLookBinary(array $rows): bool
+    {
+        $txt = '';
+        foreach (array_slice($rows, 0, 40) as $r) { $txt .= implode("\t", array_map('strval', (array)$r)) . "\n"; }
+        return self::isBinary($txt);
+    }
+
     /** پیامِ فایلِ غیرِ جدولی — گزارشِ چاپی (QRP)، PDF، تصویر و مانندِ آن. */
     public const BINARY_MESSAGE = 'این فایل جدول نیست (مثلاً گزارشِ چاپیِ QRP، PDF یا تصویر) و خوانده نمی‌شود. '
         . 'در همان نرم‌افزارِ حسابداری «خروجیِ اکسل» بگیرید، یا فایل را در اکسل باز کنید و با قالبِ «xlsx» ذخیره کنید.';
@@ -804,6 +812,11 @@ final class BizImport
         $raw = @file_get_contents(self::dir() . '/u' . $userId . '-' . $s['token'] . '.json');
         $d = is_string($raw) ? json_decode($raw, true) : null;
         if (!is_array($d) || !isset($d['rows'])) { return null; }
+        // ⛔ همان دلیلِ `BizMigrate::load()`: پیش‌نمایشِ کهنه‌ی فایلِ دودویی دور ریخته می‌شود
+        if (BizSheet::rowsLookBinary(array_map(fn($r) => array_map('strval', array_filter((array)$r, 'is_scalar')), (array)$d['rows']))) {
+            self::clear($userId);
+            return null;
+        }
         return ['rows' => $d['rows'], 'meta' => $d['meta'] ?? [], 'opts' => $s['opts'] ?? []];
     }
 

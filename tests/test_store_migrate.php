@@ -415,5 +415,26 @@ T::same(0, count(glob($root . '/var/biz-import/m' . $b . '-*.json') ?: []), 'ف�
 @unlink($tmp);
 @exec('kill ' . $srv . ' 2>/dev/null');
 
+// ⛔ پیش‌نمایشِ کهنه‌ی یک گزارشِ QRP (ساخته‌شده پیش از سدِ فایلِ دودویی) بعد از به‌روزرسانی دور ریخته
+//    می‌شود — وگرنه همان ستون‌های درهم می‌ماند (گزارشِ مالکِ نصب، مهر ۱۴۰۵). پیش‌نمایشِ سالم می‌ماند.
+T::group('پیش‌نمایشِ کهنه‌ی فایلِ دودویی');
+$_SESSION = [];
+$junk = [['ستون'], ["D\x00L@\x01\x02\x03\x04\x05\x06\x07\x08\x0E\x0F\x10\x11"], ["\x00\x00\x13\x14\x15\x16\x17\x18\x19\x1A"]];
+$jr = BizMigrate::stash(424242, 'parties', $junk, 'موجودی.QRP');
+$jfile = dirname(__DIR__) . '/var/biz-import/m424242-' . ($_SESSION['biz_migrate']['token'] ?? 'x') . '.json';
+T::ok($jr['ok'] && is_file($jfile), 'پیش‌نمایشِ کهنه (شبیه‌سازی) ذخیره شده بود');
+T::same(null, BizMigrate::load(424242), '⛔ بارگذاریِ دوباره‌اش رد شد');
+T::ok(!is_file($jfile) && !isset($_SESSION['biz_migrate']), 'و فایل و نشستش پاک شد (کاربر فایلِ درست را از نو می‌فرستد)');
+BizMigrate::stash(424242, 'parties', [['نام', 'موبایل'], ['علی', '09121234567']], 'درست.xlsx');
+T::ok(BizMigrate::load(424242) !== null, 'پیش‌نمایشِ سالم دست نخورد');
+BizMigrate::clear(424242);
+$_SESSION = [];
+BizImport::stash(424242, [['name' => "x\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0E\x0F\x10"]], []);
+T::same(null, BizImport::load(424242), '⛔ همین در «ورود از فایلِ کالا» هم');
+BizImport::stash(424242, [['name' => 'کابل', 'qty' => 2]], []);
+T::ok(BizImport::load(424242) !== null, 'پیش‌نمایشِ سالمِ کالا ماند');
+BizImport::clear(424242);
+$_SESSION = [];
+
 $wipe();
 exit(T::report());

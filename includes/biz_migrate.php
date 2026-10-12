@@ -884,6 +884,10 @@ final class BizMigrate
         $raw = @file_get_contents(self::dir() . '/m' . $userId . '-' . $s['token'] . '.json');
         $d = is_string($raw) ? json_decode($raw, true) : null;
         if (!is_array($d) || !isset($d['raw'])) { return null; }
+        // ⛔ پیش‌نمایشی که پیش از سدِ فایلِ دودویی (`BizSheet::isBinary()`) از یک گزارشِ QRP ساخته
+        //    شده بود در نشست می‌ماند و بعد از به‌روزرسانی هم همان ستون‌های درهم را نشان می‌داد
+        //    (گزارشِ مالکِ نصب، مهر ۱۴۰۵) — دور ریخته می‌شود تا فایلِ درست از نو فرستاده شود
+        if (BizSheet::rowsLookBinary((array)$d['raw'])) { self::clear($userId); return null; }
         return ['raw' => $d['raw'], 'entity' => $s['entity'], 'label' => (string)$s['label'], 'hi' => (int)$s['hi'],
                 'map' => array_map('strval', (array)$s['map']), 'opts' => (array)$s['opts']];
     }
