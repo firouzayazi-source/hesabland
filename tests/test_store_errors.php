@@ -231,7 +231,7 @@ T::same(1, count($mine('all', 'store')), 'و واقعاً چیزی پاک نشد
 
 // ⛔ گزارشِ خطای مرورگر از صفحه‌ی فروشگاه: پوسته متا و `data-area` دارد
 T::ok(str_contains($dash, '<html lang="fa" dir="rtl" data-area="store"') && str_contains($dash, 'name="csrf-token"')
-    && preg_match('~client-errors\.js[^"]*"[^<]*</script>\s*<script defer src="[^"]*store\.js~', $dash) === 1,
+    && preg_match('~client-errors\.js[^"]*"[^<]*</script>\s*<script defer src="[^"]*num-input\.js[^"]*"[^<]*</script>\s*<script defer src="[^"]*store\.js~', $dash) === 1,
     'پوسته‌ی فروشگاه `data-area`، متای توکن و گزارش‌گر (پیش از store.js) را دارد');
 [$c, $j] = $owner('api/log_client_error.php', ['csrf_token' => $csrfOf($dash), 'message' => "ownerjs {$MARK} boom",
     'file' => '/assets/js/store.js', 'line' => '5', 'area' => 'store']);

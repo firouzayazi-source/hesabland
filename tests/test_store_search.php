@@ -252,12 +252,12 @@ if ($node === '') {
             T::ok($o['ac0'] === ['شارژر سريع كابل تايپ سي'] && $o['acInView'], "{$w}: ⛔ «شارژر سریع» کالای «ي»دار را پیشنهاد داد، داخلِ صفحه",
                 json_encode($o['ac0'], JSON_UNESCAPED_UNICODE));
             T::same(['شارژر سريع كابل تايپ سي', 'شارژر ماشین'], $o['ac0b'], "{$w}: «شارژر» دو پیشنهاد، به ترتیبِ نام");
-            T::ok($o['item0'] === 'شارژر سريع كابل تايپ سي' && $o['pid0'] === (string)$CH && $o['price0'] === '450' && $o['focusQty'] && $o['acClosed'],
+            T::ok($o['item0'] === 'شارژر سريع كابل تايپ سي' && $o['pid0'] === (string)$CH && $o['price0'] === '۴۵۰' /* num-input.js */ && $o['focusQty'] && $o['acClosed'],
                 "{$w}: ↓ + Enter انتخاب کرد: شناسه، قیمت، فوکوس روی «تعداد»",
                 json_encode([$o['item0'], $o['pid0'], $o['price0'], $o['focusQty'], $o['acClosed']], JSON_UNESCAPED_UNICODE));
             T::ok($o['note0'], "{$w}: کالای غیرِ گوشی: «شرحِ کالا» توضیح است، نه IMEI");
             T::ok(count(array_filter($o['ac1'], fn($t) => str_contains($t, 'آیفون'))) >= 2, "{$w}: «ایفون» بی‌«آ» → آیفون (مدل و گوشیِ در انبار)");
-            T::ok($o['imei1'] === IMS && $o['qty1'] === '1' && $o['phoneDesc'], "{$w}: لمسِ گوشیِ در انبار: IMEI و تعدادِ ۱، شرح = IMEI",
+            T::ok($o['imei1'] === IMS && $o['qty1'] === '۱' && $o['phoneDesc'], "{$w}: لمسِ گوشیِ در انبار: IMEI و تعدادِ ۱، شرح = IMEI",
                 json_encode([$o['imei1'], $o['qty1'], $o['phoneDesc']]));
             T::ok($o['none'] && $o['escClosed'], "{$w}: متنِ بی‌کالا «نیست» می‌گوید؛ Escape می‌بندد");
             T::ok($o['balHiddenBefore'] && $o['balShown'] && toLatinDigits(preg_replace('/\D+/u', '', (string)$o['balPrev'])) === toLatinDigits(preg_replace('/\D+/u', '', $bal)), "{$w}: انتخابِ مشتری مانده‌ی قبلی را نشان داد",

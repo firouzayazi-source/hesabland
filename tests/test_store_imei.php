@@ -370,7 +370,7 @@ if ($node === '') {
     } else {
         foreach ($pr['res'] as $w => $o) {
             T::ok(!$o['due'], "{$w}: فیلدِ سررسید نیست");
-            T::ok($o['item0'] === 'آیفون ۱۵ — ۱۲۸' && $o['imei0'] === IM2 && $o['qty0'] === '1' && $o['price0'] === '520'
+            T::ok($o['item0'] === 'آیفون ۱۵ — ۱۲۸' && $o['imei0'] === IM2 && $o['qty0'] === '۱' && $o['price0'] === '۵۲۰' /* num-input.js */
                 && $o['pid0'] === (string)$PH && $o['box0'],
                 "{$w}: ⛔ IMEIِ تایپ‌شده (فارسی با فاصله) ردیف را با گوشی، IMEI، مقدار و قیمت پر کرد",
                 json_encode([$o['item0'], $o['imei0'], $o['qty0'], $o['price0'], $o['pid0'], $o['box0']], JSON_UNESCAPED_UNICODE));
