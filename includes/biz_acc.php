@@ -22,6 +22,7 @@
 
 require_once __DIR__ . '/biz_docs.php';
 require_once __DIR__ . '/biz_reports.php';
+require_once __DIR__ . '/biz_books.php';
 
 /* =================================================================
    سرفصلِ هزینه و درآمد
@@ -250,6 +251,8 @@ final class BizLedger
         '1103' => ['طرف‌حساب‌ها (دریافتنی و پرداختنی)', 'asset'],
         '1104' => ['موجودیِ کالا', 'asset'],
         '1105' => ['مالیات بر ارزش افزوده‌ی خرید', 'asset'],
+        '1201' => ['دارایی‌های ثابت (بهای خرید)', 'asset'],
+        '1202' => ['استهلاکِ انباشته', 'asset'],
         '2102' => ['اسنادِ پرداختنی (چکِ پرداختیِ در جریان)', 'liability'],
         '2103' => ['مالیات بر ارزش افزوده‌ی فروش', 'liability'],
         '3101' => ['سرمایه‌ی اول دوره', 'equity'],
@@ -262,6 +265,8 @@ final class BizLedger
         '5102' => ['کسری و اضافه‌ی انبار', 'expense'],
         '5103' => ['خرید و خدمتِ بی‌انبار', 'expense'],
         '5201' => ['هزینه‌های فروشگاه', 'expense'],
+        '5202' => ['هزینه‌ی استهلاک', 'expense'],
+        '5203' => ['زیانِ کنار گذاشتنِ دارایی', 'expense'],
     ];
 
     public const TYPES = ['asset' => 'دارایی', 'liability' => 'بدهی', 'equity' => 'سرمایه', 'income' => 'درآمد', 'expense' => 'هزینه'];
@@ -389,7 +394,8 @@ final class BizLedger
         $st = $pdo->prepare(
             "SELECT y.id, y.kind, y.number, y.pay_date, y.amount, y.party_id, y.account_id, y.to_account_id, y.title,
                     a.kind AS akind, a.name AS aname, t.kind AS tkind, t.name AS tname, pa.name AS party_name"
-            . ($acc ? ', c.name AS cat_name, y.category_id' : ', NULL AS cat_name, NULL AS category_id') . "
+            . ($acc ? ', c.name AS cat_name, y.category_id' : ', NULL AS cat_name, NULL AS category_id')
+            . (BizBooks::ready() ? ', y.asset_id' : ', NULL AS asset_id') . "
              FROM biz_payments y
              JOIN biz_accounts a ON a.id = y.account_id AND a.user_id = y.user_id
              LEFT JOIN biz_accounts t ON t.id = y.to_account_id AND t.user_id = y.user_id
@@ -416,6 +422,7 @@ final class BizLedger
                 case 'capital':  $l = [$dr($cash), $cr(['3102', '', ''])]; break;
                 case 'drawing':  $l = [$dr(['3103', '', '']), $cr($cash)]; break;
                 case 'transfer': $l = [$dr([self::cashCode((string)$y['tkind']), 'a' . $y['to_account_id'], (string)$y['tname']]), $cr($cash)]; break;
+                case 'asset':    $l = [$dr(['1201', 'f' . (int)$y['asset_id'], (string)$y['title']]), $cr($cash)]; break;
                 default: continue 2;
             }
             $out[] = ['date' => (string)$y['pay_date'], 'ref' => 'payment.php?id=' . (int)$y['id'],
@@ -423,6 +430,9 @@ final class BizLedger
                                 . (in_array($y['kind'], ['receipt', 'payment'], true) ? ' — ' . $pn : ($head !== '' ? ' — ' . $head : '')),
                       'lines' => $l];
         }
+        // ۵) سندِ دستی و دارایی‌های ثابت (`includes/biz_books.php`)
+        foreach (BizJournal::entries($userId, $from, $to) as $e) { $out[] = $e; }
+        foreach (BizAssets::entries($userId, $from, $to) as $e) { $out[] = $e; }
         usort($out, fn($a, $b) => strcmp($a['date'], $b['date']));
         return $out;
     }
@@ -446,9 +456,10 @@ final class BizLedger
     {
         $entries ??= self::entries($userId, $to, $from);
         $rows = []; $detail = []; $dr = 0; $cr = 0;
+        $chart = BizCoa::map($userId);
         foreach ($entries as $e) {
             foreach ($e['lines'] as [$code, $dk, $dn, $d, $c]) {
-                $rows[$code] ??= ['code' => $code, 'name' => self::ACCOUNTS[$code][0], 'type' => self::ACCOUNTS[$code][1], 'dr' => 0, 'cr' => 0];
+                $rows[$code] ??= ['code' => $code, 'name' => $chart[$code][0] ?? $code, 'type' => $chart[$code][1] ?? 'expense', 'dr' => 0, 'cr' => 0];
                 $rows[$code]['dr'] += $d; $rows[$code]['cr'] += $c;
                 if ($dk !== '') {
                     $detail[$code][$dk] ??= ['name' => $dn, 'dr' => 0, 'cr' => 0];
@@ -497,12 +508,21 @@ final class BizLedger
         }
         $asset = ['صندوق و بانک' => $bal('1101'), 'اسنادِ دریافتنی (چکِ در جریان)' => $bal('1102'),
                   'بدهکاران (طلب از طرف‌حساب‌ها)' => $recv, 'موجودیِ کالا' => $bal('1104'),
-                  'مالیات بر ارزش افزوده‌ی خرید' => $bal('1105')];
+                  'مالیات بر ارزش افزوده‌ی خرید' => $bal('1105'),
+                  'دارایی‌های ثابت (خالصِ استهلاک)' => $bal('1201') + $bal('1202')];
         $liab  = ['بستانکاران (بدهی به طرف‌حساب‌ها)' => $pay, 'اسنادِ پرداختنی (چکِ پرداختیِ در جریان)' => -$bal('2102'),
                   'مالیات بر ارزش افزوده‌ی فروش' => -$bal('2103')];
         $prevProfit = $pl(self::trial($userId, $at, '', $before));
         $equity = ['سرمایه‌ی اول دوره' => -$bal('3101'), 'آورده‌ی مالک' => -$bal('3102'), 'برداشتِ مالک' => -$bal('3103'),
                    'سود و زیانِ سال‌های قبل' => $prevProfit, 'سود و زیانِ سالِ جاری' => $pl($tb) - $prevProfit];
+        // ⛔ حساب‌های دلخواه (`BizCoa`) در گروهِ نوعِ خودشان؛ درآمد و هزینه‌شان از راهِ `$pl`
+        foreach ($tb['rows'] as $code => $r) {
+            if (isset(self::ACCOUNTS[$code])) { continue; }
+            $label = toPersianDigits((string)$code) . ' — ' . $r['name'];
+            if ($r['type'] === 'asset') { $asset[$label] = $r['balance']; }
+            elseif ($r['type'] === 'liability') { $liab[$label] = -$r['balance']; }
+            elseif ($r['type'] === 'equity') { $equity[$label] = -$r['balance']; }
+        }
         $A = array_sum($asset); $L = array_sum($liab); $E = array_sum($equity);
         return ['asset' => $asset, 'liability' => $liab, 'equity' => $equity, 'assets' => $A, 'liabilities' => $L,
                 'equities' => $E, 'diff' => $A - $L - $E, 'year_from' => $yf];
@@ -563,13 +583,14 @@ final class BizLedger
      *    متنِ کاربر — و نامی مثلِ `=HYPERLINK(…)` در اکسلِ حسابدار فرمول اجرا
      *    می‌کرد (بازبینیِ مهر ۱۴۰۵، بازتولید شد). مبلغ عدد است و دست نمی‌خورد.
      */
-    public static function csv(array $entries): string
+    public static function csv(array $entries, int $userId = 0): string
     {
+        $chart = $userId > 0 ? BizCoa::map($userId) : self::ACCOUNTS;
         require_once __DIR__ . '/biz_io.php';
         $rows = [['شماره‌ی سند', 'تاریخ', 'شرح', 'کدِ حساب', 'حساب', 'تفصیلی', 'بدهکار', 'بستانکار']];
         foreach (array_values($entries) as $n => $e) {
             foreach ($e['lines'] as [$code, , $dn, $d, $c]) {
-                $rows[] = [$n + 1, toJalali($e['date']), $e['desc'], $code, self::ACCOUNTS[$code][0], $dn, (int)$d, (int)$c];
+                $rows[] = [$n + 1, toJalali($e['date']), $e['desc'], $code, $chart[$code][0] ?? $code, $dn, (int)$d, (int)$c];
             }
         }
         return BizSheet::writeCsv($rows);
@@ -611,7 +632,7 @@ final class BizYear
 
         $sales = BizReports::sales($userId, $from, $to);
         $cash  = BizReports::cash($userId, $from, $to);
-        $profit = BizReports::profit($sales['gross'], $sales['other'], $cash['income'], $cash['expense']);
+        $profit = BizReports::profit($sales['gross'], $sales['other'], $cash['income'], $cash['expense'], BizBooks::plAdjust($userId, $from, $to));
         $entries = BizLedger::entries($userId, $to);
         $trial = BizLedger::trial($userId, $to, '', $entries);
         $bs    = BizLedger::balanceSheet($userId, $to, $entries);

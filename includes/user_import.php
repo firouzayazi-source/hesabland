@@ -223,7 +223,9 @@ function importForeignKeys(): array
     foreach ($rows as $r) {
         $out[$r['t']][$r['c']] = $r['p'];
     }
-    foreach (IMPORT_SOFT_LINKS as $t => $cols) {
+    // ⛔ پیوندهای بی‌کلیدِ دفترِ فروشگاه را خودِ فروشگاه می‌شناسد (`Biz::IMPORT_SOFT_LINKS`) —
+    //    طرفِ شخصی نامِ جدولِ فروشگاهی نمی‌نویسد (قاعده‌ی ۷۰)
+    foreach (IMPORT_SOFT_LINKS + (class_exists('Biz') ? Biz::IMPORT_SOFT_LINKS : []) as $t => $cols) {
         foreach ($cols as $c => $p) {
             if (!isset($out[$t][$c]) && tableHasColumn($t, $c)) { $out[$t][$c] = $p; }
         }

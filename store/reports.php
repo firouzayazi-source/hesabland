@@ -77,10 +77,10 @@ require __DIR__ . '/../includes/biz_head.php';
         <span class="st-kpi-sub"><?= $rSales['margin'] !== null ? 'حاشیه‌ی ' . toPersianDigits((string)$rSales['margin']) . '٪ · ' : '' ?>بهای تمام‌شده <?= formatMoney($rSales['cogs']) ?></span>
     </div>
     <div class="st-kpi-card">
-        <?php $rNet = BizReports::profit($rSales['gross'], $rSales['other'], $rCash['income'], $rCash['expense']); ?>
+        <?php $rAdj = BizBooks::plAdjust($userId, $rFrom, $rTo); $rNet = BizReports::profit($rSales['gross'], $rSales['other'], $rCash['income'], $rCash['expense'], $rAdj); ?>
         <span class="st-kpi-label">هزینه‌های فروشگاه</span>
         <span class="st-kpi-value st-num"><?= formatMoney($rCash['expense']) ?></span>
-        <span class="st-kpi-sub">سودِ خالص <?= ($rNet < 0 ? '−' : '') . formatMoney(abs($rNet)) ?><?= $rSales['other'] !== 0 ? ' · کسریِ انبار و خریدِ بی‌انبار ' . ($rSales['other'] < 0 ? '−' : '') . formatMoney(abs($rSales['other'])) : '' ?></span>
+        <span class="st-kpi-sub">سودِ خالص <?= ($rNet < 0 ? '−' : '') . formatMoney(abs($rNet)) ?><?= $rSales['other'] !== 0 ? ' · کسریِ انبار و خریدِ بی‌انبار ' . ($rSales['other'] < 0 ? '−' : '') . formatMoney(abs($rSales['other'])) : '' ?><?= $rAdj !== 0 ? ' · استهلاک و سندِ دستی ' . ($rAdj < 0 ? '−' : '') . formatMoney(abs($rAdj)) : '' ?></span>
     </div>
     <div class="st-kpi-card">
         <span class="st-kpi-label">میانگینِ هر فاکتور</span>

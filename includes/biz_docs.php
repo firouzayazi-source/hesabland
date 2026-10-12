@@ -1176,7 +1176,13 @@ final class BizPay
         //    آورده «درآمد» و برداشت «هزینه» ثبت می‌شد و سودِ فروشگاه دروغ می‌گفت.
         'capital'  => 'آورده‌ی مالک',
         'drawing'  => 'برداشتِ مالک',
+        // ⛔ پرداختِ خریدِ دارایی‌ی ثابت — فقط از `BizAssets::create()` (پرچمِ `_asset`)؛
+        //    هزینه نیست (سود را تکان نمی‌دهد)، دارایی است و ماهانه مستهلک می‌شود
+        'asset'    => 'خریدِ دارایی‌ی ثابت',
     ];
+
+    /** ⛔ نوع‌هایی که فقط خودِ برنامه می‌سازد — در فرمِ «ثبتِ تازه» نیستند و جدا باطل نمی‌شوند. */
+    public const SYSTEM_KINDS = ['asset'];
 
     /** ⛔ نوع‌هایی که پول را **به** صندوق می‌آورند — تنها فهرست؛ بقیه (جز انتقال) می‌برند. */
     public const IN_KINDS = ['receipt', 'income', 'capital'];
@@ -1187,7 +1193,7 @@ final class BizPay
      *    یکی از این دو یا «انتقال» است (تست). پیش از این همین دو فهرست در شش
      *    کوئری و صفحه دست‌نویس بود و نوعِ تازه در یکی جا می‌ماند.
      */
-    public const OUT_KINDS = ['payment', 'expense', 'drawing'];
+    public const OUT_KINDS = ['payment', 'expense', 'drawing', 'asset'];
 
     /** فهرستِ `IN (…)`ِ SQL از یکی از دو ثابتِ بالا (ثابتِ کد، نه ورودی). */
     public static function sqlList(array $kinds): string
@@ -1196,7 +1202,7 @@ final class BizPay
     }
 
     /** نوع‌هایی که طرف‌حساب و فاکتور ندارند (شرح و سرفصل دارند). */
-    public const FREE_KINDS = ['expense', 'income', 'capital', 'drawing'];
+    public const FREE_KINDS = ['expense', 'income', 'capital', 'drawing', 'asset'];
 
     public const METHODS = [
         'cash'     => 'نقد',
@@ -1267,6 +1273,9 @@ final class BizPay
         $note   = mb_substr(trim((string)($in['note'] ?? '')), 0, 300);
 
         if (!isset(self::KINDS[$kind])) { return ['ok' => false, 'message' => 'نوعِ سند معتبر نیست.']; }
+        if (in_array($kind, self::SYSTEM_KINDS, true) && empty($in['_asset'])) {
+            return ['ok' => false, 'message' => 'خریدِ دارایی‌ی ثابت فقط از «دفاتر و مالیات ← دارایی‌های ثابت» ثبت می‌شود.'];
+        }
         if ($amount <= 0) { return ['ok' => false, 'message' => 'مبلغ باید بیشتر از صفر باشد.']; }
         if (($e = BizCommon::moneyError($amount, 'مبلغ')) !== null) { return ['ok' => false, 'message' => $e]; }
         if (!isset(self::METHODS[$method])) { $method = 'cash'; }
@@ -1419,7 +1428,7 @@ final class BizPay
         return tableHasColumn('biz_payments', 'pair_id');
     }
 
-    public static function void(int $userId, int $id): array
+    public static function void(int $userId, int $id, bool $internal = false): array
     {
         $pdo = Database::getConnection();
         $pdo->beginTransaction();
@@ -1431,6 +1440,12 @@ final class BizPay
             $st->execute(['id' => $id, 'u' => $userId]);
             $p = $st->fetch();
             if (!$p || $p['status'] !== 'ok') { $pdo->rollBack(); return ['ok' => false, 'message' => 'سند پیدا نشد یا از قبل باطل است.']; }
+            // ⛔ پرداختِ خریدِ دارایی فقط با حذفِ خودِ دارایی (`BizAssets::remove()`) — وگرنه دارایی‌ای
+            //    می‌ماند که پولش برگشته و هنوز مستهلک می‌شود
+            if (in_array($p['kind'], self::SYSTEM_KINDS, true) && !$internal) {
+                $pdo->rollBack();
+                return ['ok' => false, 'message' => 'این پرداختِ خریدِ یک دارایی‌ی ثابت است؛ از «دفاتر و مالیات ← دارایی‌های ثابت» حذفش کنید.'];
+            }
             if ($p['invoice_id'] !== null && $p['inv_party'] === null && $p['inv_status'] === 'issued') {
                 $pdo->rollBack();
                 return ['ok' => false, 'message' => 'این دریافت/پرداختِ یک فاکتورِ گذری است؛ خودِ فاکتور را باطل کنید.'];

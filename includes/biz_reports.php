@@ -130,10 +130,14 @@ final class BizReports
         ];
     }
 
-    /** ⛔ تنها فرمولِ «سودِ خالص» (صفحه‌ی گزارش، چاپِ سود و زیان، داشبورد). */
-    public static function profit(int $gross, int $other, int $income, int $expense): int
+    /**
+     * ⛔ تنها فرمولِ «سودِ خالص» (صفحه‌ی گزارش، چاپِ سود و زیان، داشبورد، بستنِ سال).
+     *    `$adjust` = اثرِ استهلاک و سندِ دستی (`BizBooks::plAdjust()`) — با آن سود همان
+     *    ترازنامه است؛ داشبوردِ روزانه بی‌آن (سودِ عملیاتی) می‌ماند.
+     */
+    public static function profit(int $gross, int $other, int $income, int $expense, int $adjust = 0): int
     {
-        return $gross - $other + $income - $expense;
+        return $gross - $other + $income - $expense + $adjust;
     }
 
     /** پرفروش‌ترین‌ها — خالصِ برگشت، با سودِ هر کدام. */

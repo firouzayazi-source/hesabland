@@ -44,6 +44,19 @@ require_once __DIR__ . '/db.php';
 
 final class Biz
 {
+    /**
+     * ⛔ پیوندهای بی‌کلیدِ خارجیِ دفترِ فروشگاه برای بازگرداندنِ بکاپ (`importForeignKeys()`)
+     *    — بی‌آن، شناسه‌ی قدیمِ فایل می‌نشست و قبضِ تعمیر/قسط/ردیفِ سند به ردیفِ دیگری اشاره
+     *    می‌کرد. ستونی که این نصب ندارد نادیده گرفته می‌شود.
+     */
+    public const IMPORT_SOFT_LINKS = [
+        'biz_repairs'           => ['party_id' => 'biz_parties', 'invoice_id' => 'biz_invoices'],
+        'biz_installment_plans' => ['invoice_id' => 'biz_invoices'],
+        'biz_installments'      => ['invoice_id' => 'biz_invoices'],
+        'biz_journal_lines'     => ['journal_id' => 'biz_journals'],
+        'biz_payments'          => ['asset_id' => 'biz_fixed_assets'],
+    ];
+
     /** ⛔ تنها مرجعِ نوع‌های حساب. کلیدِ اول پیش‌فرض است. */
     public const TYPES = [
         'personal' => 'شخصی',

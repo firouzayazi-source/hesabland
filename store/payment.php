@@ -78,7 +78,9 @@ if ($id > 0) {
     <?php if ((string)$pay['note'] !== ''): ?><p class="st-muted st-docnote"><?= nl2br(h((string)$pay['note'])) ?></p><?php endif; ?>
 </article>
 <?= BizDocView::history(BizLog::forDoc($userId, 'payment', $id)) ?>
-<?php if ($pay['status'] === 'ok'): ?>
+<?php if ($pay['status'] === 'ok' && in_array($pay['kind'], BizPay::SYSTEM_KINDS, true)): ?>
+<p class="st-muted">این پرداختِ خریدِ یک دارایی‌ی ثابت است؛ از <a href="<?= h(Biz::url('accounting.php?t=assets')) ?>">دفاتر و مالیات ← دارایی‌های ثابت</a> مدیریت می‌شود.</p>
+<?php elseif ($pay['status'] === 'ok'): ?>
 <section class="st-card st-danger">
     <form method="post" action="<?= h($self) ?>" onsubmit="return confirm('این سند باطل شود؟ پولش از موجودیِ صندوق و ماندهٔ طرف‌حساب برمی‌گردد.');">
         <?= Csrf::field() ?><input type="hidden" name="action" value="void">
@@ -93,7 +95,7 @@ if ($id > 0) {
 
 // ---------- ثبتِ تازه ----------
 $kind = getParam('k');
-if (!isset(BizPay::KINDS[$kind])) { $kind = 'receipt'; }
+if (!isset(BizPay::KINDS[$kind]) || in_array($kind, BizPay::SYSTEM_KINDS, true)) { $kind = 'receipt'; }
 Biz::requireCap(BizRights::payCap($kind));
 $invId = (int)getParam('inv', '0');
 $inv   = $invId > 0 ? BizInvoices::get($userId, $invId) : null;
@@ -155,7 +157,7 @@ require __DIR__ . '/../includes/biz_head.php';
     </div>
 </div>
 <nav class="st-segtabs" aria-label="نوع">
-    <?php foreach (BizPay::KINDS as $kk => $kl): if ($inv && $kk !== $kind) { continue; } ?>
+    <?php foreach (BizPay::KINDS as $kk => $kl): if (($inv && $kk !== $kind) || in_array($kk, BizPay::SYSTEM_KINDS, true)) { continue; } ?>
         <a class="<?= $kk === $kind ? 'is-active' : '' ?>" href="<?= h(Biz::url('payment.php?k=' . $kk)) ?>"><?= h($kl) ?></a>
     <?php endforeach; ?>
 </nav>

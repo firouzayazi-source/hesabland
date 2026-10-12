@@ -353,7 +353,8 @@ case 'sales':
             <?php if ($sa['nonstock'] !== 0): ?><tr><td>خریدِ بی‌انبار (خدمت و شرحِ آزاد)</td><td class="pr-c-num"><?= $sa['nonstock'] > 0 ? '−' : '' ?><?= $money(abs($sa['nonstock'])) ?></td></tr><?php endif; ?>
             <tr><td>هزینه‌های فروشگاه</td><td class="pr-c-num">−<?= $money($ca['expense']) ?></td></tr>
             <tr><td>درآمدِ متفرقه</td><td class="pr-c-num"><?= $money($ca['income']) ?></td></tr>
-            <?php $afterExp = BizReports::profit($sa['gross'], $sa['other'], $ca['income'], $ca['expense']); ?>
+            <?php $adj = BizBooks::plAdjust($userId, $rf, $rt); $afterExp = BizReports::profit($sa['gross'], $sa['other'], $ca['income'], $ca['expense'], $adj); ?>
+            <?php if ($adj !== 0): ?><tr><td>استهلاکِ دارایی‌ها و سندهای دستی</td><td class="pr-c-num"><?= $adj < 0 ? '−' : '' ?><?= $money(abs($adj)) ?></td></tr><?php endif; ?>
             <tr class="pr-group"><td>سودِ خالص</td><td class="pr-c-num"><?= $afterExp < 0 ? '−' : '' ?><?= $money(abs($afterExp)) ?></td></tr>
         </tbody>
     </table>

@@ -59,7 +59,7 @@ const STORE_BUDGET = [
     'store/import.php'         => 4,   // ورود از نرم‌افزارِ دیگر — بی‌پیش‌نمایش (همان پوسته)
     'store/products-cleanup.php' => 6,
     'store/invoice-design.php'   => 9,   // لوگو + آخرین فاکتور + دو سنجشِ migration
-    'store/reports.php'        => 15,
+    'store/reports.php'        => 18,  // +۳: اثرِ سندِ دستی و استهلاک بر سودِ خالص (`BizBooks::plAdjust()` — سندهای دستی، دارایی‌ها، سنجشِ migration)
     'store/print-settings.php' => 6,
     'store/print.php'          => 7,
     'store/sales.php'          => 6,
@@ -76,7 +76,8 @@ const STORE_BUDGET = [
     'store/account.php'        => 5,   // رمز و بکاپ (بازرسیِ مهر ۱۴۰۵): پوسته‌ی فروشگاه + «رمز دارد؟»
     // ⛔ دفاتر و مالیات (لایه‌ی حسابداری): زبانه‌ی پیش‌فرض = ترازنامه — دفترِ مشتق
     //    (افتتاحیه ۲، انبار ۱، فاکتورها ۱، دریافت/پرداخت ۱) + مغایرت‌گیری (صندوق‌ها، طرف‌حساب‌ها، انبار)
-    'store/accounting.php'     => 12,
+    //    +۴ (migration_biz_books): حساب‌های دلخواه، سندهای دستی، دارایی‌ها، سنجشِ migration
+    'store/accounting.php'     => 16,
     'store/cash-count.php'     => 6,   // صندوق‌ها + شمارش‌های اخیر
     'store/payroll.php'        => 7,   // کارکنان با مانده + صندوق‌ها + گردش
     'store/staff.php'          => 6,

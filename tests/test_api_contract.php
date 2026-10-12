@@ -7692,7 +7692,7 @@ if (!str_contains($cat70e, "if (\$kind === 'purchase_return' && \$m['unit_cost']
 if (!str_contains($cat70e, 'if (count($ls) !== ($count[$rid] ?? 0)) { unset($out[$rid]); }')) {
     $fBad[] = 'docLines — سندی که شمارِ ردیف و حرکتش یکی نیست جفت نمی‌شود (حدس ممنوع)';
 }
-if (!str_contains($rep70e, 'GROUP BY i.kind" . self::OTHER_SQL') || !str_contains($rep70e, 'return $gross - $other + $income - $expense;')) {
+if (!str_contains($rep70e, 'GROUP BY i.kind" . self::OTHER_SQL') || !str_contains($rep70e, 'return $gross - $other + $income - $expense + $adjust;')) {
     $fBad[] = 'BizReports — `other` در همان کوئریِ sales() و profit() تنها فرمول';
 }
 if (!preg_match_all("/m\.kind = 'adjust'|p\.track_stock = 0/", $dash70e) || substr_count($dash70e, "m.kind = 'adjust'") !== 1 || substr_count($dash70e, 'p.track_stock = 0') !== 1) {

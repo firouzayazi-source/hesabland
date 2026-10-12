@@ -23,7 +23,8 @@ require_once __DIR__ . '/../includes/biz_dash.php';
 
 $userId = Biz::ownerId();
 $TABS = ['balance' => 'ترازنامه', 'trial' => 'ترازِ آزمایشی', 'journal' => 'روزنامه', 'vat' => 'مالیات بر ارزش افزوده',
-         'year' => 'سالِ مالی', 'moadian' => 'سامانه‌ی مودیان', 'cats' => 'سرفصل‌ها'];
+         'year' => 'سالِ مالی', 'moadian' => 'سامانه‌ی مودیان', 'cats' => 'سرفصل‌ها',
+         'vouchers' => 'سندِ دستی', 'coa' => 'حساب‌های دلخواه', 'assets' => 'دارایی‌های ثابت'];
 $t = (string)getParam('t');
 $t = isset($TABS[$t]) ? $t : 'balance';
 $self = Biz::url('accounting.php?t=' . $t);
@@ -36,6 +37,25 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'year_reopen': $r = BizYear::reopen($userId, (int)postParam('jy'), postParam('confirm') === '1'); break;
         case 'cat_save':    $r = BizExpCats::save($userId, (string)postParam('kind'), (string)postParam('name'), (int)postParam('id')); break;
         case 'cat_toggle':  $r = BizExpCats::setActive($userId, (int)postParam('id'), postParam('on') === '1'); break;
+        // دفترِ کلِ کامل‌تر (`includes/biz_books.php`)
+        case 'coa_save':    $r = BizCoa::save($userId, (string)postParam('code'), (string)postParam('name'), (string)postParam('type'), (int)postParam('id')); break;
+        case 'coa_toggle':  $r = BizCoa::setActive($userId, (int)postParam('id'), postParam('on') === '1'); break;
+        case 'jv_save':
+            $jd = BizDocView::docDate((string)postParam('jdate'), 'تاریخِ سند');
+            $r = !$jd['ok'] ? $jd : BizJournal::create($userId, $jd['date'], (string)postParam('description'), (array)($_POST['lines'] ?? []));
+            break;
+        case 'jv_void':     $r = BizJournal::void($userId, (int)postParam('id')); break;
+        case 'fa_save':
+            $fd = BizDocView::docDate((string)postParam('acq_date'), 'تاریخِ خرید');
+            $r = !$fd['ok'] ? $fd : BizAssets::create($userId, ['acq_date' => $fd['date']] + array_map(fn($v) => is_string($v) ? $v : '', array_intersect_key($_POST,
+                     array_flip(['name', 'cost', 'salvage', 'life_months', 'funding', 'account_id', 'method', 'note']))));
+            break;
+        case 'fa_dispose':
+            $dd = BizDocView::docDate((string)postParam('date'), 'تاریخِ کنار گذاشتن');
+            $r = !$dd['ok'] ? $dd : BizAssets::dispose($userId, (int)postParam('id'), $dd['date']);
+            break;
+        case 'fa_undispose': $r = BizAssets::undispose($userId, (int)postParam('id')); break;
+        case 'fa_remove':    $r = BizAssets::remove($userId, (int)postParam('id')); break;
         default:            $r = ['ok' => false, 'message' => 'درخواست نامعتبر است.'];
     }
     redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
@@ -50,7 +70,7 @@ $keep = fn(array $extra = []): string => Biz::url('accounting.php?' . http_build
 
 // ---------- خروجی‌ها ----------
 if ($ready && $t === 'journal' && getParam('csv') === '1') {
-    $csv = BizLedger::csv(BizLedger::entries($userId, $rTo, $period === 'all' ? '' : $rFrom));
+    $csv = BizLedger::csv(BizLedger::entries($userId, $rTo, $period === 'all' ? '' : $rFrom), $userId);
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="journal-' . $rFrom . '-' . $rTo . '.csv"');
     header('Cache-Control: no-store');
@@ -187,6 +207,7 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
 
 <?php elseif ($t === 'journal'):
     $entries = BizLedger::entries($userId, $rTo, $period === 'all' ? '' : $rFrom);
+    $chart = BizCoa::map($userId);
     $shown = 0;
 ?>
 <div class="st-head-actions"><a class="st-btn st-btn-ghost" href="<?= h($keep(['csv' => '1'])) ?>">دریافتِ CSV برای حسابدار</a></div>
@@ -200,7 +221,7 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
     <div class="st-table-wrap st-flat"><table class="st-table st-table-compact">
         <tbody>
         <?php foreach ($e['lines'] as [$code, , $dn, $d, $c]): ?>
-            <tr><td class="st-num"><?= h(toPersianDigits($code)) ?></td><td><?= h(BizLedger::ACCOUNTS[$code][0]) ?><?= $dn !== '' ? ' <span class="st-muted-i">· ' . h($dn) . '</span>' : '' ?></td>
+            <tr><td class="st-num"><?= h(toPersianDigits($code)) ?></td><td><?= h($chart[$code][0] ?? $code) ?><?= $dn !== '' ? ' <span class="st-muted-i">· ' . h($dn) . '</span>' : '' ?></td>
                 <td class="st-td-num"><?= $d ? $money($d) : '' ?></td><td class="st-td-num"><?= $c ? $money($c) : '' ?></td></tr>
         <?php endforeach; ?>
         </tbody>
@@ -315,6 +336,144 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
         </tbody>
     </table>
 </div>
+
+<?php elseif (!BizBooks::ready() && in_array($t, ['vouchers', 'coa', 'assets'], true)): ?>
+<div class="st-flash st-flash-warn" role="status">این بخش هنوز راه نیفتاده است — مدیرِ نصب باید به‌روزرسانی را با migration اجرا کند.</div>
+
+<?php elseif ($t === 'vouchers'):
+    $codes = BizJournal::codes($userId);
+    $jvs = BizJournal::recent($userId);
+?>
+<p class="st-muted">سندِ اصلاحی یا انتقالی بینِ حساب‌ها (مثلاً پرداختِ مالیات از سرمایه، طبقه‌بندیِ دوباره‌ی هزینه، ذخیره). ⛔ صندوق و بانک، چک‌ها، طرف‌حساب‌ها، انبار و دارایی‌های ثابت سندِ دستی نمی‌گیرند — مانده‌ی آن‌ها از سندهای خودشان است.</p>
+<form method="post" action="<?= h($self) ?>" class="st-card st-form" data-jv>
+    <?= Csrf::field() ?><input type="hidden" name="action" value="jv_save">
+    <div class="st-row2">
+        <label class="st-field"><span>تاریخ</span><input type="text" name="jdate" dir="ltr" inputmode="numeric" required value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
+        <label class="st-field"><span>شرحِ سند</span><input type="text" name="description" required maxlength="<?= BizJournal::DESC_MAX ?>"></label>
+    </div>
+    <div class="st-table-wrap st-flat"><table class="st-table st-table-compact">
+        <thead><tr><th>حساب</th><th class="st-td-num">بدهکار</th><th class="st-td-num">بستانکار</th><th class="st-hide-sm">شرحِ ردیف</th></tr></thead>
+        <tbody>
+        <?php for ($i = 0; $i < 6; $i++): ?>
+            <tr><td><select name="lines[<?= $i ?>][code]"><option value="">—</option><?php foreach ($codes as $ck => $cn): ?><option value="<?= h($ck) ?>"><?= h(toPersianDigits($ck) . ' — ' . $cn) ?></option><?php endforeach; ?></select></td>
+                <td><input type="text" name="lines[<?= $i ?>][debit]" inputmode="numeric" dir="ltr" data-money></td>
+                <td><input type="text" name="lines[<?= $i ?>][credit]" inputmode="numeric" dir="ltr" data-money></td>
+                <td class="st-hide-sm"><input type="text" name="lines[<?= $i ?>][note]" maxlength="160"></td></tr>
+        <?php endfor; ?>
+        </tbody>
+    </table></div>
+    <button type="submit" class="st-btn">ثبتِ سند</button>
+</form>
+<?php if ($jvs): ?>
+<div class="st-table-wrap">
+    <table class="st-table st-table-compact">
+        <thead><tr><th>شماره</th><th>تاریخ</th><th>شرح</th><th class="st-td-num">مبلغ</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach ($jvs as $j): $void = $j['status'] !== 'ok'; ?>
+            <tr id="j<?= (int)$j['id'] ?>"<?= $void ? ' class="is-inactive"' : '' ?>><td class="st-num"><?= h(toPersianDigits((string)$j['number'])) ?></td>
+                <td class="st-num"><?= h(toJalali((string)$j['jdate'])) ?></td>
+                <td><?= h((string)$j['description']) ?><?= $void ? ' <span class="st-pill is-void">باطل</span>' : '' ?></td>
+                <td class="st-td-num"><?= $money((int)$j['total']) ?></td>
+                <td><?php if (!$void && Biz::can('void')): ?>
+                    <form method="post" action="<?= h($self) ?>" class="st-inline" onsubmit="return confirm('این سند باطل شود؟');">
+                        <?= Csrf::field() ?><input type="hidden" name="action" value="jv_void"><input type="hidden" name="id" value="<?= (int)$j['id'] ?>">
+                        <button type="submit" class="st-link-btn">باطل</button>
+                    </form><?php endif; ?></td></tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
+
+<?php elseif ($t === 'coa'):
+    $mine = BizCoa::custom($userId);
+?>
+<p class="st-muted">حساب‌های خودِ برنامه ثابت‌اند؛ هر حسابِ دیگری (وام، پیش‌پرداخت، ذخیره، درآمد یا هزینه‌ی خاص) را این‌جا بسازید و در «سندِ دستی» به کار ببرید. رقمِ اولِ کد نوع را نشان می‌دهد: ۱ دارایی، ۲ بدهی، ۳ سرمایه، ۴ درآمد، ۵ هزینه.</p>
+<div class="st-grid-2">
+<section class="st-card">
+    <h2 class="st-h3">حساب‌های برنامه</h2>
+    <ul class="st-list">
+    <?php foreach (BizLedger::ACCOUNTS as $ck => [$cn, $ct]): ?>
+        <li class="st-list-row"><span><span class="st-num"><?= h(toPersianDigits((string)$ck)) ?></span> — <?= h($cn) ?></span><small class="st-muted-i"><?= h(BizLedger::TYPES[$ct]) ?><?= in_array((string)$ck, BizJournal::LOCKED, true) ? ' · بی‌سندِ دستی' : '' ?></small></li>
+    <?php endforeach; ?>
+    </ul>
+</section>
+<section class="st-card">
+    <h2 class="st-h3">حساب‌های دلخواه</h2>
+    <ul class="st-list">
+    <?php foreach ($mine as $c): $on = (int)$c['is_active'] === 1; ?>
+        <li class="st-list-row<?= $on ? '' : ' is-inactive' ?>"><span><span class="st-num"><?= h(toPersianDigits((string)$c['code'])) ?></span> — <?= h((string)$c['name']) ?> <small class="st-muted-i">· <?= h(BizLedger::TYPES[$c['type']] ?? '') ?><?= $on ? '' : ' · غیرفعال' ?></small></span>
+            <form method="post" action="<?= h($self) ?>" class="st-inline">
+                <?= Csrf::field() ?><input type="hidden" name="action" value="coa_toggle"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>"><input type="hidden" name="on" value="<?= $on ? '0' : '1' ?>">
+                <button type="submit" class="st-link-btn"><?= $on ? 'غیرفعال' : 'فعال' ?></button>
+            </form></li>
+    <?php endforeach; ?>
+    <?php if (!$mine): ?><li class="st-muted">هنوز حسابی نساخته‌اید.</li><?php endif; ?>
+    </ul>
+    <form method="post" action="<?= h($self) ?>" class="st-form">
+        <?= Csrf::field() ?><input type="hidden" name="action" value="coa_save">
+        <div class="st-row3">
+            <label class="st-field"><span>کد</span><input type="text" name="code" required inputmode="numeric" dir="ltr" maxlength="8"></label>
+            <label class="st-field"><span>نام</span><input type="text" name="name" required maxlength="<?= BizCoa::NAME_MAX ?>"></label>
+            <label class="st-field"><span>نوع</span><select name="type"><?php foreach (BizLedger::TYPES as $tk2 => $tl2): ?><option value="<?= h($tk2) ?>"><?= h($tl2) ?></option><?php endforeach; ?></select></label>
+        </div>
+        <button type="submit" class="st-btn st-btn-ghost">افزودنِ حساب</button>
+    </form>
+</section>
+</div>
+
+<?php elseif ($t === 'assets'):
+    $fa = BizAssets::list($userId);
+    $accs = BizDocView::accounts($userId);
+?>
+<p class="st-muted">ویترین، دستگاهِ تعمیر، کامپیوتر، خودرو… — خریدش هزینه نیست؛ هر ماه به اندازه‌ی «(بها − اسقاط) ÷ عمر» هزینه‌ی استهلاک می‌شود (خطِ مستقیم، از ماهِ بعد از خرید). بها و عمر بعداً عوض نمی‌شود؛ اشتباه را حذف و دوباره ثبت کنید.</p>
+<?php if ($fa): ?>
+<div class="st-table-wrap">
+    <table class="st-table st-table-compact">
+        <thead><tr><th>دارایی</th><th class="st-hide-sm">خرید</th><th class="st-td-num">بها</th><th class="st-td-num st-hide-sm">استهلاکِ ماهانه</th><th class="st-td-num">استهلاکِ انباشته</th><th class="st-td-num">ارزشِ دفتری</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach ($fa as $a): $gone = $a['disposed_on'] !== null; ?>
+            <tr<?= $gone ? ' class="is-inactive"' : '' ?>><td><?= h((string)$a['name']) ?><?= $gone ? ' <span class="st-pill is-void">کنار گذاشته · ' . h(toJalali((string)$a['disposed_on'])) . '</span>' : '' ?>
+                    <?php if ($a['payment_id'] !== null): ?><br><a class="st-muted-i" href="<?= h(Biz::url('payment.php?id=' . (int)$a['payment_id'])) ?>">پرداخت از <?= h((string)$a['account_name']) ?></a><?php elseif ($a['funding'] === 'owner'): ?><br><small class="st-muted-i">آورده‌ی مالک</small><?php endif; ?></td>
+                <td class="st-num st-hide-sm"><?= h(toJalali((string)$a['acq_date'])) ?></td>
+                <td class="st-td-num"><?= $money((int)$a['cost']) ?></td>
+                <td class="st-td-num st-hide-sm"><?= $money((int)$a['monthly']) ?></td>
+                <td class="st-td-num"><?= $money((int)$a['accumulated']) ?></td>
+                <td class="st-td-num"><?= $money($gone ? 0 : (int)$a['book']) ?></td>
+                <td>
+                <?php if ($gone): ?>
+                    <form method="post" action="<?= h($self) ?>" class="st-inline"><?= Csrf::field() ?><input type="hidden" name="action" value="fa_undispose"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><button type="submit" class="st-link-btn">برگرداندن</button></form>
+                <?php else: ?>
+                    <form method="post" action="<?= h($self) ?>" class="st-inline"><?= Csrf::field() ?><input type="hidden" name="action" value="fa_dispose"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><input type="text" name="date" dir="ltr" inputmode="numeric" size="10" aria-label="تاریخِ کنار گذاشتن" value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>"><button type="submit" class="st-link-btn">کنار گذاشتن</button></form>
+                    <?php if (Biz::can('void')): ?>
+                    <form method="post" action="<?= h($self) ?>" class="st-inline" onsubmit="return confirm('دارایی حذف و پرداختِ خریدش باطل شود؟');"><?= Csrf::field() ?><input type="hidden" name="action" value="fa_remove"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>"><button type="submit" class="st-link-btn">حذف</button></form>
+                    <?php endif; ?>
+                <?php endif; ?>
+                </td></tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
+<form method="post" action="<?= h($self) ?>" class="st-card st-form">
+    <?= Csrf::field() ?><input type="hidden" name="action" value="fa_save">
+    <h2 class="st-h3">دارایی‌ی تازه</h2>
+    <div class="st-row3">
+        <label class="st-field"><span>نام</span><input type="text" name="name" required maxlength="<?= BizAssets::NAME_MAX ?>"></label>
+        <label class="st-field"><span>تاریخِ خرید</span><input type="text" name="acq_date" dir="ltr" inputmode="numeric" required value="<?= h(BizDocView::jDate(date('Y-m-d'))) ?>" data-jdate></label>
+        <label class="st-field"><span>بهای خرید (تومان)</span><input type="text" name="cost" required inputmode="numeric" dir="ltr" data-money></label>
+    </div>
+    <div class="st-row3">
+        <label class="st-field"><span>عمرِ مفید (ماه)</span><input type="text" name="life_months" required inputmode="numeric" dir="ltr" value="60"></label>
+        <label class="st-field"><span>ارزشِ اسقاط <small class="st-muted">(اختیاری)</small></span><input type="text" name="salvage" inputmode="numeric" dir="ltr" data-money></label>
+        <label class="st-field"><span>پول از کجا</span><select name="funding"><?php foreach (BizAssets::FUNDING as $fk => $fl): ?><option value="<?= h($fk) ?>"><?= h($fl) ?></option><?php endforeach; ?></select></label>
+    </div>
+    <div class="st-row2">
+        <label class="st-field"><span>صندوق یا بانک</span><select name="account_id"><?php foreach ($accs as $ac): ?><option value="<?= (int)$ac['id'] ?>"><?= h((string)$ac['name']) ?></option><?php endforeach; ?></select></label>
+        <label class="st-field"><span>یادداشت <small class="st-muted">(اختیاری)</small></span><input type="text" name="note" maxlength="300"></label>
+    </div>
+    <button type="submit" class="st-btn">ثبتِ دارایی</button>
+</form>
 
 <?php else: /* cats */
     $all = BizExpCats::list($userId);
