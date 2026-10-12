@@ -642,11 +642,25 @@ final class BizProducts
         AND NOT EXISTS (SELECT 1 FROM biz_stock_moves um WHERE um.product_id = p.id AND um.user_id = :uu2
                         AND (um.ref_type IS NOT NULL OR um.kind = \'adjust\'))';
 
-    /** دامنه‌ی پاک‌سازی — `empty`: فقط بی‌موجودی (پیش‌فرض)، `all`: با موجودیِ اول دوره هم. */
+    /**
+     * دامنه‌ی پاک‌سازی — `empty`: فقط بی‌موجودی (پیش‌فرض)، `all`: با موجودیِ اول دوره هم،
+     * `reset`: **ورودِ اشتباه** — هر کالایی که در هیچ فاکتوری نیامده، حتی با انبارگردانی
+     * (موجودیِ «ورود از فایل» با به‌روزرسانیِ موجودی انبارگردانی می‌شود و پیش از این هیچ
+     * راهی برای پاک کردنش نبود — گزارشِ مالکِ نصب، مهر ۱۴۰۵) و انتقالِ انبار.
+     * ⛔ `reset` فقط با تأییدِ نوشتاری (`RESET_WORD`) و هرگز وقتی حرکتی در دوره‌ی بسته است.
+     */
     public const CLEANUP_SCOPES = [
         'empty' => 'فقط کالاهای بی‌موجودی',
         'all'   => 'همه، حتی با موجودیِ اول دوره',
+        'reset' => 'حذفِ کاملِ ورودِ اشتباه — هر کالای بی‌فاکتور، حتی با موجودی و انبارگردانی',
     ];
+
+    /** کلمه‌ای که کاربر برای `reset` تایپ می‌کند. */
+    public const RESET_WORD = 'حذف';
+
+    /** ⛔ همان `UNUSED_SQL` بی‌شرطِ انبارگردانی — فقط برای `reset`؛ ردیفِ سند همچنان مانع است. */
+    private const RESET_SQL = 'NOT EXISTS (SELECT 1 FROM biz_invoice_lines ul WHERE ul.product_id = p.id AND ul.user_id = :uu1)
+        AND NOT EXISTS (SELECT 1 FROM biz_stock_moves um WHERE um.product_id = p.id AND um.user_id = :uu2 AND um.ref_type IS NOT NULL)';
 
     /** سقفِ ردیف‌های فهرستِ انتخابی — زیرِ `max_input_vars`ِ پیش‌فرضِ PHP (۱۰۰۰). */
     public const CLEANUP_LIST_MAX = 300;
@@ -654,7 +668,7 @@ final class BizProducts
     /** @return array{0:string, 1:array} */
     private static function unusedWhere(int $userId, string $scope, string $category): array
     {
-        $where  = ['p.user_id = :u', self::UNUSED_SQL];
+        $where  = ['p.user_id = :u', $scope === 'reset' ? self::RESET_SQL : self::UNUSED_SQL];
         $params = ['u' => $userId, 'uu1' => $userId, 'uu2' => $userId];
         // ⛔ کالایی که حرکتِ اول دوره‌اش در دوره‌ی بسته است پاک نمی‌شود (همان سدِ `delete()`)
         if (($lock = Biz::lockDate($userId)) !== null) {
@@ -662,7 +676,7 @@ final class BizProducts
             $params['uu3'] = $userId;
             $params['lk']  = $lock;
         }
-        if (($scope === '' ? 'empty' : $scope) !== 'all') {
+        if (!in_array($scope === '' ? 'empty' : $scope, ['all', 'reset'], true)) {
             // ⚠ خدمت موجودی ندارد، پس همیشه «بی‌موجودی» است
             $where[] = '(p.track_stock = 0 OR p.stock_qty = 0)';
         }
@@ -708,15 +722,19 @@ final class BizProducts
      * @param int[]|null $ids
      * @return array{ok:bool, message:string, deleted:int, skipped:int}
      */
-    public static function deleteUnused(int $userId, ?array $ids, string $scope = 'empty', string $category = ''): array
+    public static function deleteUnused(int $userId, ?array $ids, string $scope = 'empty', string $category = '', string $confirm = '', bool $dropCats = false): array
     {
+        $reset = $scope === 'reset';
+        if ($reset && trim($confirm) !== self::RESET_WORD) {
+            return ['ok' => false, 'message' => 'برای حذفِ کامل، کلمه‌ی «' . self::RESET_WORD . '» را در کادرِ تأیید بنویسید.', 'deleted' => 0, 'skipped' => 0];
+        }
         if ($ids !== null) {
             $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn($v) => $v > 0)));
             if (!$ids) {
                 return ['ok' => false, 'message' => 'هیچ کالایی انتخاب نشده است.', 'deleted' => 0, 'skipped' => 0];
             }
             // انتخابِ دستی به دامنه بند نیست: کاربر خودش کالای با موجودی را تیک زده
-            [$w, $params] = self::unusedWhere($userId, 'all', '');
+            [$w, $params] = self::unusedWhere($userId, $reset ? 'reset' : 'all', '');
             $in = [];
             foreach ($ids as $n => $id) { $in[] = ':id' . $n; $params['id' . $n] = $id; }
             $w .= ' AND p.id IN (' . implode(',', $in) . ')';
@@ -729,9 +747,22 @@ final class BizProducts
         try {
             // ⚠ MariaDB در DELETE با زیرکوئری روی جدولِ دیگر مشکلی ندارد؛
             //   JOIN به دسته فقط برای صافیِ نام.
+            if ($reset && BizWarehouses::ready()) {
+                // انتقالِ انبار کلیدِ خارجی ندارد — همراهِ کالا می‌رود، نه یتیم
+                $pdo->prepare("DELETE t FROM biz_stock_transfers t JOIN biz_products p ON p.id = t.product_id AND p.user_id = t.user_id
+                               LEFT JOIN biz_categories c ON c.id = p.category_id WHERE {$w}")->execute($params);
+            }
             $st = $pdo->prepare("DELETE p FROM biz_products p LEFT JOIN biz_categories c ON c.id = p.category_id WHERE {$w}");
             $st->execute($params);
             $deleted = $st->rowCount();
+            // «دسته‌های خالی هم بروند» — فقط در حذفِ کامل و فقط دسته‌ای که دیگر هیچ کالایی ندارد
+            $catsGone = 0;
+            if ($reset && $dropCats) {
+                $dc = $pdo->prepare('DELETE c FROM biz_categories c WHERE c.user_id = :u
+                                     AND NOT EXISTS (SELECT 1 FROM biz_products p WHERE p.category_id = c.id AND p.user_id = :u2)');
+                $dc->execute(['u' => $userId, 'u2' => $userId]);
+                $catsGone = $dc->rowCount();
+            }
             $pdo->commit();
         } catch (Throwable $e) {
             $pdo->rollBack();
@@ -742,7 +773,8 @@ final class BizProducts
         if ($deleted === 0) {
             return ['ok' => false, 'message' => 'کالای استفاده‌نشده‌ای برای حذف نبود.', 'deleted' => 0, 'skipped' => $skipped];
         }
-        $msg = toPersianDigits((string)$deleted) . ' کالای استفاده‌نشده حذف شد.';
+        $msg = toPersianDigits((string)$deleted) . ($reset ? ' کالا با موجودی و حرکت‌هایشان حذف شد.' : ' کالای استفاده‌نشده حذف شد.')
+             . ($catsGone > 0 ? ' ' . toPersianDigits((string)$catsGone) . ' دسته‌ی خالی هم حذف شد.' : '');
         if ($skipped > 0) {
             $msg .= ' ' . toPersianDigits((string)$skipped) . ' کالا در این فاصله در سندی آمده بود یا پیدا نشد و ماند.';
         }

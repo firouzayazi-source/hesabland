@@ -29,7 +29,7 @@ $self   = Biz::url('products-cleanup.php') . ($keep ? '?' . http_build_query($ke
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verifyOrFail(postParam('csrf_token'));
     $ids = postParam('mode') === 'all' ? null : (array)($_POST['ids'] ?? []);
-    $r   = BizProducts::deleteUnused($userId, $ids, $scope, $cat);
+    $r   = BizProducts::deleteUnused($userId, $ids, $scope, $cat, (string)postParam('confirm'), postParam('drop_cats') === '1');
     redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
 }
 
@@ -44,7 +44,7 @@ require __DIR__ . '/../includes/biz_head.php';
 <div class="st-page-head">
     <div>
         <a class="st-back" href="<?= h(Biz::url('products.php')) ?>">→ کالاها</a>
-        <h1 class="st-h1">پاک‌سازیِ کالاهای استفاده‌نشده</h1>
+        <h1 class="st-h1">پاک‌سازی و حذفِ کالاها</h1>
         <p class="st-muted">کالایی که در هیچ فاکتور، برگشت یا پیش‌نویسی نیامده حذف‌شدنی است. کالای استفاده‌شده حذف نمی‌شود؛ آن را غیرفعال کنید.</p>
     </div>
 </div>
@@ -66,6 +66,12 @@ require __DIR__ . '/../includes/biz_head.php';
     <button type="submit" class="st-btn st-btn-ghost">نمایش</button>
 </form>
 
+<?php $reset = $scope === 'reset'; ?>
+<?php if ($scope !== 'reset'): ?>
+<p class="st-muted">کالاها را اشتباه وارد کرده‌اید (مثلاً فایلِ اکسلِ نادرست)؟ دامنه را روی <a href="<?= h(Biz::url('products-cleanup.php?s=reset')) ?>">«حذفِ کاملِ ورودِ اشتباه»</a> بگذارید — کالاهایی که در هیچ فاکتوری نیامده‌اند با موجودی‌شان پاک می‌شوند.</p>
+<?php else: ?>
+<div class="st-flash st-flash-warn" role="status">⚠ حذفِ کامل: هر کالایی که در هیچ فاکتور، برگشت یا پیش‌نویسی نیامده — <b>با موجودی، انبارگردانی و انتقال‌های انبارش</b> — پاک می‌شود و برنمی‌گردد. کالای فاکتوردار می‌ماند (غیرفعالش کنید). کالایی که حرکتش در دوره‌ی بسته است هم می‌ماند.</div>
+<?php endif; ?>
 <?php if (!$list['rows']): ?>
     <div class="st-card st-empty-card"><p class="st-empty">کالای استفاده‌نشده‌ای<?= $scope === 'empty' ? ' بدونِ موجودی' : '' ?> نیست.</p></div>
 <?php else: ?>
@@ -75,9 +81,13 @@ require __DIR__ . '/../includes/biz_head.php';
         <?= $scope === 'empty' ? ' (بدونِ موجودی)' : '' ?>.
         <?php if ($list['capped']): ?><span class="st-muted-i">فقط <?= toPersianDigits((string)BizProducts::CLEANUP_LIST_MAX) ?> ردیفِ اول زیرِ فهرست آمده؛ «حذفِ همه» همه را می‌برد.</span><?php endif; ?>
     </p>
-    <form method="post" action="<?= h($self) ?>" onsubmit="return confirm('<?= toPersianDigits((string)$list['total']) ?> کالای استفاده‌نشده حذف شود؟ این کار برگشت ندارد.');">
+    <form method="post" action="<?= h($self) ?>" class="st-form" onsubmit="return confirm('<?= toPersianDigits((string)$list['total']) ?> کالا حذف شود؟ این کار برگشت ندارد.');">
         <?= Csrf::field() ?>
         <input type="hidden" name="mode" value="all">
+        <?php if ($reset): ?>
+        <label class="st-check"><input type="checkbox" name="drop_cats" value="1" checked> دسته‌بندی‌هایی که خالی می‌مانند هم حذف شوند</label>
+        <label class="st-field"><span>برای تأیید بنویسید: <b><?= h(BizProducts::RESET_WORD) ?></b></span><input type="text" name="confirm" required autocomplete="off"></label>
+        <?php endif; ?>
         <button type="submit" class="st-btn st-btn-danger">حذفِ همه‌ی <?= toPersianDigits((string)$list['total']) ?> کالا</button>
     </form>
 </section>
@@ -85,6 +95,9 @@ require __DIR__ . '/../includes/biz_head.php';
 <form method="post" action="<?= h($self) ?>" class="st-card st-cleanup-form" onsubmit="return confirm('کالاهای تیک‌خورده حذف شوند؟ این کار برگشت ندارد.');">
     <?= Csrf::field() ?>
     <input type="hidden" name="mode" value="pick">
+    <?php if ($reset): ?>
+    <label class="st-field"><span>برای تأیید بنویسید: <b><?= h(BizProducts::RESET_WORD) ?></b></span><input type="text" name="confirm" required autocomplete="off"></label>
+    <?php endif; ?>
     <div class="st-cleanup-head">
         <label class="st-check"><input type="checkbox" class="js-check-all" data-target="cleanup" checked> انتخابِ همه</label>
         <?php if ($withStock > 0): ?><span class="st-muted-i"><?= toPersianDigits((string)$withStock) ?> کالا موجودیِ اول دوره دارد؛ با حذف، آن موجودی هم پاک می‌شود.</span><?php endif; ?>

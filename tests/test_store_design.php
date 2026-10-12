@@ -149,6 +149,47 @@ T::ok(!$exists($empty) && !$exists($svc) && $exists($stock2), '⛔ «حذفِ ه
 T::ok($exists($usedI) && $exists($usedD) && $exists($other), 'استفاده‌شده‌ها و فروشگاهِ دیگر دست نخوردند');
 T::ok(!BizProducts::deleteUnused($a, null, 'empty')['ok'], 'دیگر چیزی نمانده');
 
+// ⛔ ورودِ اشتباه (گزارشِ مالکِ نصب، مهر ۱۴۰۵): موجودیِ «ورود از فایل» انبارگردانی است و هیچ
+//    دامنه‌ی دیگری پاکش نمی‌کرد. `reset` = هر کالای بی‌فاکتور، فقط با تأییدِ نوشتاری.
+T::group('۲ب — حذفِ کاملِ ورودِ اشتباه');
+$imp = $prod($a, 'واردشده‌ی اشتباه', ['opening_qty' => '4', 'buy_price' => '500', 'category' => 'اشتباه']);
+BizStock::adjustTo($a, $imp, 9.0, 'ورود از فایل');
+$imp2 = $prod($a, 'دومیِ اشتباه', ['category' => 'اشتباه']);
+BizStock::adjustTo($a, $imp2, 3.0, 'ورود از فایل');
+$keepCat = $prod($a, 'در دسته‌ی ماندنی', ['category' => 'ماندنی']);
+BizInvoices::saveDraft($a, 'sale', ['party_id' => $cus, 'inv_date' => date('Y-m-d'), 'lines' => [['item' => 'در دسته‌ی ماندنی', 'qty' => '1', 'price' => '1']]]);
+$wh = null;
+if (BizWarehouses::ready()) {
+    $wh = (int)BizWarehouses::save($a, 'انبارِ آزمونِ پاک‌سازی')['id'];
+    BizWarehouses::transfer($a, $imp, 0, $wh, '2', date('Y-m-d'));
+}
+T::ok(!in_array($imp, $ids(BizProducts::unused($a, 'all')), true), 'دامنه‌ی «همه» کالای انبارگردانی‌شده را نمی‌آورد (همان رفتارِ پیشین)');
+$rl = $ids(BizProducts::unused($a, 'reset'));
+T::ok(in_array($imp, $rl, true) && in_array($imp2, $rl, true), '«حذفِ کامل» کالای انبارگردانی‌شده را می‌آورد');
+T::ok(!in_array($usedI, $rl, true) && !in_array($usedD, $rl, true) && !in_array($keepCat, $rl, true) && !in_array($other, $rl, true),
+    '⛔ نه فاکتوردار، نه پیش‌نویس‌دار، نه فروشگاهِ دیگر');
+$r = BizProducts::deleteUnused($a, null, 'reset', '', 'حذ');
+T::ok(!$r['ok'] && $exists($imp), '⛔ بی‌کلمه‌ی تأیید هیچ‌کار');
+T::ok(!BizProducts::deleteUnused($a, [$imp], 'reset')['ok'] && $exists($imp), '⛔ انتخابِ دستی هم بی‌تأیید نه');
+$r = BizProducts::deleteUnused($a, [$imp2, $usedI], 'reset', '', BizProducts::RESET_WORD);
+T::ok($r['ok'] && $r['deleted'] === 1 && !$exists($imp2) && $exists($usedI), 'انتخابِ دستی در حذفِ کامل: انبارگردانی‌شده رفت، فاکتوردار ماند');
+Biz::saveLock($a, date('Y-m-d'));
+$r = BizProducts::deleteUnused($a, null, 'reset', '', BizProducts::RESET_WORD);
+T::ok($exists($imp), '⛔ کالای دارای حرکت در دوره‌ی بسته نمی‌رود');
+Biz::saveLock($a, '', true);
+$r = BizProducts::deleteUnused($a, null, 'reset', '', ' ' . BizProducts::RESET_WORD . ' ', true);
+T::ok($r['ok'] && !$exists($imp) && !$exists($imp2), 'حذفِ کامل: ' . $r['message']);
+T::same(0, (int)$pdo->query("SELECT COUNT(*) FROM biz_stock_moves WHERE product_id IN ({$imp}, {$imp2})")->fetchColumn(), 'حرکت‌ها (اول دوره و انبارگردانی) هم رفتند');
+if ($wh !== null) {
+    T::same(0, (int)$pdo->query("SELECT COUNT(*) FROM biz_stock_transfers WHERE product_id = {$imp}")->fetchColumn(), '⛔ انتقالِ انبارش هم رفت (بی‌کلید، یتیم نمی‌ماند)');
+}
+T::ok($exists($usedI) && $exists($usedD) && $exists($keepCat) && $exists($other), '⛔ فاکتوردار، پیش‌نویس‌دار و فروشگاهِ دیگر ماندند');
+$catNames = array_map('strval', BizProducts::categories($a));
+T::ok(!in_array('اشتباه', $catNames, true) && in_array('ماندنی', $catNames, true), 'دسته‌ی خالی‌مانده رفت، دسته‌ی دارای کالا ماند');
+T::same((int)BizStock::recalc($a, $usedI)['qty'] === (int)$pdo->query("SELECT stock_qty FROM biz_products WHERE id = {$usedI}")->fetchColumn(), true, 'موجودیِ کالای مانده سالم');
+T::ok(!$exists($stock2), 'حذفِ کامل کالای بی‌استفاده‌ی با موجودیِ اول دوره را هم برد');
+$stock2 = $prod($a, 'دومی با موجودی', ['opening_qty' => '2', 'buy_price' => '800']);   // برای بخشِ HTTP
+
 // =================================================================
 T::group('۳ — لوگو');
 $png = function (int $w, int $h, bool $alpha = true): string {
@@ -289,6 +330,14 @@ T::ok($exists($stock2), '⛔ بی‌CSRF هیچ‌کار');
 T::ok($c === 302 && !$exists($stock2) && $exists($usedI), 'حذفِ انتخاب‌شده‌ها با فرم؛ استفاده‌شده ماند');
 [, $pl] = $req('store/products.php');
 T::ok(str_contains($pl, 'products-cleanup.php'), 'لینکِ پاک‌سازی از فهرستِ کالاها');
+$junk = $prod($a, 'اشتباهِ فرمی', ['opening_qty' => '1', 'buy_price' => '1']);
+BizStock::adjustTo($a, $junk, 7.0, 'ورود از فایل');
+[$c, $cl] = $req('store/products-cleanup.php?s=reset');
+T::ok($c === 200 && str_contains($cl, 'اشتباهِ فرمی') && str_contains($cl, 'name="confirm"'), 'صفحه‌ی «حذفِ کامل» با کادرِ تأیید');
+$req('store/products-cleanup.php?s=reset', ['csrf_token' => $csrfOf($cl), 'mode' => 'all', 'confirm' => 'بله']);
+T::ok($exists($junk), '⛔ کلمه‌ی غلط: هیچ‌کار');
+[$c] = $req('store/products-cleanup.php?s=reset', ['csrf_token' => $csrfOf($cl), 'mode' => 'all', 'confirm' => BizProducts::RESET_WORD]);
+T::ok($c === 302 && !$exists($junk) && $exists($usedI), 'حذفِ کامل با فرم؛ فاکتوردار ماند');
 
 exec("kill $srv 2>/dev/null");
 @unlink($log); @unlink($jar);

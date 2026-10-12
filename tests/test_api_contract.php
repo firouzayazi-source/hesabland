@@ -7413,8 +7413,11 @@ if (!preg_match('/UNUSED_SQL\s*=\s*\'(.*?)\';/s', $cat70g, $us70)
     || !preg_match('/um\.ref_type IS NOT NULL OR um\.kind = .{1,2}adjust/', $us70[1])) {
     $gBad[] = 'biz_catalog.php — UNUSED_SQL باید هر سه شرط (ردیفِ سند، حرکتِ سندداری، انبارگردانی) را با user_id داشته باشد';
 }
-if (!preg_match('/\$where\s*=\s*\[\'p\.user_id = :u\', self::UNUSED_SQL\]/', $cat70g)) {
-    $gBad[] = 'biz_catalog.php — unusedWhere() باید با p.user_id و UNUSED_SQL شروع شود';
+// ⛔ `reset` (حذفِ کاملِ ورودِ اشتباه) فقط شرطِ انبارگردانی را برمی‌دارد؛ ردیفِ سند همچنان مانع است
+if (!preg_match('/\$where\s*=\s*\[\'p\.user_id = :u\', \$scope === \'reset\' \? self::RESET_SQL : self::UNUSED_SQL\]/', $cat70g)
+    || !preg_match('/RESET_SQL = \'NOT EXISTS \(SELECT 1 FROM biz_invoice_lines ul WHERE ul\.product_id = p\.id AND ul\.user_id = :uu1\)/', $cat70g)
+    || !str_contains($cat70g, "if (\$reset && trim(\$confirm) !== self::RESET_WORD) {")) {
+    $gBad[] = 'biz_catalog.php — unusedWhere() باید با p.user_id و UNUSED_SQL (یا RESET_SQLِ بی‌سند) شروع شود و reset تأییدِ نوشتاری بخواهد';
 }
 $du70 = preg_match('/function deleteUnused\(.*?\n    \}\n/s', $cat70g, $m70) ? $m70[0] : '';
 if ($du70 === '' || substr_count($du70, 'self::unusedWhere(') < 2 || !str_contains($du70, 'DELETE p FROM biz_products p') || !str_contains($du70, 'WHERE {$w}')) {
