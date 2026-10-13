@@ -173,7 +173,7 @@ require __DIR__ . '/../includes/biz_head.php';
 
         <div class="st-table-wrap">
             <table class="st-table st-map-table">
-                <thead><tr><th>ستونِ فایل</th><th class="st-hide-sm">نمونه</th><th>در حساب‌لند</th></tr></thead>
+                <thead><tr><th>ستونِ فایل</th><th class="st-hide-sm">نمونه</th><th>در برنامه</th></tr></thead>
                 <tbody>
                 <?php foreach ($header as $i => $hcell): if ($i >= BizMigrate::MAX_COLS) { break; } ?>
                     <tr>

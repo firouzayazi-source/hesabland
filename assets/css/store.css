@@ -1,12 +1,12 @@
 /* ============================================================
-   محیطِ فروشگاهی (/store) — سیستمِ طراحیِ حساب‌لند برای فروشگاه
+   محیطِ فروشگاهی (/store) — سیستمِ طراحیِ هستیکو برای فروشگاه
    ============================================================
    **خواسته‌ی مالکِ نصب:** «Premium — Minimal — Powerful»؛ ترکیبِ Ramp
    (داشبوردِ قدرتمند)، Mercury (مینیمال، فضای سفید، تایپوگرافیِ قوی) و
-   Xero (ساختارِ حسابداری، جدولِ فشرده ولی خوانا)، با هویتِ حساب‌لند:
+   Xero (ساختارِ حسابداری، جدولِ فشرده ولی خوانا)، با هویتِ هستیکو:
    بومِ #F6F7F9، کارتِ سفید، اصلیِ زغالی، **لهجه‌ی سبز**.
 
-   ⛔ فایلِ جداست تا `style.css`ِ حساب لندِ شخصی حتی یک بایت عوض نشود
+   ⛔ فایلِ جداست تا `style.css`ِ هستیکویِ شخصی حتی یک بایت عوض نشود
       (پیشوندِ `st-`).
    ⛔ فهرستِ توکن‌ها (بخشِ ۱) تنها مرجعِ رنگ، شعاع، سایه و زمان است؛ هیچ
       قاعده‌ای رنگِ سخت‌کد نمی‌گیرد مگر روی سطحی که همیشه ثابت است
@@ -40,7 +40,7 @@
     color-scheme: light;
     --palette-default: emerald;
 
-    /* رنگِ فروشگاه — روز و شب (سبزِ حساب‌لند) */
+    /* رنگِ فروشگاه — روز و شب (سبزِ هستیکو) */
     --p-acc: #047857;  --p-acc2: #065f46;  --p-acc-ink: #ffffff;  --p-wash: #e7f5ee;
     --p-acc-n: #34d399; --p-acc2-n: #6ee7b7; --p-acc-ink-n: #04291c; --p-wash-n: #0e2a20;
 
@@ -178,7 +178,7 @@ a { color: var(--st-accent); }
 .st-date { color: var(--st-ink-2); margin: 0; font-size: 13px; }
 .st-eyebrow { font-size: 12px; font-weight: 600; color: var(--st-ink-3); margin: 0; }
 
-/* ⛔ عدد چپ‌چین، برچسب راست‌چین — همان قاعده‌ی حساب لند.
+/* ⛔ عدد چپ‌چین، برچسب راست‌چین — همان قاعده‌ی هستیکو.
    ⛔ ارقامِ جدول هم‌عرض‌اند (tabular) تا ستون‌ها زیرِ هم بخوانند. */
 .st-num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
 .st-num.is-neg { color: var(--st-err); }
@@ -219,7 +219,7 @@ a { color: var(--st-accent); }
 .st-brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
 .st-brand-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-brand-sub { font-size: 11.5px; color: var(--st-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* ⛔ `min-height: 0` نیمه‌ی دومِ اسکرول است (درسِ منوی کناریِ حساب لند) */
+/* ⛔ `min-height: 0` نیمه‌ی دومِ اسکرول است (درسِ منوی کناریِ هستیکو) */
 .st-side-nav {
     flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
     scrollbar-width: thin; scrollbar-color: var(--st-line-2) transparent; padding-bottom: 6px;

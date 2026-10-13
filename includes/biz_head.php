@@ -83,9 +83,9 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= h(($pageTitle ?? '') !== '' ? $pageTitle . ' · ' . $__bizShop : $__bizShop) ?></title>
     <script><?= Biz::bootScript() ?></script>
-    <?php /* ⛔ گزارش‌گرِ خطای مرورگر (`client-errors.js`) — مشترک با حساب‌لند. `data-area`
+    <?php /* ⛔ گزارش‌گرِ خطای مرورگر (`client-errors.js`) — مشترک با هستیکو. `data-area`
              محیط را می‌گوید (`AppErrors::AREAS`) و توکن از همین متا خوانده می‌شود؛
-             بی‌این دو، خطای جاوااسکریپتِ فروشگاه یا ۴۰۳ می‌گرفت یا «حساب‌لند» ثبت می‌شد. */ ?>
+             بی‌این دو، خطای جاوااسکریپتِ فروشگاه یا ۴۰۳ می‌گرفت یا «هستیکو» ثبت می‌شد. */ ?>
     <meta name="csrf-token" content="<?= h(Csrf::token()) ?>">
     <script>window.APP_BASE = <?= json_encode(APP_BASE_PATH, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
     <?php /* ⛔ فونت داخلِ CSS تعریف شده و مرورگر تا تجزیه‌ی آن خبر ندارد لازمش
@@ -116,7 +116,7 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
         <span class="st-brand-mark is-logo" aria-hidden="true"><img src="<?= h(Biz::icon('96')) ?>" alt="" width="34" height="34"></span>
         <span class="st-brand-text">
             <span class="st-brand-name"><?= h($__bizShop) ?></span>
-            <span class="st-brand-sub">حساب‌لند · فروشگاه</span>
+            <span class="st-brand-sub">حسابداریِ فروشگاه</span>
         </span>
     </a>
     <nav class="st-side-nav">
@@ -157,7 +157,7 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
             </span>
         </div>
         <div class="st-side-links">
-            <?php /* حسابِ «شخصی + فروشگاه» یک راهِ برگشت به حساب لندِ خودش دارد؛
+            <?php /* حسابِ «شخصی + فروشگاه» یک راهِ برگشت به هستیکویِ خودش دارد؛
                      همان نشست است و ورودِ دوباره نمی‌خواهد. */ ?>
             <?php if (!Biz::isStoreOnly()): ?>
             <a class="st-switch" href="<?= h(Biz::personalUrl()) ?>" title="برگشت به دفترِ شخصی">دفتر شخصی</a>

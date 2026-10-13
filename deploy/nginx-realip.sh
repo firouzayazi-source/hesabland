@@ -227,7 +227,7 @@ PROBE_URL="$PROBE_SCHEME://$DOMAIN:$PROBE_PORT/__realip"
 
 probe() {
     # ⛔ --noproxy: با پراکسیِ محیط --resolve نادیده گرفته می‌شود و سرآیندِ
-    #    جعلی به پراکسی می‌رسد، نه به nginxِ همین سرور (درسِ hesabland).
+    #    جعلی به پراکسی می‌رسد، نه به nginxِ همین سرور (درسِ hastico).
     curl -s --noproxy '*' --max-time 10 \
          --resolve "$DOMAIN:$PROBE_PORT:127.0.0.1" \
          -H "CF-Connecting-IP: $SPOOF" \

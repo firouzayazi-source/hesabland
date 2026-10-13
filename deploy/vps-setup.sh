@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# vps-setup.sh — راه‌اندازی «حساب لند» روی VPS، بدون دست زدن به هیچ سرویس دیگر
+# vps-setup.sh — راه‌اندازی «هستیکو» روی VPS، بدون دست زدن به هیچ سرویس دیگر
 #
 # ─── قانون این اسکریپت ────────────────────────────────────────────────
 # روی این سرور سرویس‌های دیگری (از جمله دو ربات) در حال کار هستند.
@@ -245,9 +245,9 @@ run "find '$APP_DIR' -type f -not -path '*/.git/*' -exec chmod 644 {} +"
 # بیت اجرای اسکریپت‌ها باید برگردد: گیت مود فایل را ردیابی می‌کند و
 # بدون این، هر git pull بعدی با «تغییرات محلی» شکست می‌خورد.
 run "find '$APP_DIR' -name '*.sh' -not -path '*/.git/*' -exec chmod 755 {} +"
-# ⚠ hesabland پسوندِ .sh ندارد؛ بدونِ این خط غیرِاجرایی می‌ماند و گیت آن را
+# ⚠ hastico پسوندِ .sh ندارد؛ بدونِ این خط غیرِاجرایی می‌ماند و گیت آن را
 #   «تغییرِ محلی» می‌بیند (در اولین استقرارِ staging دقیقاً همین دیده شد).
-run "chmod 755 '$APP_DIR/hesabland' '$APP_DIR/deploy.sh' 2>/dev/null || true"
+run "chmod 755 '$APP_DIR/hastico' '$APP_DIR/hesabland' '$APP_DIR/deploy.sh' 2>/dev/null || true"
 run "chown -R '$APP_USER':'$APP_USER' '$APP_DIR/uploads'"
 run "chmod 755 '$APP_DIR/uploads' '$APP_DIR/uploads/avatars'"
 # پوشه‌ی نشست‌ها — فقط کاربر اپ، هیچ‌کس دیگر
@@ -335,7 +335,7 @@ step "۵. pool اختصاصی php-fpm"
 info "این pool تازه است و pool های موجود (اگر باشند) دست‌نخورده می‌مانند."
 info "با open_basedir، کد PHP این اپ حتی به‌طور تصادفی هم نمی‌تواند بیرون از $APP_DIR را بخواند."
 write_file "/etc/php/${PHP_VER}/fpm/pool.d/${SITE_NAME}.conf" <<POOL
-; pool اختصاصی «حساب لند»
+; pool اختصاصی «هستیکو»
 ; این فایل فقط به این پروژه مربوط است و روی pool های دیگر اثری ندارد.
 [${SITE_NAME}]
 user  = ${APP_USER}
@@ -380,7 +380,7 @@ POOL
 STAGING_NGINX=''
 if [[ $STAGING -eq 1 ]]; then
     # ⛔ «satisfy any» + allow 127.0.0.1: رمز برای همه جز خودِ سرور.
-    #    `hesabland staging` سلامت را از 127.0.0.1 می‌سنجد (--resolve)؛ بدونِ
+    #    `hastico staging` سلامت را از 127.0.0.1 می‌سنجد (--resolve)؛ بدونِ
     #    این استثنا هر سنجش ۴۰۱ می‌گرفت و «سایت خراب است» می‌گفت. پشتِ
     #    کلادفلر هم کسی نمی‌تواند 127.0.0.1 باشد.
     # ⚠ چالشِ certbot (/.well-known/acme-challenge) با `return` جواب داده
@@ -391,7 +391,7 @@ if [[ $STAGING -eq 1 ]]; then
     allow 127.0.0.1;
     allow ::1;
     deny all;
-    auth_basic \"HesabLand staging\";
+    auth_basic \"Hastico staging\";
     auth_basic_user_file /etc/nginx/${SITE_NAME}.htpasswd;
     add_header X-Robots-Tag \"noindex, nofollow\" always;
 "
@@ -402,7 +402,7 @@ if [[ $SKIP_NGINX -eq 1 ]]; then
 else
 info "فقط یک server block تازه برای $DOMAIN اضافه می‌شود."
 write_file "/etc/nginx/sites-available/${SITE_NAME}" <<NGINX
-# حساب لند — این فایل فقط به همین پروژه مربوط است.
+# هستیکو — این فایل فقط به همین پروژه مربوط است.
 server {
     listen 80;
     listen [::]:80;
@@ -550,12 +550,12 @@ cat <<NEXT
        sudo certbot --nginx -d $DOMAIN
 
   ۳. اولین استقرار (ساختارِ دیتابیس هم ساخته می‌شود):
-       cd $PROD_DIR && sudo ./hesabland staging
+       cd $PROD_DIR && sudo ./hastico staging
 
   ۴. https://$DOMAIN/setup.php را باز کنید و یک مدیر بسازید.
 
   نام کاربریِ صفحه‌ی رمز: hesab
-  رمز:                   ${STG_WEB_PASS:-(از قبل ساخته شده — برای رمزِ تازه: sudo ./hesabland staging --password)}
+  رمز:                   ${STG_WEB_PASS:-(از قبل ساخته شده — برای رمزِ تازه: sudo ./hastico staging --password)}
 
 NEXT
 else

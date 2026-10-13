@@ -127,7 +127,7 @@ include __DIR__ . '/../includes/header.php';
             <p class="hint">
                 ⚠ <code>migration_error_triage</code> اجرا نشده، پس «برطرف شد» در دسترس نیست
                 و همه‌ی خطاها باز دیده می‌شوند. روی سرور:
-                <code>sudo ./hesabland deploy --migrate</code>
+                <code>sudo ./hastico deploy --migrate</code>
             </p>
         <?php endif; ?>
 
@@ -216,7 +216,7 @@ include __DIR__ . '/../includes/header.php';
         <li><code>php deploy/log-report.php --tail 30</code> — آخرین خطاها با ردِ پشته</li>
         <li><code>php deploy/log-report.php --req abc123</code> — همه‌ی خطوطِ یک درخواست،
             با همان «کد پیگیری» که کاربر دیده است</li>
-        <li><code>./hesabland logs</code> — خلاصه‌ی ۲۴ ساعت (نرخِ خطا، p95، کوئریِ کند)</li>
+        <li><code>./hastico logs</code> — خلاصه‌ی ۲۴ ساعت (نرخِ خطا، p95، کوئریِ کند)</li>
     </ul>
     <p class="hint">
         ⛔ اینجا نه شناسه‌ی کاربر ثبت می‌شود نه آدرسِ صفحه — این فهرست درباره‌ی

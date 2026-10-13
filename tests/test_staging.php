@@ -5,7 +5,7 @@
  * ⛔ خواسته‌ی مالکِ نصب: «برای بارگذاری روی مین راحت باشه و سر در گم
  *    نشیم — هی کد بزنیم بعد بگیم دیده نشد.» پس سه چیز سنجیده می‌شود:
  *
- *   ۱. `hesabland release` فقط **همان کامیتی** را منتشر می‌کند که آخرین
+ *   ۱. `hastico release` فقط **همان کامیتی** را منتشر می‌کند که آخرین
  *      استقرارِ سبزِ staging رویش بود — نه کامیت‌های تازه‌تر، نه چیزی از
  *      شاخه‌ی دیگر — و اگر staging سبز نشده باشد اصلاً جلو نمی‌رود.
  *   ۲. استقرارِ مستقیمِ چیزی که در staging دیده نشده، بی‌پرسش انجام
@@ -62,7 +62,7 @@ foreach (['/opt/hesab/staging', 'hesabstg', 'pool.d/hesab-staging.conf', 'sites-
           'hesab_staging', '/etc/nginx/hesab-staging.htpasswd', 'php-hesab-staging.sock'] as $n) {
     T::ok(str_contains($stg, $n), "staging از نامِ «{$n}» استفاده می‌کند");
 }
-// «۸. کارهایی که خودتان…» عمداً `cd /opt/hesab/app` را می‌گوید (hesabland از آنجا اجرا می‌شود).
+// «۸. کارهایی که خودتان…» عمداً `cd /opt/hesab/app` را می‌گوید (hastico از آنجا اجرا می‌شود).
 $stgWrites = explode('۸. کارهایی', $stg)[0];
 foreach (['/opt/hesab/app', "'hesab'", 'sites-available/hesab ', 'php-hesab.sock', 'hesab_db'] as $n) {
     T::ok(!str_contains($stgWrites, $n), "staging هیچ‌جا «{$n}»ِ سایتِ اصلی را نمی‌نویسد");
@@ -71,7 +71,7 @@ foreach (['/opt/hesab/app', "'hesab'", 'sites-available/hesab ', 'php-hesab.sock
 $blockOf = fn(string $out): string => preg_match('/^server \{.*?^\}/ms', $out, $m) ? $m[0] : '';
 $stgSite = $blockOf($stg);
 $prodSite = $blockOf($prod);
-foreach (['satisfy any;', 'allow 127.0.0.1;', 'deny all;', 'auth_basic "HesabLand staging";',
+foreach (['satisfy any;', 'allow 127.0.0.1;', 'deny all;', 'auth_basic "Hastico staging";',
           'auth_basic_user_file /etc/nginx/hesab-staging.htpasswd;', 'X-Robots-Tag "noindex, nofollow"'] as $n) {
     T::ok(str_contains($stgSite, $n), "سایتِ staging: {$n}");
 }
@@ -112,7 +112,7 @@ if (preg_match("/        php -r '\n(.*?)\n        ' \"/s", $src, $m)) {
 // =====================================================================
 T::group('staging_guard — staging هرگز روی سایتِ اصلی نمی‌نشیند');
 
-$hl = escapeshellarg($root . '/hesabland');
+$hl = escapeshellarg($root . '/hastico');
 $mkconf = function (string $path, array $c): void {
     @mkdir(dirname($path), 0700, true);
     $s = "<?php\n";

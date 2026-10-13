@@ -73,7 +73,7 @@ warn()  { printf '\033[0;33m%s\033[0m\n' "$1"; }
 if [[ "${1:-}" == "--install-cron" ]]; then
     [[ $EUID -ne 0 ]] && { red "برای نصب cron باید با sudo اجرا شود."; exit 1; }
     cat > /etc/cron.d/hesab-sessions <<CRON
-# پاک‌سازی نشست‌های منقضی حساب لند — فقط مربوط به همین پروژه
+# پاک‌سازی نشست‌های منقضی هستیکو — فقط مربوط به همین پروژه
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 15 4 * * * root $APP_DIR/deploy/session-clean.sh --apply >/dev/null 2>&1

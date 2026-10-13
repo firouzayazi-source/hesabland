@@ -25,7 +25,7 @@ if (!Push::available() || Push::countFor((int)$userId) === 0) {
 }
 
 $r = Push::sendToUser((int)$userId, [
-    'title' => defined('APP_NAME') ? APP_NAME : 'حساب لند',
+    'title' => defined('APP_NAME') ? APP_NAME : 'هستیکو',
     'body'  => 'اعلانِ آزمایشی — اگر این را روی گوشی می‌بینید، همه‌چیز درست است.',
     'url'   => 'notifications.php',
     'tag'   => 'test',

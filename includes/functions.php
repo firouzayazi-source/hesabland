@@ -14,7 +14,7 @@ function h(?string $string): string
  * ⛔ دلیلش «دیده نشد» است: روی گوشی، staging و سایتِ اصلی عینِ هم‌اند و
  *    آدم نمی‌فهمد کدام را باز کرده یا کدام کامیت را می‌بیند. این نوار
  *    شناسه‌ی همان کامیت را می‌گوید، پس «در staging دیدم» یعنی «این کامیت
- *    را دیدم» — همان چیزی که `hesabland release` منتشر می‌کند.
+ *    را دیدم» — همان چیزی که `hastico release` منتشر می‌کند.
  *
  * بی‌کوئری (فقط `var/version.txt`) و با استایلِ درون‌خطی، تا به هیچ CSS
  * و هیچ صفحه‌ای وابسته نباشد؛ و `pointer-events: none` تا جلوی هیچ دکمه‌ای
@@ -5875,7 +5875,7 @@ function androidInstallBanner(): string
     $url = androidApkUrl();
     if ($url === '' || !isAndroidRequest()) { return ''; }
 
-    $app = defined('APP_NAME') ? APP_NAME : 'حساب لند';
+    $app = defined('APP_NAME') ? APP_NAME : 'هستیکو';
 
     ob_start(); ?>
 <div class="apk-bar" id="apkBar" hidden>

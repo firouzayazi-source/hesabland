@@ -144,7 +144,7 @@ step "سنجش"
 
 ok=0
 for _ in $(seq 1 20); do
-    # ⛔ --noproxy: با پراکسیِ محیط --resolve نادیده گرفته می‌شود (درسِ hesabland).
+    # ⛔ --noproxy: با پراکسیِ محیط --resolve نادیده گرفته می‌شود (درسِ hastico).
     hdrs="$(curl -sS --noproxy '*' -o /dev/null -D - --max-time 5 \
         --resolve "${DOMAIN}:443:127.0.0.1" --resolve "${DOMAIN}:80:127.0.0.1" \
         "${SCHEME}://${DOMAIN}/login.php" 2>/dev/null || true)"

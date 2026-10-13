@@ -105,7 +105,7 @@ function exportUserData(int $userId): array
         //   خودِ کاربر می‌نشیند، پس روی هر نصبی نامِ همان نصب را باید
         //   بگوید. سخت‌کد بودنش یعنی نصبی که برندش عوض شده، فایل‌هایی
         //   با نامِ برندِ ما بیرون می‌دهد.
-        'app'         => defined('APP_NAME') ? APP_NAME : 'حساب لند',
+        'app'         => defined('APP_NAME') ? APP_NAME : 'هستیکو',
         'version'     => appVersion(),
         'exported_at' => date('c'),
         'exported_jalali' => toJalali(date('Y-m-d')),
@@ -316,7 +316,7 @@ function appVersion(): string
 }
 
 /**
- * ⛔ دانلودِ بکاپِ کاملِ کاربر (`.sthesab`) — تنها مسیر، برای حساب لند
+ * ⛔ دانلودِ بکاپِ کاملِ کاربر (`.sthesab`) — تنها مسیر، برای هستیکو
  *    (`api/export_data.php`) و صفحه‌ی حسابِ فروشگاه (`store/account.php`).
  *
  * موفق: فایل را می‌فرستد و **خارج می‌شود**. ناموفق: پیامِ خطا برمی‌گرداند تا

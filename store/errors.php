@@ -3,7 +3,7 @@
  * ⛔ خطاهای فروشگاه — فقط برای مدیرِ کلِ نصب.
  *
  * **خواسته‌ی مالکِ نصب:** «یک سیستم لاگ برای باگ در فروشگاهم بیاد — الان
- * در حساب‌لند داریم — البته فقط برای سوپر ادمین.»
+ * در هستیکو داریم — البته فقط برای سوپر ادمین.»
  *
  * همان `app_errors` و همان رسیدگیِ `admin/errors.php`، فقط ردیف‌هایی که
  * از محیطِ فروشگاه آمده‌اند (`AppErrors::AREAS`، `migration_error_area.sql`):
@@ -18,8 +18,8 @@
  *    این نرم‌افزار را خریده نباید متنِ خطای PHP و مسیرِ فایل‌ها را ببیند.
  *
  * ⛔ منطقِ دکمه‌ها فقط `AppErrors::handleAction()` با محیطِ `store`:
- *    «پاک کردن همه» اینجا خطاهای حساب‌لند را نمی‌برد و «برطرف شد» با
- *    شناسه‌ی یک خطای حساب‌لند کاری نمی‌کند.
+ *    «پاک کردن همه» اینجا خطاهای هستیکو را نمی‌برد و «برطرف شد» با
+ *    شناسه‌ی یک خطای هستیکو کاری نمی‌کند.
  *
  * ⛔ و همچنان نه `user_id`، نه آدرس، نه نامِ فروشگاه — این صفحه درباره‌ی
  *    **کد** است (بالای `includes/app_errors.php`).
@@ -77,7 +77,7 @@ require __DIR__ . '/../includes/biz_head.php';
             <?php if ($open > 0): ?><span class="st-badge is-error st-num"><?= h(toPersianDigits((string)$open)) ?> باز</span>
             <?php elseif ($ready): ?><span class="st-badge is-ok">همه رسیدگی شده</span><?php endif; ?>
         </h1>
-        <p class="st-muted">خطاهای سرور و مرورگر روی صفحه‌های فروشگاه — فقط مدیرِ نصب این صفحه را می‌بیند. خطاهای حساب‌لند در پنلِ مدیر است.</p>
+        <p class="st-muted">خطاهای سرور و مرورگر روی صفحه‌های فروشگاه — فقط مدیرِ نصب این صفحه را می‌بیند. خطاهای بخشِ شخصی در پنلِ مدیر است.</p>
     </div>
     <?php if (!Biz::isStoreOnly()): ?>
     <a class="st-link-btn" href="<?= h(APP_BASE_PATH . '/admin/errors.php') ?>">همه‌ی خطاها (پنلِ مدیر)</a>
@@ -88,8 +88,8 @@ require __DIR__ . '/../includes/biz_head.php';
 
 <?php if (!$ready): ?>
     <?php /* ⚠ بی‌ستونِ محیط، هیچ خطایی «فروشگاه» نیست — فهرستِ خالی با این پیام،
-             نه فهرستِ حساب‌لند با برچسبِ غلط (`AppErrors::areaWhere()`). */ ?>
-    <div class="st-flash st-flash-warn" role="status">migration_error_area اجرا نشده، پس خطاها هنوز به تفکیکِ محیط ثبت نمی‌شوند. روی سرور: <code dir="ltr">sudo ./hesabland deploy --migrate</code></div>
+             نه فهرستِ هستیکو با برچسبِ غلط (`AppErrors::areaWhere()`). */ ?>
+    <div class="st-flash st-flash-warn" role="status">migration_error_area اجرا نشده، پس خطاها هنوز به تفکیکِ محیط ثبت نمی‌شوند. روی سرور: <code dir="ltr">sudo ./hastico deploy --migrate</code></div>
 <?php else: ?>
 
 <nav class="st-tabs" aria-label="صافیِ خطاها">

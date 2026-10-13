@@ -1,6 +1,6 @@
 <?php
 /**
- * اسکریپت‌های سرور: hesabland، backup.sh، restore.sh، migrate.sh، config-lib.sh.
+ * اسکریپت‌های سرور: hastico، backup.sh، restore.sh، migrate.sh، config-lib.sh.
  *
  * ⛔ هر بخش یک خرابیِ واقعی (بازبینی) را نگه می‌دارد که **بی‌صدا** بود:
  *
@@ -43,7 +43,7 @@ $bash = function (string $script, string $stdin = '') use ($tmp): array {
     @unlink($f);
     return [$rc, preg_replace('/\e\[[0-9;]*m/', '', $out)];
 };
-$hl  = escapeshellarg($root . '/hesabland');
+$hl  = escapeshellarg($root . '/hastico');
 $lib = escapeshellarg($root . '/deploy/config-lib.sh');
 $isRoot = function_exists('posix_geteuid') ? posix_geteuid() === 0 : trim((string)shell_exec('id -u')) === '0';
 
@@ -62,7 +62,7 @@ chmod("$tmp/bin/php-fpm8.4", 0755); chmod("$tmp/bin/php-fpm8.3", 0755);
 
 // ⚠ systemctl و php-fpm خروجی‌شان را در فایل می‌نویسند، چون خودِ
 //   clear_php_cache خروجیِ reload را دور می‌ریزد و -t را می‌گیرد. و
-//   `if` لازم است: hesabland با set -e source می‌شود.
+//   `if` لازم است: hastico با set -e source می‌شود.
 $cache = function (string $extra = '') use ($bash, $hl, $E, $tmp): array {
     @unlink("$tmp/calls.log");
     [$rc, $o] = $bash(<<<SH
@@ -123,7 +123,7 @@ set -e
 mkdir -p '$A'; cd '$A'
 $G init -q .
 mkdir -p config deploy
-echo '<?php' > config/config.example.php; echo x > a.php; echo x > hesabland; echo x > deploy.sh; echo x > deploy/x.sh
+echo '<?php' > config/config.example.php; echo x > a.php; echo x > hastico; echo x > deploy.sh; echo x > deploy/x.sh
 $G add -A; $G commit -qm A
 mkdir -p var/push var/biz-import/j1 var/sessions var/log uploads
 # نصبِ موجود: استقرارهای قبلی این‌ها را ۶۴۴/۷۵۵ کرده‌اند.
@@ -148,7 +148,7 @@ SH);
     T::same('600', $mode('config/config.php.bak-1'), 'بکاپِ رمزدارِ config.php برای کاربرانِ دیگر خواندنی نیست');
     T::same('644', $mode('config/config.example.php'), 'config.example.php همان ۶۴۴ِ گیت');
     T::same('644', $mode('a.php'), 'کدِ اپ ۶۴۴');
-    T::same('755', $mode('hesabland'), 'hesabland اجرایی می‌ماند');
+    T::same('755', $mode('hastico'), 'hastico اجرایی می‌ماند');
     T::same('700', $mode('var/sessions'), 'var/sessions ۷۰۰');
     T::ok(!file_exists("$A/uploads/.htaccess"), 'uploads/.htaccess (Apache) دیگر نوشته نمی‌شود');
 }

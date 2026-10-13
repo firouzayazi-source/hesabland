@@ -2,7 +2,7 @@
 /**
  * ⛔ محیطِ فروشگاهی (Business Mode) — جداسازی و سه نوعِ حساب.
  *
- * سه نوع: `personal` (فقط حساب لند)، `both` (حساب لند سرِ جایش + `/store`)،
+ * سه نوع: `personal` (فقط هستیکو)، `both` (هستیکو سرِ جایش + `/store`)،
  * `business` (فقط فروشگاه). **خواسته‌ی دوم:** «وقتی قابلیت فروشگاهی کسی
  * رو فعال می‌کنم حسابلند قبلی سرجاش باشه، با آدرس store بتونه وارد
  * فروشگاهی بشه.»
@@ -185,7 +185,7 @@ T::ok(str_contains($detail, 'business') && str_contains($detail, 'personal'), '�
 $r = Biz::setType($flip, 'business');
 T::ok($r['ok'] && empty($r['changed']), 'تغییرِ تکراری کاری نمی‌کند');
 
-// ⛔ روشن کردنِ فروشگاه برای حسابِ شخصی (`both`) کاربر را از حساب لندش
+// ⛔ روشن کردنِ فروشگاه برای حسابِ شخصی (`both`) کاربر را از هستیکویش
 //    بیرون **نمی‌اندازد** — خواسته‌ی صریح همین بود.
 @Auth::trustThisDevice($wid);
 $pdo->prepare('UPDATE users SET access_revoked_at = NULL WHERE id = :id')->execute(['id' => $wid]);
@@ -276,13 +276,13 @@ T::group('۴ — بدونِ ورود');
 
 [$anon] = $jarFor();
 [$c, , $loc] = $anon('store/index.php');
-T::ok($c === 302 && str_ends_with($loc, '/store/login.php'), 'داشبوردِ فروشگاه ← ورودِ **فروشگاه**، نه ورودِ حساب لند', "{$c} {$loc}");
+T::ok($c === 302 && str_ends_with($loc, '/store/login.php'), 'داشبوردِ فروشگاه ← ورودِ **فروشگاه**، نه ورودِ هستیکو', "{$c} {$loc}");
 [$c, , $loc] = $anon('store/settings.php');
 T::ok($c === 302 && str_ends_with($loc, '/store/login.php'), 'تنظیماتِ فروشگاه هم همین‌طور', "{$c} {$loc}");
 [$c, $body] = $anon('store/login.php');
 T::ok($c === 200 && str_contains($body, '</html>'), 'صفحه‌ی ورودِ فروشگاه کامل رندر شد', "کد: {$c}");
 T::ok(!str_contains($body, (string)APP_NAME) && !str_contains($body, 'style.css') && str_contains($body, 'store.css'),
-    '⛔ ورودِ فروشگاه هیچ نام و استایلی از حساب لند ندارد');
+    '⛔ ورودِ فروشگاه هیچ نام و استایلی از هستیکو ندارد');
 
 // =================================================================
 T::group('۵ — حسابِ شخصی: هیچ چیزی از /store نمی‌بیند');
@@ -319,7 +319,7 @@ T::ok($c === 200 && str_contains($dash, '</html>'), 'داشبوردِ فروشگ
 T::ok(str_contains($dash, 'store.css') && !str_contains($dash, 'css/style.css') && !str_contains($dash, 'app.js'),
     '⛔ پوسته‌ی فروشگاه هیچ‌کدام از فایل‌های پوسته‌ی شخصی را لود نمی‌کند');
 T::ok(str_contains($dash, 'سربرگِ فروشگاه را کامل کنید'), 'بدونِ سربرگ، دعوت به تنظیم دیده می‌شود');
-T::ok(!str_contains($dash, (string)APP_NAME), '⛔ داشبوردِ فروشگاه نامِ حساب لند را ندارد');
+T::ok(!str_contains($dash, (string)APP_NAME), '⛔ داشبوردِ فروشگاه نامِ هستیکو را ندارد');
 
 foreach (['index.php', 'transactions.php', 'trades.php', 'profile.php', 'dashboard.php', 'admin/users.php', 'login.php'] as $pg) {
     [$c, , $loc] = $asB($pg);
@@ -446,7 +446,7 @@ T::group('۸ب — حسابِ «شخصی + فروشگاه»: دو در، دو د
 $pdo->prepare("UPDATE wallets SET initial_balance = 7777777 WHERE user_id = :u")->execute(['u' => $wid]);
 [$asW] = $jarFor();
 [$c, , $loc] = $login($asW, 'login.php', 'both');
-T::ok($c === 302 && !str_contains($loc, '/store/'), 'ورود از درِ حساب لند ← خانه‌ی شخصی، نه فروشگاه', "{$c} {$loc}");
+T::ok($c === 302 && !str_contains($loc, '/store/'), 'ورود از درِ هستیکو ← خانه‌ی شخصی، نه فروشگاه', "{$c} {$loc}");
 foreach (['index.php', 'transactions.php', 'wallets.php', 'profile.php'] as $pg) {
     [$c] = $asW($pg);
     T::same(200, $c, "⛔ «{$pg}» برای حسابِ «شخصی + فروشگاه» سرِ جایش است");
@@ -474,7 +474,7 @@ T::ok($c === 302 && str_ends_with($loc, '/store/'), 'درِ فروشگاه بر�
 [$c, , $loc] = $login($asW2, 'store/login.php', 'both');
 T::ok($c === 302 && str_ends_with($loc, '/store/'), 'ورود از درِ فروشگاه ← داشبوردِ فروشگاه', "{$c} {$loc}");
 
-// API موبایل: حسابِ both همان حساب لندِ شخصی است و توکن می‌گیرد
+// API موبایل: حسابِ both همان هستیکویِ شخصی است و توکن می‌گیرد
 $ch = curl_init("http://127.0.0.1:{$port}/api/v1/index.php/auth/login");
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_TIMEOUT => 20,
     CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
@@ -493,8 +493,8 @@ Biz::setType($pid, 'both');
 [$c] = $asP3('store/index.php');
 T::same(200, $c, '⛔ مدیر فروشگاه را روشن کرد ← همان نشستِ باز بدونِ خروج به /store می‌رسد');
 [$c, $p3h] = $asP3('index.php');
-T::same(200, $c, '⛔ و حساب لندش سرِ جایش است');
-T::ok(str_contains($p3h, 'store-gate-nav'), 'و بعد از یک بار باز کردنِ /store درگاه در حساب لندِ شخصی هم پیدا شد (نوعِ نشست تازه شد)');
+T::same(200, $c, '⛔ و هستیکویش سرِ جایش است');
+T::ok(str_contains($p3h, 'store-gate-nav'), 'و بعد از یک بار باز کردنِ /store درگاه در هستیکویِ شخصی هم پیدا شد (نوعِ نشست تازه شد)');
 Biz::setType($pid, 'personal');
 [$c] = $asP3('store/index.php');
 [, $p3h] = $asP3('index.php');

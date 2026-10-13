@@ -4,15 +4,15 @@
  * خطای مرورگرِ صفحه‌های فروشگاه.
  *
  * **خواسته‌ی مالکِ نصب:** «یک سیستم لاگ برای باگ در فروشگاهم بیاد — الان
- * در حساب‌لند داریم — البته فقط برای سوپر ادمین.»
+ * در هستیکو داریم — البته فقط برای سوپر ادمین.»
  *
  * سه چیز سنجیده می‌شود و هر سه **رفتار**اند نه شکل:
  *   ۱. محیط درست ثبت می‌شود: خطای PHP روی مسیرِ `store/` و خطای مرورگر با
- *      `area=store` «فروشگاه»اند؛ بقیه «حساب‌لند». و همان خطا در دو محیط دو
+ *      `area=store` «فروشگاه»اند؛ بقیه «هستیکو». و همان خطا در دو محیط دو
  *      ردیف است، تا «برطرف شد» در یکی دیگری را نبندد.
  *   ۲. ⛔ هر کارِ `store/errors.php` فقط روی فروشگاه است: «پاک کردن همه» و
- *      «پاک کردن رسیدگی‌شده‌ها» خطاهای حساب‌لند را نمی‌برند و «برطرف شد» با
- *      شناسه‌ی خطای حساب‌لند کاری نمی‌کند.
+ *      «پاک کردن رسیدگی‌شده‌ها» خطاهای هستیکو را نمی‌برند و «برطرف شد» با
+ *      شناسه‌ی خطای هستیکو کاری نمی‌کند.
  *   ۳. ⛔ فقط مدیر: مالکِ فروشگاه صفحه را ۴۰۴ِ خنثی می‌بیند و لینکش را در
  *      منو ندارد؛ مدیرِ صاحبِ فروشگاه هر دو را دارد.
  */
@@ -87,7 +87,7 @@ Log::setRoute('store/sales.php');
 T::same('store', AppErrors::currentArea(), 'مسیرِ `store/…` = فروشگاه');
 AppErrors::record('error', "shared {$MARK} boom", '/x/includes/probe.php', 7);
 Log::setRoute('transactions.php');
-T::same('app', AppErrors::currentArea(), 'مسیرِ دیگر = حساب‌لند');
+T::same('app', AppErrors::currentArea(), 'مسیرِ دیگر = هستیکو');
 AppErrors::record('error', "shared {$MARK} boom", '/x/includes/probe.php', 7);
 AppErrors::record('error', "apponly {$MARK} boom", '/x/includes/probe.php', 8);
 
@@ -103,9 +103,9 @@ $store = $mine('all', 'store');
 $app   = $mine('all', 'app');
 $all   = $mine('all', null);
 T::same(2, count($store), 'دو خطای فروشگاه (PHP روی `store/` + مرورگر)');
-T::same(3, count($app), 'سه خطای حساب‌لند');
+T::same(3, count($app), 'سه خطای هستیکو');
 T::same(5, count($all), 'بی‌محیط = همه (پنلِ مدیر)');
-T::ok(!array_filter($store, static fn($r) => $r['area'] !== 'store'), '⛔ صافیِ فروشگاه هیچ ردیفِ حساب‌لندی برنمی‌گرداند');
+T::ok(!array_filter($store, static fn($r) => $r['area'] !== 'store'), '⛔ صافیِ فروشگاه هیچ ردیفِ هستیکویی برنمی‌گرداند');
 
 // ⛔ همان خطا در دو محیط دو ردیف است.
 $sharedStore = array_values(array_filter($store, static fn($r) => str_contains($r['message'], 'shared')));
@@ -113,26 +113,26 @@ $sharedApp   = array_values(array_filter($app, static fn($r) => str_contains($r[
 T::ok(count($sharedStore) === 1 && count($sharedApp) === 1 && $sharedStore[0]['id'] !== $sharedApp[0]['id'],
     '⛔ خطای کدِ مشترک روی دو محیط دو ردیفِ جداست');
 T::same(sha1('error|' . $sharedApp[0]['file'] . '|7|' . $sharedApp[0]['message']), (string)$sharedApp[0]['fingerprint'],
-    'اثرِ انگشتِ حساب‌لند همان شکلِ قبلی است (ردیف‌های موجود و «برطرف شد»هایشان جابه‌جا نمی‌شوند)');
+    'اثرِ انگشتِ هستیکو همان شکلِ قبلی است (ردیف‌های موجود و «برطرف شد»هایشان جابه‌جا نمی‌شوند)');
 
 // ---- ۲. هر کارِ محیط‌دار فقط همان محیط ----
-T::group('رسیدگیِ فروشگاه به حساب‌لند دست نمی‌زند');
+T::group('رسیدگیِ فروشگاه به هستیکو دست نمی‌زند');
 
 $openStoreBefore = AppErrors::openCount('store');
-T::ok(!AppErrors::resolve((int)$sharedApp[0]['id'], 'store'), '⛔ «برطرف شد»ِ فروشگاه با شناسه‌ی خطای حساب‌لند کاری نمی‌کند');
+T::ok(!AppErrors::resolve((int)$sharedApp[0]['id'], 'store'), '⛔ «برطرف شد»ِ فروشگاه با شناسه‌ی خطای هستیکو کاری نمی‌کند');
 T::same(3, count($mine('open', 'app')), 'و آن خطا باز ماند');
 T::ok(AppErrors::resolve((int)$sharedStore[0]['id'], 'store'), '«برطرف شد» روی خطای فروشگاه');
 T::same($openStoreBefore - 1, AppErrors::openCount('store'), 'شمارشِ بازهای فروشگاه یکی کم شد');
 T::same(1, count($mine('open', 'store')), 'یک خطای بازِ فروشگاه ماند');
-T::same(3, count($mine('open', 'app')), '⛔ و خطای همان کد در حساب‌لند همچنان باز است');
+T::same(3, count($mine('open', 'app')), '⛔ و خطای همان کد در هستیکو همچنان باز است');
 
 AppErrors::resolve((int)$sharedApp[0]['id'], 'app');
 T::same(1, AppErrors::handleAction('purge_resolved', 0, 'store') === 'purged:1' ? 1 : 0, 'پاک کردنِ رسیدگی‌شده‌های فروشگاه دقیقاً یکی برد');
-T::same(1, count($mine('resolved', 'app')), '⛔ رسیدگی‌شده‌ی حساب‌لند پاک نشد');
+T::same(1, count($mine('resolved', 'app')), '⛔ رسیدگی‌شده‌ی هستیکو پاک نشد');
 
 T::same('cleared', AppErrors::handleAction('clear_all', 0, 'store'), '«پاک کردن همه»ی فروشگاه');
 T::same(0, count($mine('all', 'store')), 'فهرستِ فروشگاه خالی شد');
-T::same(3, count($mine('all', 'app')), '⛔ و هیچ خطای حساب‌لندی نرفت');
+T::same(3, count($mine('all', 'app')), '⛔ و هیچ خطای هستیکویی نرفت');
 
 T::same('', AppErrors::handleAction('clear_all', 0, 'nope'), '⛔ محیطِ نامعتبر هیچ کاری نمی‌کند (نه «همه»)');
 T::same(3, count($mine('all', 'app')), 'و واقعاً چیزی پاک نشد');
@@ -209,7 +209,7 @@ $login = function (callable $req, string $user) use ($csrfOf): void {
     $req('store/login.php', ['csrf_token' => $csrfOf($html), 'username' => SEPREFIX . $user, 'password' => SEPASS]);
 };
 
-// یک خطای فروشگاه و یک خطای حساب‌لند برای دیدن در صفحه
+// یک خطای فروشگاه و یک خطای هستیکو برای دیدن در صفحه
 $resetCap();
 Log::setRoute('store/index.php');
 AppErrors::record('error', "pagestore {$MARK} boom", '/x/includes/probe.php', 21);
@@ -246,19 +246,19 @@ T::ok($c === 200 && preg_match('~href="[^"]*/store/errors\.php"[^>]*>.*?خطاه
 [$c, $page] = $admin('store/errors.php?f=all');
 T::ok($c === 200 && str_contains($page, '</html>'), 'مدیر صفحه را کامل می‌بیند', "کد: {$c}");
 T::ok(str_contains($page, "pagestore {$MARK}") && str_contains($page, "ownerjs {$MARK}"), 'خطاهای فروشگاه (سرور و مرورگر) در صفحه‌اند');
-T::ok(!str_contains($page, "pageapp {$MARK}"), '⛔ خطای حساب‌لند در صفحه‌ی فروشگاه نیست');
+T::ok(!str_contains($page, "pageapp {$MARK}"), '⛔ خطای هستیکو در صفحه‌ی فروشگاه نیست');
 
 $sid = (int)($mine('open', 'store')[0]['id'] ?? 0);
 $appRow = array_values(array_filter($mine('open', 'app'), static fn($r) => str_contains($r['message'], 'pageapp')));
 [$c, , $loc] = $admin('store/errors.php?f=open', ['csrf_token' => $csrfOf($page), 'action' => 'resolve', 'id' => (string)(int)$appRow[0]['id']]);
-T::ok($c === 302 && !str_contains($loc, 'done='), '⛔ «برطرف شد» با شناسه‌ی خطای حساب‌لند از صفحه‌ی فروشگاه بی‌اثر است', "{$c} {$loc}");
+T::ok($c === 302 && !str_contains($loc, 'done='), '⛔ «برطرف شد» با شناسه‌ی خطای هستیکو از صفحه‌ی فروشگاه بی‌اثر است', "{$c} {$loc}");
 T::same(1, count(array_filter($mine('open', 'app'), static fn($r) => str_contains($r['message'], 'pageapp'))), 'و آن خطا باز ماند');
 [$c, , $loc] = $admin('store/errors.php?f=open', ['csrf_token' => $csrfOf($page), 'action' => 'resolve', 'id' => (string)$sid]);
 T::ok($c === 302 && str_contains($loc, 'done=resolved'), '«برطرف شد» روی خطای فروشگاه', "{$c} {$loc}");
 [$c] = $admin('store/errors.php', ['action' => 'clear_all']);
 T::same(403, $c, '⛔ بی‌توکن رد می‌شود (CSRF)');
 
-// پنلِ مدیرِ حساب‌لند همه را با نشانِ محیط می‌بیند
+// پنلِ مدیرِ هستیکو همه را با نشانِ محیط می‌بیند
 [$c, $adm] = $admin('admin/errors.php?f=all');
 T::ok($c === 200 && str_contains($adm, "pagestore {$MARK}") && str_contains($adm, "pageapp {$MARK}"),
     'پنلِ مدیر هر دو محیط را دارد', "کد: {$c}");

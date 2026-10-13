@@ -1,5 +1,5 @@
 /*
- * سرویس‌ورکر حساب لند.
+ * سرویس‌ورکر هستیکو.
  *
  * چرا در ریشه‌ی اپ است و نه داخل assets/: دامنه‌ی کنترلِ یک سرویس‌ورکر
  * نمی‌تواند بالاتر از پوشه‌ی خودش برود. اگر داخل assets/ می‌بود فقط
@@ -225,7 +225,7 @@ async function dropOtherVersions(cache, req) {
 self.addEventListener('push', (event) => {
     let d = {};
     try { d = event.data ? event.data.json() : {}; } catch (e) { d = {}; }
-    const title = String(d.title || 'حساب لند');
+    const title = String(d.title || 'هستیکو');
     const url   = rel(String(d.url || 'notifications.php').replace(/^\/+/, ''));
     const count = Number(d.badge || 0);
     event.waitUntil((async () => {

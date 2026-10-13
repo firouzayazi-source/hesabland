@@ -21,7 +21,7 @@ $values   = Biz::settings($userId);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verifyOrFail(postParam('csrf_token'));
-    // ⛔ تصویرِ شخصی از همان `saveUserAvatar()`ِ پروفایلِ حساب لند می‌رود
+    // ⛔ تصویرِ شخصی از همان `saveUserAvatar()`ِ پروفایلِ هستیکو می‌رود
     //    (includes/avatar.php) — نوع از محتوا، بازکشی با GD، نامِ تصادفی.
     if (postParam('action') === 'avatar') {
         $res = saveUserAvatar($userId, $_FILES['avatar'] ?? null);

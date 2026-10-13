@@ -11,7 +11,7 @@ define('DB_USER', 'your_username');
 define('DB_PASSWORD', 'your_password');
 define('DB_CHARSET', 'utf8mb4');
 
-define('APP_NAME', 'حساب لند');
+define('APP_NAME', 'هستیکو');
 define('APP_TIMEZONE', 'Asia/Tehran');
 define('APP_CURRENCY', 'تومان');
 
@@ -99,7 +99,7 @@ define('APP_URL', 'https://example.com');
 define('MAIL_METHOD', '');
 
 define('MAIL_FROM', 'no-reply@example.com');
-define('MAIL_FROM_NAME', 'حساب لند');
+define('MAIL_FROM_NAME', 'هستیکو');
 
 // فقط وقتی MAIL_METHOD = 'smtp'
 define('SMTP_HOST', '');

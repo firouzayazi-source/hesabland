@@ -56,7 +56,7 @@ if ($__loggedIn):
     <!-- viewport-fit=cover لازم است وگرنه iOS مقدار env(safe-area-inset-*)
          را صفر می‌دهد و همه‌ی محاسبه‌های حاشیه‌ی امن بی‌اثر می‌مانند. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-    <title>حریم خصوصی | <?= h(defined('APP_NAME') ? APP_NAME : 'حساب لند') ?></title>
+    <title>حریم خصوصی | <?= h(defined('APP_NAME') ? APP_NAME : 'هستیکو') ?></title>
     <?php foreach (assetUrls(['css/style.css']) as $__u): ?>
     <link rel="stylesheet" href="<?= h($__u) ?>">
     <?php endforeach; ?>
@@ -66,7 +66,7 @@ if ($__loggedIn):
 <body>
 <?= envBanner() ?>
 <div class="privacy-shell">
-    <h1 class="privacy-title"><?= h(defined('APP_NAME') ? APP_NAME : 'حساب لند') ?> — حریم خصوصی</h1>
+    <h1 class="privacy-title"><?= h(defined('APP_NAME') ? APP_NAME : 'هستیکو') ?> — حریم خصوصی</h1>
 <?php endif; ?>
 
 <div class="card">

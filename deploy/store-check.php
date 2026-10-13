@@ -68,7 +68,7 @@ say($C['b'] . '  اتصال ' . $APP . ' به حسابداری فروشگاه' .
 say('  ' . str_repeat('─', 56));
 say();
 
-/* ═════════════ گام ۱ — پیکربندیِ خودِ حساب لند ═════════════ */
+/* ═════════════ گام ۱ — پیکربندیِ خودِ هستیکو ═════════════ */
 
 say($C['b'] . '  ۱) پیکربندی — config/config.php' . $C['n']);
 
@@ -106,7 +106,7 @@ if ($url === '' || $tok === '') {
     exit(1);
 }
 
-/* ═════════════ گام ۲ — migration روی دیتابیسِ حساب لند ═════════════ */
+/* ═════════════ گام ۲ — migration روی دیتابیسِ هستیکو ═════════════ */
 
 say();
 say($C['b'] . '  ۲) جدول‌ها — migration_store_share' . $C['n']);
@@ -142,13 +142,13 @@ $haveRef   = tableHasColumn('transactions', 'store_share_ref');
 foreach ([['store_shareholders', $haveLinks], ['store_sync', $haveSync]] as [$name, $ok]) {
     $ok ? step('ok', 'جدول ' . $name)
         : step('no', 'جدول ' . $name . ' نیست', '',
-               'روی سرور: cd /opt/hesab/app && sudo ./hesabland --migrate');
+               'روی سرور: cd /opt/hesab/app && sudo ./hastico --migrate');
 }
 $haveRef
     ? step('ok', 'ستون transactions.store_share_ref')
     : step('no', 'ستون transactions.store_share_ref نیست',
            'بدونِ این ستونِ یکتا، هر همگام‌سازی همان سود را دوباره ثبت می‌کند.',
-           'روی سرور: cd /opt/hesab/app && sudo ./hesabland --migrate');
+           'روی سرور: cd /opt/hesab/app && sudo ./hastico --migrate');
 
 /*
  * دو دسته‌بندیِ پیش‌فرض را هم همان migration می‌سازد. نبودشان کشنده

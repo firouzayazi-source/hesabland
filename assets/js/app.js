@@ -577,7 +577,7 @@ function appMain() {
         body.className = 'apk-bar-body';
         var title = document.createElement('strong');
         var name = meta.getAttribute('data-name') || '';
-        title.textContent = 'نسخه‌ی تازه‌ی «' + (meta.getAttribute('data-app') || 'حساب لند') + '» آماده است'
+        title.textContent = 'نسخه‌ی تازه‌ی «' + (meta.getAttribute('data-app') || 'هستیکو') + '» آماده است'
             + (name ? ' (' + name.replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }).replace('.', '٫') + ')' : '') + '.';
         var note = document.createElement('span');
         note.textContent = 'با یک تپ به‌روز کنید؛ اطلاعاتتان روی سرور است و سرِ جایش می‌ماند.';
@@ -5432,12 +5432,12 @@ function appMain() {
                 // ⛔ دکمه‌ای که کار نمی‌کند رندر نمی‌شود؛ به‌جایش علت گفته می‌شود.
                 pState.textContent = (isIOS && !standalone)
                     ? 'روی آیفون، اعلان فقط وقتی کار می‌کند که اپ از آیکونِ صفحه‌ی اصلی باز شده باشد: در سافاری «اشتراک‌گذاری» ← «افزودن به صفحه‌ی اصلی».'
-                    : 'این مرورگر اعلانِ وب را پشتیبانی نمی‌کند. با کروم یا اپِ اندرویدِ حساب لند باز کنید.';
+                    : 'این مرورگر اعلانِ وب را پشتیبانی نمی‌کند. با کروم یا اپِ اندرویدِ هستیکو باز کنید.';
                 pShow(false, false, false);
                 return;
             }
             if (Notification.permission === 'denied') {
-                pState.textContent = 'اجازه‌ی اعلان برای این برنامه بسته است. از تنظیماتِ گوشی ← برنامه‌ها ← حساب لند (یا کروم) ← اعلان‌ها بازش کنید.';
+                pState.textContent = 'اجازه‌ی اعلان برای این برنامه بسته است. از تنظیماتِ گوشی ← برنامه‌ها ← هستیکو (یا کروم) ← اعلان‌ها بازش کنید.';
                 pShow(false, false, false);
                 return;
             }

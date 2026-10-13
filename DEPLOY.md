@@ -3,7 +3,7 @@
 سروری که این پروژه رویش می‌نشیند، از قبل سرویس‌های دیگری دارد (دو ربات).
 تمام این راهنما بر یک اصل بنا شده:
 
-> **حساب لند کاملاً مستقل است و هیچ‌چیز آن نباید به سرویس‌های دیگر سرور دست بزند.**
+> **هستیکو کاملاً مستقل است و هیچ‌چیز آن نباید به سرویس‌های دیگر سرور دست بزند.**
 
 ---
 
@@ -332,26 +332,26 @@ cd /opt/hesab/app && ./deploy.sh
 
 ```bash
 cd /opt/hesab/app
-sudo ./hesabland staging     # ۱. کدِ تازه روی staging.hesab.stland.ir
+sudo ./hastico staging     # ۱. کدِ تازه روی staging.hesab.stland.ir
                               #    (روی گوشی باز کنید؛ بالای صفحه «نسخه‌ی آزمایشی · abc1234»)
-sudo ./hesabland release     # ۲. اگر درست بود: دقیقاً همان abc1234 روی سایتِ اصلی
+sudo ./hastico release     # ۲. اگر درست بود: دقیقاً همان abc1234 روی سایتِ اصلی
 ```
 
 - `release` فقط **همان کامیتی** را منتشر می‌کند که آخرین بار روی staging سبز شد. کامیت‌های تازه‌تری که هنوز در staging دیده نشده‌اند منتشر نمی‌شوند و صریح گفته می‌شوند.
 - migration ای که در staging اعمال شده، در `release` هم (بعد از بکاپ) اعمال می‌شود.
-- `sudo ./hesabland` ی معمولی هم کار می‌کند، ولی اگر نسخه‌اش در staging دیده نشده باشد اول می‌پرسد.
-- `sudo ./hesabland status` می‌گوید staging و سایتِ اصلی هر کدام روی کدام نسخه‌اند.
+- `sudo ./hastico` ی معمولی هم کار می‌کند، ولی اگر نسخه‌اش در staging دیده نشده باشد اول می‌پرسد.
+- `sudo ./hastico status` می‌گوید staging و سایتِ اصلی هر کدام روی کدام نسخه‌اند.
 
 **فعلاً مستقیم روی سایتِ اصلی (staging محفوظ می‌ماند):**
 
 ```bash
-cd /opt/hesab/app && sudo ./hesabland staging --pause
+cd /opt/hesab/app && sudo ./hastico staging --pause
 ```
 
-از آن به بعد `sudo ./hesabland` بی‌پرسش مستقیم روی سایتِ اصلی می‌رود. برگشت به روالِ staging:
+از آن به بعد `sudo ./hastico` بی‌پرسش مستقیم روی سایتِ اصلی می‌رود. برگشت به روالِ staging:
 
 ```bash
-cd /opt/hesab/app && sudo ./hesabland staging --resume
+cd /opt/hesab/app && sudo ./hastico staging --resume
 ```
 
 **ساختنِ staging (یک بار):**
@@ -362,9 +362,9 @@ sudo bash deploy/vps-setup.sh --staging --domain staging.hesab.stland.ir        
 sudo bash deploy/vps-setup.sh --staging --domain staging.hesab.stland.ir --apply   # بعد اجرا
 ```
 
-بعدش سه کار: در کلادفلر رکوردِ A برای `staging.hesab` (ابرِ نارنجی، مثلِ سایتِ اصلی)، `sudo certbot --nginx -d staging.hesab.stland.ir`، و `sudo ./hesabland staging`. بعد `https://staging.hesab.stland.ir/setup.php` یک مدیر می‌سازد. رمزِ صفحه‌ی ورودِ staging (نام: `hesab`) در پایانِ `--apply` چاپ می‌شود؛ رمزِ تازه: `sudo ./hesabland staging --password`.
+بعدش سه کار: در کلادفلر رکوردِ A برای `staging.hesab` (ابرِ نارنجی، مثلِ سایتِ اصلی)، `sudo certbot --nginx -d staging.hesab.stland.ir`، و `sudo ./hastico staging`. بعد `https://staging.hesab.stland.ir/setup.php` یک مدیر می‌سازد. رمزِ صفحه‌ی ورودِ staging (نام: `hesab`) در پایانِ `--apply` چاپ می‌شود؛ رمزِ تازه: `sudo ./hastico staging --password`.
 
-staging همه‌چیزش جداست: پوشه‌ی `/opt/hesab/staging`، کاربرِ `hesabstg`، دیتابیسِ `hesab_staging`، و ایمیل و پیامک و cron ندارد. برای آزمایش با داده‌ی واقعی: `sudo ./hesabland staging --clone-db` (آخرین بکاپِ سایتِ اصلی).
+staging همه‌چیزش جداست: پوشه‌ی `/opt/hesab/staging`، کاربرِ `hesabstg`، دیتابیسِ `hesab_staging`، و ایمیل و پیامک و cron ندارد. برای آزمایش با داده‌ی واقعی: `sudo ./hastico staging --clone-db` (آخرین بکاپِ سایتِ اصلی).
 
 ---
 
