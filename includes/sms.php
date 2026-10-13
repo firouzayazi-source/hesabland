@@ -70,7 +70,7 @@ function smsCodeText(string $code, int $ttlMinutes): string
 {
     $tpl = smsSetting('sms_text', 'SMS_TEXT');
     if ($tpl === '') {
-        $app = defined('APP_NAME') ? APP_NAME : 'هستیکو';
+        $app = defined('APP_NAME') ? APP_NAME : 'حساب لند';
         $tpl = "کد ورود به {$app}: {code}\nتا {ttl} دقیقه اعتبار دارد.";
     }
     return str_replace(['{code}', '{ttl}'], [$code, (string)$ttlMinutes], $tpl);

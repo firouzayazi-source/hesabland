@@ -135,7 +135,7 @@ $fixture = <<<'HTML'
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" class="js-loading">
 <head><meta charset="UTF-8">
-<meta name="apk-latest" content="%LATEST%" data-name="1.9" data-url="/download/hesabland.apk?v=7" data-installed="%INST%" data-app="هستیکو">
+<meta name="apk-latest" content="%LATEST%" data-name="1.9" data-url="/download/hesabland.apk?v=7" data-installed="%INST%" data-app="حساب لند">
 <script>window.APP_BASE = '';</script>
 <script defer src="/assets/js/app.js"></script>
 </head><body><div class="page-content"><p>محتوا</p></div></body></html>
@@ -284,7 +284,7 @@ if (!is_array($r)) {
     T::ok($r['shownOld'] === true, 'اپِ قدیمی‌تر: نوار دیده می‌شود');
     T::same('?latest=10&inst=9', $r['search'], 'فقط `appv` از نوارِ آدرس پاک می‌شود، بقیه‌ی پارامترها می‌مانند');
     T::same('#smsq=%5B%22x%22%5D', $r['hash'], 'فرگمنتِ پیامک دست نمی‌خورد');
-    T::ok(str_contains((string)$r['title'], '۱٫۹') && str_contains((string)$r['title'], 'هستیکو'),
+    T::ok(str_contains((string)$r['title'], '۱٫۹') && str_contains((string)$r['title'], 'حساب لند'),
           'عنوان نامِ برنامه و نسخه‌ی تازه را می‌گوید', (string)$r['title']);
     T::same('/download/hesabland.apk?v=7', $r['href'], 'دکمه به همان APKِ روی دامنه می‌رود');
     T::ok($r['hasDownload'] === true, 'لینک `download` دارد');

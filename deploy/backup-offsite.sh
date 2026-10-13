@@ -462,7 +462,7 @@ do_setup() {
     TG_CHAT="$chat"
 
     tg_call sendMessage -F "chat_id=$TG_CHAT" \
-        -F "text=هستیکو — این کانال برای نگهداریِ بکاپِ رمزشده تنظیم شد."
+        -F "text=حساب لند — این کانال برای نگهداریِ بکاپِ رمزشده تنظیم شد."
     tg_ok || { red "پیام آزمایشی نرفت — $(tg_err)"; exit 1; }
     green "پیام آزمایشی رسید. کانال را نگاه کنید."
     plain ""
@@ -493,7 +493,7 @@ do_setup() {
 
     umask 077
     cat > "$CONF" <<CONFEOF
-# تنظیماتِ بکاپِ خارج از سرور — هستیکو
+# تنظیماتِ بکاپِ خارج از سرور — حساب لند
 # ⛔ این فایل محرمانه است و هرگز نباید وارد گیت یا خودِ بکاپ شود.
 TELEGRAM_TOKEN='$TG_TOKEN'
 TELEGRAM_CHAT_ID='$TG_CHAT'
@@ -571,7 +571,7 @@ do_send() {
     tg_call sendDocument \
         -F "chat_id=$TG_CHAT" \
         -F "document=@$enc" \
-        -F "caption=بکاپ هستیکو — $base
+        -F "caption=بکاپ حساب لند — $base
 sha256: $sum"
     tg_ok || { red "ارسال نشد — $(tg_err)"; exit 1; }
     green "ارسال شد."
@@ -639,7 +639,7 @@ do_cron() {
     # ساعت ۴:۱۰ است چون backup.sh روی ۳:۳۰ می‌نشیند — این باید بعد از
     # ساخته شدنِ فایلِ همان شب اجرا شود، نه قبلش.
     cat > /etc/cron.d/hesab-offsite <<CRON
-# بکاپِ خارج از سرورِ هستیکو — فقط مربوط به همین پروژه
+# بکاپِ خارج از سرورِ حساب لند — فقط مربوط به همین پروژه
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 10 4 * * * root $APP_DIR/deploy/backup-offsite.sh --send >> $BACKUP_DIR/offsite.log 2>&1

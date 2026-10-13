@@ -243,7 +243,7 @@ class PasswordReset
 
     private static function sendEmail(array $user, string $link): bool
     {
-        $app  = defined('APP_NAME') ? APP_NAME : 'هستیکو';
+        $app  = defined('APP_NAME') ? APP_NAME : 'حساب لند';
         $name = $user['full_name'] !== '' ? $user['full_name'] : $user['username'];
         $mins = self::TTL_MINUTES;
 
@@ -285,7 +285,7 @@ class PasswordReset
     {
         if (empty($user['email']) || !Mailer::isConfigured()) { return false; }
 
-        $app  = defined('APP_NAME') ? APP_NAME : 'هستیکو';
+        $app  = defined('APP_NAME') ? APP_NAME : 'حساب لند';
         $name = ($user['full_name'] ?? '') !== '' ? $user['full_name'] : $user['username'];
         $when = jalaliWithWeekday(date('Y-m-d')) . '، ساعت ' . toPersianDigits(date('H:i'));
         $login = appBaseUrl() . '/login.php';

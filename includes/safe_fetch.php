@@ -115,7 +115,7 @@ class SafeFetch
                 CURLOPT_LOW_SPEED_LIMIT => 1024,
                 CURLOPT_LOW_SPEED_TIME  => 10,
                 CURLOPT_NOPROXY        => '*',
-                CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; Hastico/1.0)',
+                CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; HesabLand/1.0)',
                 CURLOPT_HTTPHEADER     => ['Accept: application/json, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, */*;q=0.5'],
                 CURLOPT_ENCODING       => '',
                 CURLOPT_WRITEFUNCTION  => static function ($h, string $chunk) use (&$body, &$tooBig, $max): int {

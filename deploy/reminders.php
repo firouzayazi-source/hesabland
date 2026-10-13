@@ -60,7 +60,7 @@ if ($cronIns) {
         exit(1);
     }
     $appDir = dirname(__DIR__);
-    $cronApp = defined('APP_NAME') ? APP_NAME : 'هستیکو';
+    $cronApp = defined('APP_NAME') ? APP_NAME : 'حساب لند';
     $cron = <<<CRON
 # یادآوری روزانه‌ی سررسیدهای {$cronApp} — فقط مربوط به همین پروژه
 SHELL=/bin/bash
@@ -190,7 +190,7 @@ foreach ($users as $u) {
     //   نصبی که برندش عوض شده، سخت‌کد بودنش یعنی ایمیل‌ها با نامِ ما
     //   می‌روند — و کسی هم متوجه نمی‌شود، چون خروجیِ این اسکریپت را
     //   هیچ‌کس نمی‌بیند (با cron اجرا می‌شود).
-    $appName = defined('APP_NAME') ? APP_NAME : 'هستیکو';
+    $appName = defined('APP_NAME') ? APP_NAME : 'حساب لند';
     $subject = $appName . ' — ' . implode(' و ', $summary);
 
     [$html, $text] = reminderEmailBody($name, $overdue, $soon, $days);

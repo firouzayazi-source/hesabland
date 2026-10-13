@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  هستیکو — پوسته‌ی TWA روی همان PWA.
+  حساب لند — پوسته‌ی TWA روی همان PWA.
 
   اینجا هیچ کد برنامه‌ای نیست و عمداً هم نیست: کل اپ همان سایت است.
   چیزی که این فایل می‌گوید فقط این است که «کروم، این آدرس را تمام‌صفحه
@@ -124,7 +124,7 @@
                 android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
                 android:resource="@color/colorPrimary"/>
 
-            <!-- ⛔ «اشتراک‌گذاری» از اپِ پیامک → هستیکو (`takeShared()`): روشی که
+            <!-- ⛔ «اشتراک‌گذاری» از اپِ پیامک → حساب‌لند (`takeShared()`): روشی که
                  در هر گوشی و بی‌هیچ مجوزی کار می‌کند. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>

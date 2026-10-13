@@ -709,7 +709,7 @@ final class Support
         if ($email === '') { return; }
         try {
             require_once __DIR__ . '/mailer.php';
-            $app  = defined('APP_NAME') ? APP_NAME : 'هستیکو';
+            $app  = defined('APP_NAME') ? APP_NAME : 'حساب لند';
             $link = appBaseUrl() . '/support.php?v=ticket&t=' . (int)$ticket['id'];
             $html = '<div style="font-family:Tahoma,sans-serif;direction:rtl;text-align:right">'
                 . '<h2 style="margin:0 0 12px">پاسخ پشتیبانی ' . h($app) . '</h2>'

@@ -357,12 +357,12 @@ T::group('قاعده ۸ — deploy.sh پوشه‌های نوشتنی را به �
 // فایل نشست بنویسد. هر درخواست یک نشستِ خالیِ تازه می‌گرفت، توکن CSRF
 // هرگز نمی‌ماند، و صفحه‌ی ورود در حلقه‌ی «نشست شما منقضی شده بود» گیر
 // می‌کرد — هیچ‌کس نمی‌توانست وارد شود.
-// ⛔ منطقِ استقرار از `deploy.sh` به `hastico` منتقل شد، پس این قاعده
+// ⛔ منطقِ استقرار از `deploy.sh` به `hesabland` منتقل شد، پس این قاعده
 //    هم باید همان‌جا را بسنجد. `deploy.sh` حالا فقط یک پوسته است و
 //    **نباید** نسخه‌ی دومی از این منطق داشته باشد: با دو نسخه، اولین
 //    اصلاحی که فقط به یکی برسد همان باگِ بی‌صدای بالا را برمی‌گرداند.
-$deploySrc = (string)@file_get_contents(__DIR__ . '/../hastico');
-T::ok($deploySrc !== '', 'فایلِ hastico پیدا شد');
+$deploySrc = (string)@file_get_contents(__DIR__ . '/../hesabland');
+T::ok($deploySrc !== '', 'فایلِ hesabland پیدا شد');
 
 // ⚠ کامنت‌های تمام‌خطی باید **پیش از** بررسی حذف شوند — همان دامی که
 //    قاعده ۳۵ و ۱۹ و ۳۸ هم در آن افتادند. سرآیندِ همین فایل عبارتِ
@@ -376,7 +376,7 @@ $deployCode = implode("\n", array_filter(
 ));
 if ($deploySrc !== '') {
     $chownAt = strpos($deploySrc, 'chown -R root:root');
-    T::ok($chownAt !== false, 'hastico مالکیت کد را به root می‌دهد');
+    T::ok($chownAt !== false, 'hesabland مالکیت کد را به root می‌دهد');
 
     // هر دو باید *بعد از* آن خط دوباره به کاربر اپ برگردند
     foreach (['uploads', 'var'] as $dir) {
@@ -450,15 +450,15 @@ if ($deploySrc !== '') {
 
     // ⛔ و بیتِ اجرای **خودش** را برمی‌گرداند — این یک خرابیِ واقعی روی
     //    سرور بود، نه یک احتیاط. تنظیمِ دسترسی‌ها همه‌ی فایل‌ها را ۶۴۴
-    //    می‌کند و بعد فقط `*.sh` را ۷۵۵ برمی‌گرداند؛ `hastico` پسوند
+    //    می‌کند و بعد فقط `*.sh` را ۷۵۵ برمی‌گرداند؛ `hesabland` پسوند
     //    ندارد، پس در استقرارِ گذار غیرِاجرایی روی دیسک نشست و
-    //    `sudo ./hastico` جواب داد **«command not found»** — یعنی
+    //    `sudo ./hesabland` جواب داد **«command not found»** — یعنی
     //    پیامی که می‌گوید «فایل نیست» برای فایلی که هست. (sudo برای
     //    فایلِ غیرِاجرایی هم همین را می‌گوید.)
     //    ⚠ همان دامِ globِ `*.sh` در قاعده ۳۶: فایلِ بی‌پسوند بی‌صدا
     //      بیرونِ الگو می‌ماند.
     T::ok(
-        (bool)preg_match('/chmod\s+755\s+hastico/', $deployCode),
+        (bool)preg_match('/chmod\s+755\s+hesabland/', $deployCode),
         '⛔ ابزارِ استقرار بیتِ اجرای خودش را برمی‌گرداند (glob `*.sh` آن را نمی‌گیرد)'
     );
 }
@@ -466,8 +466,8 @@ if ($deploySrc !== '') {
 // ⛔ و پوسته باید پوسته بماند.
 $wrapSrc = (string)@file_get_contents(__DIR__ . '/../deploy.sh');
 T::ok(
-    str_contains($wrapSrc, 'hastico'),
-    'deploy.sh به hastico واگذار می‌کند (بوکمارک و مستندات نمی‌شکنند)'
+    str_contains($wrapSrc, 'hesabland'),
+    'deploy.sh به hesabland واگذار می‌کند (بوکمارک و مستندات نمی‌شکنند)'
 );
 T::ok(
     !str_contains($wrapSrc, 'chown -R root:root'),
@@ -2138,7 +2138,7 @@ $bad = [];
 //   جست‌وجوی متنی تست روی فایلِ **سالم** هم قرمز می‌شد.
 T::group('قاعده ۲۲ — نامِ برند فقط از APP_NAME');
 
-$brand = 'هستیکو';
+$brand = 'حساب لند';
 $brandFiles = [];
 foreach (['.', 'includes', 'api', 'admin', 'store', 'deploy'] as $dir) {
     foreach (glob(__DIR__ . '/../' . $dir . '/*.php') as $p) { $brandFiles[realpath($p)] = true; }
@@ -2164,7 +2164,7 @@ foreach (array_keys($brandFiles) as $path) {
             && $tok[0] !== T_INLINE_HTML) { continue; }
         if (!str_contains($tok[1], $brand)) { continue; }
 
-        // ⚠ الگوی مجازِ برگشتی: `defined('APP_NAME') ? APP_NAME : 'هستیکو'`
+        // ⚠ الگوی مجازِ برگشتی: `defined('APP_NAME') ? APP_NAME : 'حساب لند'`
         //   روی همان خط. نصبی که هنوز ثابت را ندارد نباید بشکند.
         $line = $lines[$tok[2] - 1] ?? '';
         if (str_contains($line, 'APP_NAME')) { continue; }
@@ -3069,7 +3069,7 @@ $shBacktickHits = static function (string $src): array {
 };
 
 $badTick = [];
-// ⚠ `hastico` پسوند ندارد (یک فرمان است، نه یک اسکریپتِ کمکی)، پس
+// ⚠ `hesabland` پسوند ندارد (یک فرمان است، نه یک اسکریپتِ کمکی)، پس
 //    هیچ‌کدام از الگوهای `*.sh` آن را برنمی‌دارند و بی‌صدا بیرونِ پوشش
 //    می‌ماند — همان درسِ globِ سخت‌کدِ قاعده ۱۹. صریح اضافه می‌شود، و
 //    نبودنش هم خطاست (پایین‌تر شمرده می‌شود).
@@ -3077,13 +3077,13 @@ $shFiles = array_merge(
     glob(__DIR__ . '/../deploy/*.sh') ?: [],
     glob(__DIR__ . '/../*.sh') ?: [],
     glob(__DIR__ . '/*.sh') ?: [],
-    array_filter([__DIR__ . '/../hastico'], 'is_file')
+    array_filter([__DIR__ . '/../hesabland'], 'is_file')
 );
 if (count($shFiles) < 5) {
     $badTick[] = 'هیچ اسکریپتِ پوسته‌ای پیدا نشد — الگوی جست‌وجو خراب است';
 }
-if (!is_file(__DIR__ . '/../hastico')) {
-    $badTick[] = 'hastico پیدا نشد — اگر نامش عوض شده، همین‌جا هم به‌روز شود'
+if (!is_file(__DIR__ . '/../hesabland')) {
+    $badTick[] = 'hesabland پیدا نشد — اگر نامش عوض شده، همین‌جا هم به‌روز شود'
                . ' وگرنه بی‌صدا بیرونِ پوششِ این قاعده می‌ماند';
 }
 foreach ($shFiles as $sh) {
@@ -5626,7 +5626,7 @@ T::bulk(count($hexFiles) + 1, $badHex, '⛔ هر json_encode داخلِ <script>
 T::group('قاعده ۵۵ — صافیِ خطای کورِ مرورگر');
 
 $badOpq = [];
-// ⛔ گزارش‌گر در `client-errors.js` است (مشترکِ هستیکو و فروشگاه).
+// ⛔ گزارش‌گر در `client-errors.js` است (مشترکِ حساب‌لند و فروشگاه).
 $opqSrc = @file_get_contents(__DIR__ . '/../assets/js/client-errors.js');
 if ($opqSrc === false || $opqSrc === '') {
     $badOpq[] = '⛔ assets/js/client-errors.js خوانده نشد — قاعده ۵۵ کور شده';
@@ -6047,7 +6047,7 @@ $authSrc = (string)@file_get_contents(__DIR__ . '/../includes/auth.php');
 if (!preg_match('/function renewCurrentSession\(\)([\s\S]*?)\n    \}/', $authSrc, $rcs) || strpos($rcs[1], 'self::trustThisDevice(') === false) {
     $badStay[] = 'auth.php — renewCurrentSession() اعتمادِ همین دستگاه را دوباره نمی‌سازد';
 }
-// ⛔ منطقِ تغییرِ رمز در `changeOwnPassword()` (signup.php) است — هم هستیکو و
+// ⛔ منطقِ تغییرِ رمز در `changeOwnPassword()` (signup.php) است — هم حساب لند و
 //    هم صفحه‌ی حسابِ فروشگاه از آن می‌گذرند؛ سنجش روی همان تابع.
 if (!preg_match('/function changeOwnPassword\([\s\S]*?if \(\$hasPassword\) \{\s*revokeAllAccessFor\(\$userId\);/', (string)@file_get_contents(__DIR__ . '/../includes/signup.php'))
     || strpos((string)@file_get_contents(__DIR__ . '/../api/change_password.php'), 'changeOwnPassword(') === false) {
@@ -6882,7 +6882,7 @@ T::bulk(13, $dBad, 'داشبوردِ دسکتاپ پشتِ deskView، خالص �
 //    آدرس‌ها هم با هم قاطی نشه.» تستِ رفتاری (`test_business_mode`) به
 //    دیتابیس نیاز دارد؛ این قاعده *شکل* را روی ماشینِ بی‌دیتابیس هم نگه
 //    می‌دارد — همان استدلالِ قاعده ۴۸ و ۵۱.
-T::group('قاعده ۷۰ — محیطِ فروشگاهی جدا از هستیکویِ شخصی');
+T::group('قاعده ۷۰ — محیطِ فروشگاهی جدا از حساب لندِ شخصی');
 
 $bBad = [];
 $strip70 = function (string $src): string {
@@ -7660,7 +7660,7 @@ $set70e = $strip70e((string)file_get_contents(__DIR__ . '/../store/settings.php'
 if (!str_contains($set70e, "saveUserAvatar(\$userId, \$_FILES['avatar'] ?? null)") || !str_contains($set70e, 'deleteUserAvatar($userId)')
     || !str_contains((string)file_get_contents(__DIR__ . '/../api/upload_avatar.php'), 'saveUserAvatar(')
     || !str_contains((string)file_get_contents(__DIR__ . '/../api/delete_avatar.php'), 'deleteUserAvatar(')) {
-    $eBad[] = 'تصویر: فروشگاه و پروفایلِ هستیکو هر دو از saveUserAvatar()/deleteUserAvatar()';
+    $eBad[] = 'تصویر: فروشگاه و پروفایلِ حساب لند هر دو از saveUserAvatar()/deleteUserAvatar()';
 }
 if (preg_match_all('/<\?= Csrf::field\(\) \?>\s*<input type="hidden" name="action" value="avatar(_delete)?">/', $set70e) < 2) {
     $eBad[] = 'store/settings.php — هر دو فرمِ تصویر (ذخیره و حذف) CSRF دارند';
@@ -7799,7 +7799,7 @@ T::bulk(19, $gBad, 'هر مسیرِ نوشتنِ تاریخ‌دار از قفل
 //    «فقط اونایی فروشگاه فعال دارن ببینن»: تنها روزنه‌ی قاعده‌ی «طرفِ شخصی
 //    هیچ نشانی از فروشگاه ندارد» همین تابع است، با نگهبانِ `hasStore()`ِ
 //    بی‌کوئری. رفتار (شخصی هیچ، «شخصی + فروشگاه» سه جا) در `test_business_mode`.
-T::group('قاعده ۷۰ح — درگاهِ فروشگاه در هستیکویِ شخصی');
+T::group('قاعده ۷۰ح — درگاهِ فروشگاه در حساب لندِ شخصی');
 $hBad = [];
 $gw = $bodyOf($biz70e, 'Biz', 'personalGateway');
 if (!str_contains($gw, "if (!self::hasStore() || !in_array(\$spot, self::GATEWAY_SPOTS, true)) { return ''; }")) {
@@ -7833,11 +7833,11 @@ T::bulk(4, $hBad, 'تنها راهِ طرفِ شخصی به فروشگاه یک 
 // ---------------------------------------------------------------------
 T::group('قاعده ۷۱ — staging و انتشار');
 $bad71 = [];
-$hl71 = (string)file_get_contents(__DIR__ . '/../hastico');
+$hl71 = (string)file_get_contents(__DIR__ . '/../hesabland');
 $vps71 = (string)file_get_contents(__DIR__ . '/../deploy/vps-setup.sh');
 
 foreach ([
-    'cmd_release() {'                                        => 'hastico — فرمانِ release',
+    'cmd_release() {'                                        => 'hesabland — فرمانِ release',
     'if cmd_deploy "--to=$sha"'                              => 'release فقط کامیتِ staging را می‌برد (--to)',
     'git merge-base --is-ancestor "$sha" "origin/${BRANCH}"' => 'release: کامیت باید روی شاخه‌ی سایتِ اصلی باشد',
     'if [[ "$now" != "$seen" ]]; then'                       => 'release: staging باید روی همان کامیتِ سبز باشد',
@@ -7872,7 +7872,7 @@ foreach (['includes/header.php', 'includes/biz_head.php', 'login.php', 'store/lo
 }
 
 // بک‌تیکِ فرارنداده داخلِ heredocِ بی‌کوتیشن = اجرای فرمان.
-$shFiles71 = array_merge(glob(__DIR__ . '/../deploy/*.sh') ?: [], [__DIR__ . '/../hastico', __DIR__ . '/../deploy.sh']);
+$shFiles71 = array_merge(glob(__DIR__ . '/../deploy/*.sh') ?: [], [__DIR__ . '/../hesabland', __DIR__ . '/../deploy.sh']);
 $heredocs71 = 0;
 foreach ($shFiles71 as $f) {
     $lines = explode("\n", (string)file_get_contents($f));
@@ -7978,7 +7978,7 @@ T::bulk(1, $bad74, 'نوع‌های دریافت/پرداخت فقط از BizPay
 // ⛔ خواسته‌ی مالکِ نصب: «سیستم لاگ برای باگ در فروشگاه — فقط برای سوپر ادمین».
 //    رفتار در `tests/test_store_errors.php` سنجیده می‌شود؛ اینجا *شکل*ی است که
 //    شکستنش بی‌صدا نشت می‌دهد: صفحه‌ای که مالکِ فروشگاه هم ببیند، منویی که نامش
-//    را لو بدهد، یا «پاک کردن همه»ای که خطاهای هستیکو را هم ببرد.
+//    را لو بدهد، یا «پاک کردن همه»ای که خطاهای حساب‌لند را هم ببرد.
 T::group('قاعده ۷۵ — خطاهای فروشگاه: فقط مدیر، فقط محیطِ فروشگاه');
 $bad75 = [];
 $strip75 = static fn(string $f): string => (string)preg_replace(['#/\*.*?\*/#s', '#^\s*//.*$#m'], '', (string)@file_get_contents(__DIR__ . '/../' . $f));

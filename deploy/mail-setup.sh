@@ -272,11 +272,11 @@ if (( INTERACTIVE )); then
   say ''
   read -r -p "  MAIL_FROM [$SMTP_USER_IN]: " _from
   MAIL_FROM_IN="${MAIL_FROM_IN:-$_from}"
-  read -r -p '  MAIL_FROM_NAME [هستیکو]: ' _fromname
+  read -r -p '  MAIL_FROM_NAME [حساب لند]: ' _fromname
   MAIL_FROM_NAME_IN="${MAIL_FROM_NAME_IN:-$_fromname}"
 fi
 MAIL_FROM_IN="${MAIL_FROM_IN:-$SMTP_USER_IN}"
-MAIL_FROM_NAME_IN="${MAIL_FROM_NAME_IN:-هستیکو}"
+MAIL_FROM_NAME_IN="${MAIL_FROM_NAME_IN:-حساب لند}"
 
 # EHLO از روی دامنه‌ی APP_URL — بعضی سرورها EHLO ناهم‌خوان را رد می‌کنند
 SMTP_EHLO_IN="$(printf '%s' "$APP_URL_IN" | sed -E 's#^https?://##; s#/.*$##')"

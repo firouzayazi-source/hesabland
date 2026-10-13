@@ -46,7 +46,7 @@ if (in_array('--install-cron', $args, true)) {
 
 if (!Rates::available()) {
     if (in_array('--run', $args, true)) { CronHealth::beat('rates'); exit(0); }
-    echo "جدولِ نرخ‌ها نیست؛ اول:  sudo ./hastico --migrate\n";
+    echo "جدولِ نرخ‌ها نیست؛ اول:  sudo ./hesabland --migrate\n";
     exit(1);
 }
 

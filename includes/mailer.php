@@ -101,7 +101,7 @@ class Mailer
     {
         return defined('MAIL_FROM_NAME') && MAIL_FROM_NAME !== ''
             ? MAIL_FROM_NAME
-            : (defined('APP_NAME') ? APP_NAME : 'هستیکو');
+            : (defined('APP_NAME') ? APP_NAME : 'حساب لند');
     }
 
     /** سرآیند غیر-ASCII باید طبق RFC 2047 کدگذاری شود، وگرنه عنوان فارسی خراب می‌رسد */
@@ -137,7 +137,7 @@ class Mailer
             'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
             'From: ' . self::encodeHeader(self::fromName()) . ' <' . MAIL_FROM . '>',
             'Reply-To: ' . MAIL_FROM,
-            'X-Mailer: hastico',
+            'X-Mailer: hesabland',
         ];
         $okSent = @mail($to, self::encodeHeader($subject),
             self::buildBody($html, $text, $boundary), implode("\r\n", $headers));

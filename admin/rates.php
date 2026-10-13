@@ -82,7 +82,7 @@ include __DIR__ . '/../includes/header.php';
 <?php include __DIR__ . '/_nav.php'; ?>
 
 <?php if (!$ready): ?>
-<div class="card"><p class="hint">جدولِ نرخ‌ها هنوز ساخته نشده. روی سرور migration را اجرا کنید (<code>sudo ./hastico --migrate</code>).</p></div>
+<div class="card"><p class="hint">جدولِ نرخ‌ها هنوز ساخته نشده. روی سرور migration را اجرا کنید (<code>sudo ./hesabland --migrate</code>).</p></div>
 <?php else: ?>
 
 <div class="card rates-card">

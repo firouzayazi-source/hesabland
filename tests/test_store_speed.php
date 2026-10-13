@@ -56,10 +56,10 @@ foreach (['includes/biz_head.php', 'store/login.php'] as $f) {
     T::ok(str_contains((string)file_get_contents($root . '/' . $f), 'Biz::webAppTags('), "{$f} برچسب‌های وب‌اپ را دارد (کاربر از همین صفحه هم آیکون می‌سازد)");
 }
 
-// ⛔ لوگوی فروشگاه فقط مالِ فروشگاه است: هیچ آیکونِ هستیکو (`icon-*`) در وب‌اپِ
-//    فروشگاه، و هیچ `store-*` در مانیفست و برچسب‌های هستیکو.
+// ⛔ لوگوی فروشگاه فقط مالِ فروشگاه است: هیچ آیکونِ حساب لند (`icon-*`) در وب‌اپِ
+//    فروشگاه، و هیچ `store-*` در مانیفست و برچسب‌های حساب لند.
 T::ok(!preg_match('/icons\/icon-/', $tags) && preg_match_all('/icons\/store-(16|32|180)\.png/', $tags) === 3,
-    'برچسب‌های وب‌اپِ فروشگاه: favicon و آیکونِ آیفون از لوگوی فروشگاه (نه آیکونِ هستیکو)');
+    'برچسب‌های وب‌اپِ فروشگاه: favicon و آیکونِ آیفون از لوگوی فروشگاه (نه آیکونِ حساب لند)');
 $missIc = [];
 foreach (Biz::ICONS as $sz) {
     $fp = $root . '/assets/icons/store-' . $sz . '.png';
@@ -73,7 +73,7 @@ $im = @imagecreatefrompng($root . '/assets/icons/store-512.png');
 $c = $im ? imagecolorsforindex($im, imagecolorat($im, 1, 1)) : ['red' => 255, 'green' => 255, 'blue' => 255];
 T::ok($c['red'] > 200 && $c['blue'] < 90, 'store-512 تمام‌بلید است (گوشه‌ی سفید پر شده)', json_encode($c));
 $personal = (string)file_get_contents($root . '/assets/manifest.php') . (string)file_get_contents($root . '/includes/header.php');
-T::ok(!str_contains($personal, 'store-'), '⛔ مانیفست و سرآیندِ هستیکو به لوگوی فروشگاه دست نزده‌اند');
+T::ok(!str_contains($personal, 'store-'), '⛔ مانیفست و سرآیندِ حساب لند به لوگوی فروشگاه دست نزده‌اند');
 foreach (['includes/biz_head.php' => "Biz::icon('96')", 'store/login.php' => "Biz::icon('180')"] as $f => $needle) {
     T::ok(str_contains((string)file_get_contents($root . '/' . $f), $needle), "{$f} لوگوی فروشگاه را نشان می‌دهد");
 }
@@ -143,7 +143,7 @@ try {
     T::ok($mc === 200 && is_array($mf), 'assets/store-manifest.php پاسخ ۲۰۰ و JSONِ معتبر می‌دهد (بی‌کوکی هم)', substr($mb, 0, 120));
     T::same([$scope, $scope, 'standalone'], [$mf['scope'] ?? null, $mf['start_url'] ?? null, $mf['display'] ?? null],
         '⛔ scope و start_url هر دو /store/ و تمام‌صفحه');
-    T::ok(($mf['id'] ?? '') === $scope && ($mf['id'] ?? '') !== APP_BASE_PATH . '/index.php', 'id جدا از هستیکو — هر دو روی یک گوشی نصب می‌شوند');
+    T::ok(($mf['id'] ?? '') === $scope && ($mf['id'] ?? '') !== APP_BASE_PATH . '/index.php', 'id جدا از حساب لند — هر دو روی یک گوشی نصب می‌شوند');
     $miss = [];
     foreach (($mf['icons'] ?? []) as $ic) {
         if (!is_file($root . strtok((string)$ic['src'], '?'))) { $miss[] = $ic['src']; }
