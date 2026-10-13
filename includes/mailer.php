@@ -176,12 +176,22 @@ class Mailer
             $last = end($lines) ?: '';
             return [(int)substr($last, 0, 3), implode(' | ', $lines)];
         };
-        $cmd = function (string $c, array $expect) use ($fp, $read): string {
+        // ⛔ نامِ کاربری و رمز هرگز در پیامِ خطا نمی‌آیند — این پیام در `app_errors`، لاگِ
+        //    `var/log` و صفحه‌ی «خطاهای برنامه» می‌نشیند. پیش از این فقط دستورِ «AUTH…» پوشانده
+        //    می‌شد و خطِ بعدی (رمزِ base64) **خام** ذخیره می‌شد؛ با «535» رمزِ ایمیل روی صفحه‌ی
+        //    مدیر دیده شد (مهر ۱۴۰۵). حالا هر خطِ اعتبارنامه برچسبِ خودش را دارد (`$label`)، و
+        //    هر پیام پیش از پرتاب از هر شکلِ رمز و نامِ کاربری پاک می‌شود (`$scrub`) — حتی اگر
+        //    سرورِ ایمیل خودش آن را در پاسخ تکرار کند.
+        $secrets = array_values(array_filter([$pass, base64_encode($pass), $user, base64_encode($user)], fn($v) => strlen($v) >= 3));
+        usort($secrets, fn($a, $b) => strlen($b) <=> strlen($a));
+        $scrub = fn(string $m): string => $secrets ? str_replace($secrets, '***', $m) : $m;
+        $cmd = function (string $c, array $expect, ?string $label = null) use ($fp, $read, $scrub): string {
             if ($c !== '') { fwrite($fp, $c . "\r\n"); }
             [$code, $msg] = $read();
             if (!in_array($code, $expect, true)) {
-                $shown = $c !== '' ? preg_replace('/^(AUTH|.*PASS).*/i', '$1 …', $c) : '(اتصال)';
-                throw new RuntimeException("SMTP: پاسخ $code به «{$shown}» — $msg");
+                $shown = $label ?? ($c !== '' ? preg_replace('/^(AUTH|.*PASS).*/i', '$1 …', $c) : '(اتصال)');
+                throw new RuntimeException($scrub("SMTP: پاسخ $code به «{$shown}» — $msg")
+                    . ($code === 535 ? ' (نام کاربری یا رمزِ ایمیل در config.php درست نیست — deploy/mail-setup.sh)' : ''));
             }
             return $msg;
         };
@@ -220,8 +230,8 @@ class Mailer
 
             if ($user !== '') {
                 $cmd('AUTH LOGIN', [334]);
-                $cmd(base64_encode($user), [334]);
-                $cmd(base64_encode($pass), [235]);
+                $cmd(base64_encode($user), [334], 'نام کاربری');
+                $cmd(base64_encode($pass), [235], 'رمز');
             }
 
             $cmd('MAIL FROM:<' . MAIL_FROM . '>', [250]);

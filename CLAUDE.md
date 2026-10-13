@@ -370,6 +370,7 @@ sudo ./hesabland release     # همان abc1234 — و فقط همان — رو�
 ### `docs/decisions/admin-ops.md` — آمار، لاگ و خطا، زیرساخت، پشتیبانی
 - آمار فقط شمارش، نه محتوا؛ **هیچ ردیابیِ تازه‌ای**؛ `ACTIVITY_TABLES`/`NON_ACTIVITY_TABLES` بسته و گزینشی؛ فاصله‌ی روز با `DATEDIFF`.
 - محیطِ خطا (`app`/`store`) فقط `AppErrors::AREAS`، از مسیرِ درخواست یا `data-area`ِ مرورگر؛ هر کارِ `store/errors.php` فقط با محیط (`handleAction()`)، صفحه برای غیرِ مدیر ۴۰۴ و بیرونِ `Biz::NAV` (قاعده ۷۵)؛ گزارش‌گرِ مرورگر فقط `client-errors.js` (هر دو پوسته).
+- پیامِ خطای SMTP هرگز نامِ کاربری یا رمز (خام یا base64) ندارد — برچسبِ خطِ اعتبارنامه + پاک‌سازیِ پیام در `Mailer::sendSmtp()` (`test_mailer_smtp`).
 - لاگ فقط `Log` (JSONL در `var/log`، شسته پیش از نوشتن)؛ `error_log()` فقط در `log.php`/`app_errors.php`؛ ممیزی فقط رویدادهای امنیتی (`Audit::ACTIONS`)، ستونِ `actor_id`؛ «برطرف شد» با رخدادِ دوباره پس گرفته می‌شود؛ «Script error.» کور و `@` ثبت نمی‌شوند.
 - منطقه‌ی زمانی در `db.php` (`applyAppTimezone()` + افستِ عددی برای MySQL)؛ `die()` در تست یعنی `T::blocked` نه موفق؛ cron نشانه فقط بعد از موفقیت.
 - پشتیبانی: دروازه‌ی مقاله گامِ واقعیِ آدرس؛ سقفِ پیام روی سرور؛ `Support::ticketFor()` تنها خواننده؛ `addMessage()` تنها جلوبرنده‌ی وضعیت.
