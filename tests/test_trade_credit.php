@@ -160,7 +160,7 @@ $req = function (string $path, ?array $post = null) use ($port, $jar): array {
     }
     $body = (string)curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     return [$code, $body];
 };
 

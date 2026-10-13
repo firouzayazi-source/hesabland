@@ -280,7 +280,7 @@ $req = function (string $path, ?array $post = null) use ($port, $jar): array {
     if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
     $raw = (string)curl_exec($ch);
     $hl = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     $loc = preg_match('/^Location:\s*(\S+)/mi', substr($raw, 0, $hl), $m) ? $m[1] : '';
     return [$code, substr($raw, $hl), $loc];
 };

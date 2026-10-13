@@ -63,7 +63,7 @@ register_shutdown_function($wipeErr);
 
 $resetCap = static function (): void {
     $p = new ReflectionProperty(AppErrors::class, 'recorded');
-    $p->setAccessible(true);
+    PHP_VERSION_ID < 80100 && $p->setAccessible(true);
     $p->setValue(null, 0);
 };
 /** ردیف‌های همین نشانه — خطاهای واقعیِ دیتابیسِ توسعه دخالت نکنند. */
@@ -196,7 +196,7 @@ $jarFor = function () use ($port): callable {
         $raw  = (string)curl_exec($ch);
         $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         $loc = preg_match('/^Location:\s*(\S+)/mi', substr($raw, 0, $hlen), $m) ? $m[1] : '';
         return [$code, substr($raw, $hlen), $loc];
     };

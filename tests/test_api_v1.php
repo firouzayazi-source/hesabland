@@ -93,7 +93,7 @@ $api = function (string $method, string $path, ?array $body = null, ?string $tok
     ]);
     $raw  = (string)curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
 
     return [$code, json_decode($raw, true), $raw];
 };

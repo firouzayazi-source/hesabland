@@ -255,7 +255,7 @@ $req = function (string $path, ?array $fields = null, array $headers = [], bool 
     $raw  = (string)curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $hs   = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    curl_close($ch);
+    unset($ch);
     $hdr = [];
     foreach (explode("\r\n", substr($raw, 0, $hs)) as $h) {
         if (str_contains($h, ':')) { [$k, $v] = explode(':', $h, 2); $hdr[strtolower(trim($k))] = trim($v); }

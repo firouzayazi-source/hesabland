@@ -372,7 +372,7 @@ $req = function (string $path, $post = null) use ($port, $jar): array {
     $raw  = (string)curl_exec($ch);
     $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     $head = substr($raw, 0, $hlen);
     return [$code, substr($raw, $hlen), preg_match('/^Location:\s*(\S+)/mi', $head, $m) ? $m[1] : '', $head];
 };

@@ -185,7 +185,7 @@ $hit = static function (string $path, string $cookie = '') use ($port): array {
     if ($cookie !== '') { curl_setopt($ch, CURLOPT_COOKIE, $cookie); }
     $r = (string)curl_exec($ch);
     $hs = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    curl_close($ch);
+    unset($ch);
     return [substr($r, 0, $hs), substr($r, $hs)];
 };
 

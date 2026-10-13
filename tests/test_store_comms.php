@@ -131,7 +131,7 @@ T::ok(!BizShare::verify($o, $s1, $tok), '⛔ فروشگاهِ دیگر');
 // ⛔ حتی با نمکِ یکسان، امضا به شناسه‌ی فروشگاه بسته است (نه فقط به نمک)
 $pdo->prepare('INSERT INTO biz_settings (user_id, comms) VALUES (:u, :c) ON DUPLICATE KEY UPDATE comms = VALUES(comms)')
     ->execute(['u' => $o, 'c' => json_encode(['share_salt' => BizComms::settings($u)['share_salt']])]);
-$rc = new ReflectionProperty(BizComms::class, 'cache'); $rc->setAccessible(true); $rc->setValue(null, []);
+$rc = new ReflectionProperty(BizComms::class, 'cache'); PHP_VERSION_ID < 80100 && $rc->setAccessible(true); $rc->setValue(null, []);
 T::ok($tok !== BizShare::token($o, $s1) && !BizShare::verify($o, $s1, $tok), '⛔ امضا به فروشگاه بسته است، حتی با نمکِ یکسان');
 
 // ---- ۶. باشگاهِ مشتری ----
@@ -175,7 +175,7 @@ if (!$up) { exit(T::report()); }
 $anon = function (string $path) use ($port): array {
     $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40, CURLOPT_HEADER => true]);
-    $raw = (string)curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $raw = (string)curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); unset($ch);
     return [$code, $raw];
 };
 $view = fn(int $s, int $i, string $t) => $anon('store/view.php?' . http_build_query(['s' => $s, 'i' => $i, 't' => $t]));
@@ -199,7 +199,7 @@ $req = function (string $path, ?array $post = null) use ($port, $jar): array {
     $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar, CURLOPT_TIMEOUT => 40]);
     if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
-    $body = (string)curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $body = (string)curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); unset($ch);
     return [$code, $body];
 };
 [, $lp] = $req('store/login.php');

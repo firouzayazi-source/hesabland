@@ -221,7 +221,7 @@ try {
         $raw  = (string)curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $hs   = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        curl_close($ch);
+        unset($ch);
         $loc = preg_match('/^Location:\s*(\S+)/mi', substr($raw, 0, $hs), $lm) ? $lm[1] : '';
         return [$code, substr($raw, $hs), $loc];
     };

@@ -246,7 +246,7 @@ try {
         $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar, CURLOPT_TIMEOUT => 25]);
         if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
-        $b = (string)curl_exec($ch); curl_close($ch); return $b;
+        $b = (string)curl_exec($ch); unset($ch); return $b;
     };
     preg_match('/name="csrf_token"[^>]*value="([^"]+)"/', $req('login.php'), $m);
     $pdo->exec("DELETE FROM login_attempts WHERE request_ip = '127.0.0.1'");

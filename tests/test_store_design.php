@@ -196,7 +196,7 @@ $png = function (int $w, int $h, bool $alpha = true): string {
     $im = imagecreatetruecolor($w, $h);
     if ($alpha) { imagesavealpha($im, true); imagealphablending($im, false); imagefill($im, 0, 0, imagecolorallocatealpha($im, 0, 0, 0, 127)); }
     imagefilledellipse($im, intdiv($w, 2), intdiv($h, 2), intdiv($w, 2), intdiv($h, 2), imagecolorallocate($im, 30, 58, 138));
-    ob_start(); imagepng($im); $o = (string)ob_get_clean(); imagedestroy($im);
+    ob_start(); imagepng($im); $o = (string)ob_get_clean(); unset($im);
     return $o;
 };
 T::same(null, BizInvoiceDesign::logo($a), 'بی‌لوگو');
@@ -215,7 +215,7 @@ T::ok(!BizInvoiceDesign::saveLogoBytes($a, "GIF89a<?php system('id'); ?>")['ok']
 $bmp = (function () { $im = imagecreatetruecolor(40, 20); ob_start(); imagebmp($im); return (string)ob_get_clean(); })();
 $rb  = BizInvoiceDesign::saveLogoBytes($a, $bmp);
 T::ok(!$rb['ok'] && str_contains($rb['message'], 'فقط تصویرِ'), '⛔ قالبی بیرونِ فهرستِ بسته (BMP) رد می‌شود، حتی اگر GD بخواندش');
-$big = (function () { $im = imagecreate(6000, 6000); imagecolorallocate($im, 255, 255, 255); ob_start(); imagepng($im, null, 9); $o = (string)ob_get_clean(); imagedestroy($im); return $o; })();
+$big = (function () { $im = imagecreate(6000, 6000); imagecolorallocate($im, 255, 255, 255); ob_start(); imagepng($im, null, 9); $o = (string)ob_get_clean(); unset($im); return $o; })();
 T::ok(!BizInvoiceDesign::saveLogoBytes($a, $big)['ok'], '⛔ ابعادِ بیش از حد (بمبِ حافظه) پیش از بازکردن رد می‌شود');
 T::same('image/png', BizInvoiceDesign::logo($a)['mime'] ?? '', 'ردِ فایلِ بد لوگوی قبلی را پاک نکرد');
 $pdo->prepare("UPDATE biz_logos SET mime = 'text/html' WHERE user_id = :u")->execute(['u' => $b]);
@@ -273,7 +273,7 @@ $req = function (string $path, ?array $post = null, bool $multipart = false) use
     if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, $multipart ? $post : http_build_query($post)); }
     $body = (string)curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     return [$code, $body];
 };
 $csrfOf = fn(string $html): string => preg_match('/name="csrf_token"[^>]*value="([^"]+)"/', $html, $m) ? $m[1] : '';

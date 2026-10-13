@@ -171,7 +171,7 @@ $req = function (string $path, ?array $post = null) use ($port, $jar): array {
     $raw  = (string)curl_exec($ch);
     $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     return [$code, substr($raw, $hlen), substr($raw, 0, $hlen)];
 };
 

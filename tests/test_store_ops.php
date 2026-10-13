@@ -370,7 +370,7 @@ if (!$up) {
         $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar, CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 40]);
         if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, is_array($post) && !array_filter($post, fn($v) => $v instanceof CURLFile) ? http_build_query($post) : $post); }
-        $raw = (string)curl_exec($ch); $hl = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        $raw = (string)curl_exec($ch); $hl = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); unset($ch);
         $loc = preg_match('/^Location:\s*(\S+)/mi', substr($raw, 0, $hl), $m) ? $m[1] : '';
         return [$code, substr($raw, $hl), $loc];
     };

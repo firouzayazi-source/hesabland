@@ -74,7 +74,7 @@ $req = function (string $path, string $method = 'POST') use ($port): array {
     ]);
     $body = (string)curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     return [$code, $body];
 };
 
@@ -244,7 +244,7 @@ if ($pdoOk) {
         if ($fields !== null) { curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields)); }
         $body = (string)curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         return [$code, $body];
     };
 
@@ -619,7 +619,7 @@ if (is_array($manifest) && !empty($manifest['icons'])) {
                     }
                 }
             }
-            imagedestroy($img);
+            unset($img);
             $far = 0.0;
             foreach ([[$x0, $y0], [$x1, $y0], [$x0, $y1], [$x1, $y1]] as $c) {
                 $dx  = $c[0] / $w - 0.5;

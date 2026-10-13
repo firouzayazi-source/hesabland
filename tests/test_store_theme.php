@@ -199,7 +199,7 @@ Biz::savePalette($a, $def);
 T::ok($raw($a) === null, '⛔ پیش‌فرض NULL ذخیره شد، نه نامش (پیش‌فرضِ فردا به همه برسد)');
 $pdo->prepare('UPDATE biz_settings SET palette = :p WHERE user_id = :u')->execute(['p' => 'neon', 'u' => $a]);
 $fresh = (new ReflectionClass('Biz'));
-foreach (['settingsCache', 'paletteCache'] as $prop) { $pp = $fresh->getProperty($prop); $pp->setAccessible(true); $pp->setValue(null, []); }
+foreach (['settingsCache', 'paletteCache'] as $prop) { $pp = $fresh->getProperty($prop); PHP_VERSION_ID < 80100 && $pp->setAccessible(true); $pp->setValue(null, []); }
 T::same($def, Biz::palette($a), 'مقدارِ ناشناخته در دیتابیس به پیش‌فرض برمی‌گردد');
 Biz::savePalette($a, $def);
 
@@ -234,7 +234,7 @@ $req = function (string $path, ?array $post = null) use ($port, $jar): array {
     if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
     $body = (string)curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     return [$code, $body];
 };
 $csrfOf = fn(string $html): string => preg_match('/name="csrf_token"[^>]*value="([^"]+)"/', $html, $m) ? $m[1] : '';

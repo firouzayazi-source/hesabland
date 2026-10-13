@@ -226,7 +226,7 @@ $session = function (string $username, string $password) use ($port): callable {
         $raw  = (string)curl_exec($ch);
         $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         return [$code, substr($raw, $hlen)];
     };
     [, $html] = $req('login.php');

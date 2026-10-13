@@ -259,7 +259,7 @@ $jarFor = function (?string $jar = null) use ($port): array {
         $raw  = (string)curl_exec($ch);
         $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         $loc = preg_match('/^Location:\s*(\S+)/mi', substr($raw, 0, $hlen), $m) ? $m[1] : '';
         return [$code, substr($raw, $hlen), $loc];
     };
@@ -392,7 +392,7 @@ curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CU
     CURLOPT_POSTFIELDS => json_encode(['username' => BPREFIX . 'shop', 'password' => BPASS])]);
 $raw = (string)curl_exec($ch);
 $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+unset($ch);
 $j = json_decode($raw, true);
 T::ok($code === 403 && str_contains($raw, 'business_account'), '⛔ API موبایل به حسابِ فروشگاهی توکن نمی‌دهد', "{$code}");
 T::same(0, (int)$pdo->query("SELECT COUNT(*) FROM api_tokens WHERE user_id = {$bid}")->fetchColumn(), 'و هیچ توکنی ساخته نشد');
@@ -481,7 +481,7 @@ curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CU
     CURLOPT_POSTFIELDS => json_encode(['username' => BPREFIX . 'both', 'password' => BPASS])]);
 $raw = (string)curl_exec($ch);
 $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+unset($ch);
 T::ok($code === 200 && !str_contains($raw, 'business_account'), 'API موبایل به حسابِ «شخصی + فروشگاه» توکن می‌دهد', "{$code}");
 
 // مدیر نوع را روشن می‌کند در حالی که کاربر وارد است — بدونِ ورودِ دوباره

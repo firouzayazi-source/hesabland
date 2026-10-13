@@ -151,7 +151,7 @@ try {
         if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
         $body = (string)curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         return [$code, $body];
     };
     $pdo->exec("DELETE FROM login_attempts WHERE request_ip = '127.0.0.1'");
@@ -192,7 +192,7 @@ try {
             CURLOPT_HTTPHEADER => ['X-Requested-With: XMLHttpRequest']]);
         $b = (string)curl_exec($ch);
         $c = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         return [$c, json_decode($b, true) ?: []];
     };
     $stored = function () use ($pdo, $uid) {
@@ -243,7 +243,7 @@ try {
         CURLOPT_POSTFIELDS => 'csrf_token=bad', CURLOPT_HTTPHEADER => ['X-Requested-With: XMLHttpRequest']]);
     curl_exec($ch);
     $cc = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     T::ok($cc >= 400, 'بدونِ توکنِ درست ذخیره نمی‌شود', (string)$cc);
     T::same(null, $stored(), 'و دیتابیس دست‌نخورده ماند');
 } finally {

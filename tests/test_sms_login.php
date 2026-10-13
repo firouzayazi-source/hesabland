@@ -23,6 +23,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/lib/assert.php';
+require_once __DIR__ . '/../includes/outbound.php';
 
 if (!file_exists(__DIR__ . '/../config/config.php')) {
     T::group('ورود با پیامک');
@@ -356,7 +357,7 @@ if (!is_resource($srv)) {
         $ctx = stream_context_create(['http' => ['ignore_errors' => true, 'timeout' => 5]]);
         $body = @file_get_contents("http://127.0.0.1:$port$path", false, $ctx);
         $code = 0;
-        foreach ($http_response_header ?? [] as $h) {
+        foreach (Outbound::responseHeaders(get_defined_vars()) as $h) {
             if (preg_match('#^HTTP/\S+\s+(\d+)#', $h, $m)) { $code = (int)$m[1]; }
         }
         return [$code, (string)$body];
@@ -585,7 +586,7 @@ T::group('⛔ پاسخِ کنسول: recId معیار است، نه status');
 
 $accept = (function () {
     $m = new ReflectionMethod('Sms', 'meliConsoleAccepted');
-    $m->setAccessible(true);
+    PHP_VERSION_ID < 80100 && $m->setAccessible(true);
     return fn(int $code, string $body) => $m->invoke(null, ['code' => $code, 'body' => $body]);
 })();
 

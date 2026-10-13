@@ -318,7 +318,7 @@ T::ok($r['ok'] && $pp['paper'] === 'a5' && $pp['orient'] === 'landscape' && $pp[
 T::ok(!Biz::savePrintPrefs($a, ['paper' => 'a3', 'orient' => 'portrait', 'font' => 'md', 'margin' => 'normal'])['ok'], 'کاغذِ ناشناخته رد می‌شود');
 T::same(Biz::PRINT_DEFAULTS, Biz::printPrefs($b), '⛔ تنظیماتِ A به B نمی‌رسد');
 $pdo->prepare("UPDATE biz_settings SET print_prefs = '{\"paper\":\"zz\",\"font\":\"lg\",bad' WHERE user_id = :u")->execute(['u' => $a]);
-$fn = (new ReflectionClass('Biz'))->getProperty('printCache'); $fn->setAccessible(true); $fn->setValue(null, []);
+$fn = (new ReflectionClass('Biz'))->getProperty('printCache'); PHP_VERSION_ID < 80100 && $fn->setAccessible(true); $fn->setValue(null, []);
 T::same(Biz::PRINT_DEFAULTS, Biz::printPrefs($a), 'JSONِ خراب بی‌صدا به پیش‌فرض برمی‌گردد، نه برگه‌ی شکسته');
 Biz::savePrintPrefs($a, ['paper' => 'a5', 'orient' => 'landscape', 'font' => 'lg', 'margin' => 'narrow', 'show_sign' => '1', 'show_header' => '1']);
 
@@ -411,7 +411,7 @@ $req = function (string $path, $post = null) use ($port, $jar): array {
     $raw  = (string)curl_exec($ch);
     $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch);
     $head = substr($raw, 0, $hlen);
     $loc  = preg_match('/^Location:\s*(\S+)/mi', $head, $m) ? $m[1] : '';
     return [$code, substr($raw, $hlen), $loc, $head];

@@ -97,7 +97,7 @@ $req = function (string $path, ?array $post = null, bool $follow = false) use ($
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar, CURLOPT_TIMEOUT => 40,
                             CURLOPT_FOLLOWLOCATION => $follow, CURLOPT_HEADER => !$follow]);
     if ($post !== null) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
-    $body = (string)curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $body = (string)curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); unset($ch);
     return [$code, $body];
 };
 [, $lp] = $req('store/login.php', null, true);

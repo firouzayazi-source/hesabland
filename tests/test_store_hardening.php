@@ -516,7 +516,7 @@ if (!$up) {
         $raw = (string)curl_exec($ch);
         $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         $loc = preg_match('/^Location:\s*(\S+)/mi', substr($raw, 0, $hlen), $m) ? $m[1] : '';
         return [$code, substr($raw, $hlen), $loc];
     };
@@ -596,7 +596,7 @@ if (!$up) {
         CURLOPT_POSTFIELDS => http_build_query(['csrf_token' => $field($ac2, 'csrf_token'), 'action' => 'export'])]);
     $body = (string)curl_exec($ch);
     $type = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-    curl_close($ch);
+    unset($ch);
     $js = json_decode($body, true);
     T::ok(str_contains($type, 'octet-stream') && is_array($js) && isset($js['tables']['biz_products']),
         '⛔ بکاپِ کامل (با دفترِ فروشگاه) دانلود می‌شود', substr($type . ' ' . $body, 0, 120));

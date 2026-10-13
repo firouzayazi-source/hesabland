@@ -76,7 +76,7 @@ $mine = static function (string $filter) use ($MARK): array {
 /** `record()` سقفِ ۵ ثبت در هر درخواست دارد؛ اینجا پروسه یکی است. */
 $resetCap = static function (): void {
     $p = new ReflectionProperty(AppErrors::class, 'recorded');
-    $p->setAccessible(true);
+    PHP_VERSION_ID < 80100 && $p->setAccessible(true);
     $p->setValue(null, 0);
 };
 
