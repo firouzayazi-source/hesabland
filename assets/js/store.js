@@ -679,6 +679,29 @@
     });
 })();
 
+/* نرخِ ارز (`BizFx`): فقط وقتی طرف‌حسابِ انتخاب‌شده حسابِ ارزی دارد (`data-fx` روی گزینه).
+   ⛔ بی‌اسکریپت همیشه دیده می‌شود؛ سرور نرخِ طرف‌حسابِ تومانی را نادیده می‌گیرد. */
+(function () {
+    'use strict';
+    document.addEventListener('DOMContentLoaded', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('[data-fx-field]'), function (box) {
+            var form = box.closest('form');
+            var sel = form && form.querySelector('select[name="party_id"]');
+            if (!sel) { return; }
+            var label = box.querySelector('span');
+            var sync = function () {
+                var o = sel.options[sel.selectedIndex];
+                var fx = o ? o.getAttribute('data-fx') : null;
+                box.hidden = !fx;
+                // ⛔ متن نه HTML — نامِ ارز از ویژگیِ گزینه می‌آید
+                if (label && fx) { label.textContent = 'نرخِ ' + fx + ' (تومان برای یک واحد؛ خالی = نرخِ روز)'; }
+            };
+            sel.addEventListener('change', sync);
+            sync();
+        });
+    });
+})();
+
 /* «انتخابِ همه» — چک‌باکسِ `js-check-all` همه‌ی `[data-group]`ِ هم‌نامش را
    تیک می‌زند یا برمی‌دارد (پاک‌سازیِ کالاها). بی‌اسکریپت هر ردیف جدا تیک
    می‌خورد و فرم همان کار را می‌کند. */

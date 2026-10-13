@@ -1460,7 +1460,7 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 @media (min-width: 720px) { .st-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 960px) { .st-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .st-grid-2 > .st-card, .st-grid-3 > .st-card { margin: 0; }
-.st-inline { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.st-inline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
 .st-detail summary { cursor: pointer; font-size: 12px; }
 .st-detail .st-list { margin-top: 6px; }
 .st-journal .st-card-head { margin-bottom: 6px; }
@@ -1509,3 +1509,20 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-pill.is-inst-paid    { background: var(--st-ok-wash); color: var(--st-ok); border-color: transparent; }
 .st-pill.is-inst-partial { background: var(--st-warn-wash); color: var(--st-warn); border-color: transparent; }
 .st-pill.is-inst-overdue { background: var(--st-err-wash); color: var(--st-err); border-color: transparent; }
+
+/* ---------- خانه‌ی کوچکِ داخلِ ردیف (امانی، هزینه‌ی تکراری، مغایرت‌گیری، پیشنهادِ خرید) ---------- */
+.st-inline input, .st-inline select, .st-table .st-input-sm, .st-table td > select {
+    font: inherit; font-size: 13px; color: var(--st-ink); background: var(--st-surface);
+    border: 1px solid var(--st-line-2); border-radius: var(--st-radius-sm); padding: 0 8px; min-height: 34px; max-width: 100%;
+}
+.st-input-sm { width: 8.5em; }
+.st-inline input:focus, .st-inline select:focus, .st-table .st-input-sm:focus { outline: none; box-shadow: var(--st-ring); border-color: var(--st-accent); }
+
+/* ---------- هشدارها و پیش‌بینی ---------- */
+.st-alert-group { margin-bottom: 14px; }
+.st-alert-group .st-h3 { display: flex; align-items: center; gap: 8px; }
+.st-alert-count { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--st-line); color: var(--st-ink-2); }
+.st-alert-group.is-bad .st-alert-count { background: var(--st-err-wash); color: var(--st-err); }
+.st-alert-group.is-warn .st-alert-count { background: var(--st-warn-wash); color: var(--st-warn); }
+.st-forecast-bar { display: block; height: 6px; border-radius: 3px; background: var(--st-accent); min-width: 2px; }
+.st-forecast-bar.is-neg { background: var(--st-err); }

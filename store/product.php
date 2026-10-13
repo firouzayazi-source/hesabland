@@ -152,6 +152,7 @@ require __DIR__ . '/../includes/biz_head.php';
     <div class="st-head-actions">
         <?php if ($product && (int)$product['is_active'] !== 1): ?><span class="st-badge is-out">غیرفعال</span><?php endif; ?>
         <?php if ($product && (int)$product['track_stock'] === 1): ?><a class="st-btn st-btn-ghost" href="<?= h(Biz::url('print.php?doc=kardex&id=' . (int)$product['id'])) ?>">چاپِ کاردکس</a><?php endif; ?>
+        <?php if ($product): ?><a class="st-btn st-btn-ghost" href="<?= h(Biz::url('labels.php?ids=' . (int)$product['id'] . ((int)$product['has_serial'] === 1 ? '&units=1' : ''))) ?>">چاپِ برچسب</a><?php endif; ?>
         <?php if ($product && (int)($product['has_serial'] ?? 0) === 1): ?><a class="st-btn st-btn-ghost" href="<?= h(Biz::url('print.php?doc=serials&id=' . (int)$product['id'])) ?>">گزارشِ IMEI</a><?php endif; ?>
     </div>
 </div>

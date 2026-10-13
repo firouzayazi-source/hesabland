@@ -115,8 +115,11 @@ $form = [
     'to_account_id' => (int)($accounts[1]['id'] ?? 0),
     'method' => getParam('method') === 'cheque' && in_array($kind, ['receipt', 'payment'], true) ? 'cheque' : 'cash',
     'pay_date' => BizDocView::jDate(date('Y-m-d')), 'title' => '', 'note' => '', 'category_id' => (int)getParam('cat', '0'),
-    'cheque_no' => '', 'cheque_bank' => '', 'cheque_due' => '',
+    'cheque_no' => '', 'cheque_bank' => '', 'cheque_due' => '', 'fx_rate' => '',
 ];
+// ⛔ پیش‌پرِ تاریخ و شرح (مغایرت‌گیریِ بانکی: «ثبتِ سند» برای ردیفِ جفت‌نشده) — فقط پیشنهاد
+if (isValidDate(getParam('date'))) { $form['pay_date'] = BizDocView::jDate(getParam('date')); }
+if (getParam('title') !== '') { $form['title'] = mb_substr(BizCommon::line(getParam('title')), 0, BizPay::TITLE_MAX); }
 $chequeReady = in_array($kind, ['receipt', 'payment'], true) && BizCheques::ready();
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -133,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'account_id' => (int)$form['account_id'], 'to_account_id' => (int)$form['to_account_id'], 'method' => $form['method'],
         'pay_date' => $pd['date'], 'title' => $form['title'], 'note' => $form['note'], 'category_id' => (int)$form['category_id'],
         'cheque_no' => $form['cheque_no'], 'cheque_bank' => $form['cheque_bank'],
-        'cheque_due' => $cd['date'],
+        'cheque_due' => $cd['date'], 'fx_rate' => $form['fx_rate'],
     ]));
     if ($r['ok']) {
         $to = $invId ? Biz::url('invoice.php?id=' . $invId) : Biz::url('payment.php?id=' . (int)$r['id']);
@@ -171,7 +174,7 @@ require __DIR__ . '/../includes/biz_head.php';
         <label class="st-field"><span><?= $kind === 'receipt' ? 'از چه کسی' : 'به چه کسی' ?></span>
             <select name="party_id" required>
                 <option value="">— انتخاب کنید —</option>
-                <?php foreach ($parties as $p): ?><option value="<?= (int)$p['id'] ?>"<?= (int)$p['id'] === (int)$form['party_id'] ? ' selected' : '' ?>><?= h($p['name']) ?> (مانده <?= h(formatMoney(abs((int)$p['balance']))) ?> <?= (int)$p['balance'] > 0 ? 'بد' : ((int)$p['balance'] < 0 ? 'بس' : '') ?>)</option><?php endforeach; ?>
+                <?php foreach ($parties as $p): ?><option value="<?= (int)$p['id'] ?>"<?= !empty($p['fx_code']) ? ' data-fx="' . h(BizFx::label((string)$p['fx_code'])) . '"' : '' ?><?= (int)$p['id'] === (int)$form['party_id'] ? ' selected' : '' ?>><?= h($p['name']) ?> (مانده <?= h(formatMoney(abs((int)$p['balance']))) ?> <?= (int)$p['balance'] > 0 ? 'بد' : ((int)$p['balance'] < 0 ? 'بس' : '') ?>)</option><?php endforeach; ?>
             </select>
         </label>
         <?php if ($open): ?>
@@ -215,6 +218,12 @@ require __DIR__ . '/../includes/biz_head.php';
         </label>
         <?php endif; ?>
     </div>
+    <?php if (array_filter($parties, fn($p) => !empty($p['fx_code']))): ?>
+    <label class="st-field" data-fx-field>
+        <span>نرخِ ارز <small class="st-muted">(فقط طرف‌حسابِ ارزی — تومان برای یک واحد؛ خالی = نرخِ روز)</small></span>
+        <input data-money type="text" name="fx_rate" inputmode="decimal" dir="ltr" value="<?= h((string)$form['fx_rate']) ?>">
+    </label>
+    <?php endif; ?>
     <?php if ($chequeReady): /* بی‌جاوااسکریپت همیشه دیده می‌شود؛ store.js برای روشِ غیرِچک پنهانش می‌کند */ ?>
     <fieldset class="st-fieldset" data-cheque-fields>
         <legend>مشخصاتِ چک <small class="st-muted">(فقط وقتی روش «چک» است)</small></legend>

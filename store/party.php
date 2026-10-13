@@ -36,7 +36,10 @@ $form = [
     'code'           => (string)($party['code'] ?? ''),
     'price_level'    => (string)($party['price_level'] ?? 'retail'),
     'credit_limit'   => (int)($party['credit_limit'] ?? 0) > 0 ? number_format((int)$party['credit_limit']) : '',
+    'fx_code'        => (string)($party['fx_code'] ?? ''),
 ];
+// ⚠ ستونِ «ارزِ حساب» (migration_biz_ops) — ردیفِ موجود خودش می‌گوید
+$hasFx = $party ? array_key_exists('fx_code', $party) : BizFx::ready();
 $hasTerms = $party ? array_key_exists('credit_limit', $party) : BizParties::termsReady();
 // ⚠ همان شگرد: ردیفِ موجود می‌گوید ستونِ «کد» آمده یا نه
 $hasPcode = $party ? array_key_exists('code', $party) : BizParties::hasPartyCode();
@@ -53,6 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($res['ok'] && isset($_POST['terms_form'])) {
             $tr = BizParties::saveTerms($userId, (int)$res['id'], $_POST);
             if (!$tr['ok']) { redirectWithMessage(Biz::url('party.php?id=' . (int)$res['id']), 'error', 'طرف‌حساب ذخیره شد، ولی ' . $tr['message']); }
+        }
+        // ⛔ ارزِ حساب جدا (`BizFx::setPartyCode()`) — سندهای گذشته نرخِ خودشان را نگه می‌دارند
+        if ($res['ok'] && $hasFx && isset($_POST['fx_form'])) {
+            $fr = BizFx::setPartyCode($userId, (int)$res['id'], (string)postParam('fx_code'));
+            if (!$fr['ok']) { redirectWithMessage(Biz::url('party.php?id=' . (int)$res['id']), 'error', 'طرف‌حساب ذخیره شد، ولی ' . $fr['message']); }
         }
         if ($res['ok']) {
             redirectWithMessage(Biz::url('party.php?id=' . (int)$res['id']), 'success', $res['message']);
@@ -225,7 +233,15 @@ require __DIR__ . '/../includes/biz_head.php';
             <label class="st-field"><span>سقفِ اعتبار (تومان) <small class="st-muted">— خالی = بی‌سقف</small></span>
                 <input data-money type="text" name="credit_limit" inputmode="numeric" dir="ltr" value="<?= h((string)$form['credit_limit']) ?>"></label>
         </div>
-        <p class="st-muted">فاکتورِ این طرف‌حساب با قیمتِ همین سطح پر می‌شود (اگر برای کالا تعریف شده باشد). فروشِ نسیه‌ای که مانده را از سقف بالاتر ببرد صادر نمی‌شود، مگر کسی با دسترسیِ مالی «گذر از سقف» را بزند.</p>
+        <?php if ($hasFx): ?>
+        <input type="hidden" name="fx_form" value="1">
+        <label class="st-field"><span>ارزِ حساب</span>
+            <select name="fx_code">
+                <option value="">تومان</option>
+                <?php foreach (BizFx::codes() as $fk => $fl): ?><option value="<?= h($fk) ?>"<?= $fk === $form['fx_code'] ? ' selected' : '' ?>><?= h($fl) ?></option><?php endforeach; ?>
+            </select></label>
+        <?php endif; ?>
+        <p class="st-muted">فاکتورِ این طرف‌حساب با قیمتِ همین سطح پر می‌شود (اگر برای کالا تعریف شده باشد). فروشِ نسیه‌ای که مانده را از سقف بالاتر ببرد صادر نمی‌شود، مگر کسی با دسترسیِ مالی «گذر از سقف» را بزند.<?= $hasFx ? ' با حسابِ ارزی، هر فاکتور و دریافت/پرداخت نرخِ روزِ خودش را نگه می‌دارد و مانده‌ی ارزی و سود/زیانِ نرخ در «هشدارها و پیش‌بینی» دیده می‌شود.' : '' ?></p>
     </fieldset>
     <?php endif; ?>
     <label class="st-field">

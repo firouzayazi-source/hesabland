@@ -61,6 +61,10 @@ final class Biz
         // گزارشِ پیامک: فقط طرف‌حساب نگاشت می‌شود؛ `ref_id` چندریختی است و فقط برای سدِ «همین حالا
         // فرستاده شد» (ده دقیقه) به کار می‌آید — شناسه‌ی کهنه‌اش زیانی ندارد
         'biz_sms_log'           => ['party_id' => 'biz_parties'],
+        // migration_biz_ops
+        'biz_consignments'      => ['party_id' => 'biz_parties', 'product_id' => 'biz_products', 'invoice_id' => 'biz_invoices'],
+        'biz_bank_lines'        => ['account_id' => 'biz_accounts', 'payment_id' => 'biz_payments'],
+        'biz_recurring'         => ['category_id' => 'biz_expense_cats', 'account_id' => 'biz_accounts'],
     ];
 
     /** ⛔ تنها مرجعِ نوع‌های حساب. کلیدِ اول پیش‌فرض است. */
@@ -100,12 +104,13 @@ final class Biz
      * «دریافت و پرداخت» است و «نیاز به توجه» روی خودِ داشبورد.
      */
     public const NAV = [
-        'اصلی'     => ['index.php' => 'داشبورد', 'search.php' => 'جستجوی سریع'],
+        'اصلی'     => ['index.php' => 'داشبورد', 'insights.php' => 'هشدارها و پیش‌بینی', 'search.php' => 'جستجوی سریع'],
         'فروشگاه'  => ['quick-sale.php' => 'فروش سریع', 'sales.php' => 'فاکتورهای فروش', 'purchases.php' => 'فاکتورهای خرید',
-                       'products.php' => 'محصولات و موجودی', 'warehouses.php' => 'انبارها', 'categories.php' => 'دسته‌بندی‌ها', 'parties.php' => 'مشتریان و تأمین‌کنندگان',
+                       'products.php' => 'محصولات و موجودی', 'reorder.php' => 'پیشنهادِ خرید', 'consignments.php' => 'کالای امانی',
+                       'warehouses.php' => 'انبارها', 'categories.php' => 'دسته‌بندی‌ها', 'parties.php' => 'مشتریان و تأمین‌کنندگان',
                        'repairs.php' => 'تعمیرات و گارانتی'],
         'مالی'     => ['payments.php' => 'دریافت و پرداخت', 'accounts.php' => 'صندوق و بانک', 'cheques.php' => 'چک‌ها',
-                       'installments.php' => 'اقساطِ مشتریان',
+                       'installments.php' => 'اقساطِ مشتریان', 'recurring.php' => 'هزینه‌های تکراری', 'bank-rec.php' => 'مغایرت‌گیریِ بانکی',
                        'payroll.php' => 'حقوق و مساعده'],
         'گزارش‌ها' => ['reports.php' => 'گزارش‌ها و چاپ', 'accounting.php' => 'دفاتر و مالیات'],
         'سیستم'    => ['settings.php' => 'تنظیمات فروشگاه', 'invoice-design.php' => 'طراحی فاکتور', 'print-settings.php' => 'تنظیمات چاپ',
@@ -138,6 +143,8 @@ final class Biz
         'cash-count.php'   => 'accounts.php',
         // دریافتِ کالا از سایت — زیرِ «ورود و خروجِ اطلاعات»
         'products-io.php'  => 'import.php',
+        // چاپِ برچسبِ کالا و IMEI
+        'labels.php'       => 'products.php',
     ];
 
     /**
@@ -340,6 +347,11 @@ final class Biz
             'accounting.php'     => '<path d="M5 3h11l3 3v15H5z"/><path d="M12 3v18"/><path d="M8 8h1M8 12h1M8 16h1M15 8h1M15 12h1M15 16h1"/>',
             'installments.php'   => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 15h2M14 15h2"/>',
             'warehouses.php'     => '<path d="M3 10l9-6 9 6v10H3z"/><path d="M7 20v-6h10v6"/><path d="M7 17h10"/>',
+            'insights.php'       => '<path d="M12 3a6 6 0 0 0-6 6c0 4-2 5.5-2 5.5h16S18 13 18 9a6 6 0 0 0-6-6z"/><path d="M10 18.5a2 2 0 0 0 4 0"/>',
+            'reorder.php'        => '<path d="M3 4h2l2.4 11h11L21 7H6.2"/><path d="M14 9v4M12 11h4"/>',
+            'consignments.php'   => '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/><path d="M12 13v3"/>',
+            'recurring.php'      => '<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/>',
+            'bank-rec.php'       => '<path d="M3 9l9-5 9 5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/>',
             'repairs.php'        => '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.5 17.5a1.5 1.5 0 0 0 2.1 2.1l5.8-5.8a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.1-.6-.6-2.1z"/>',
             'staff.php'          => '<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M14 19.5a4 4 0 0 1 7.5-1.9"/>',
             'categories.php'     => '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
@@ -677,6 +689,9 @@ final class Biz
         'settings.php' => 'settings', 'invoice-design.php' => 'settings', 'print-settings.php' => 'settings',
         'import.php' => 'settings', 'products-io.php' => 'settings', 'staff.php' => 'staff',
         'repairs.php' => 'repairs', 'repair.php' => 'repairs', 'installments.php' => 'receive', 'warehouses.php' => 'products',
+        // migration_biz_ops: امانی و پیشنهادِ خرید = خرید؛ مغایرت‌گیری و هزینه‌ی تکراری = پول؛ برچسب = کالا
+        'consignments.php' => 'buy', 'reorder.php' => 'buy', 'bank-rec.php' => 'money', 'recurring.php' => 'money',
+        'insights.php' => 'reports', 'labels.php' => 'products',
     ];
 
     /**

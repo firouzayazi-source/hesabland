@@ -539,6 +539,22 @@ final class BizInvoices
             $wh = BizWarehouses::pick($userId, $in['warehouse_id']);
             if ($wh === false) { return ['ok' => false, 'message' => 'انبار پیدا نشد یا غیرفعال است.']; }
         }
+        // ⛔ طرف‌حسابِ ارزی (migration_biz_ops): نرخِ سند عکسِ همین لحظه — فرم، وگرنه نرخِ خودِ
+        //    پیش‌نویس، وگرنه نرخِ روز (`BizFx::docRate()`). طرف‌حسابِ تومانی ⇒ `NULL`.
+        $fx = false;
+        if (BizFx::ready()) {
+            $fxCode = $head['party_id'] !== null ? BizFx::partyCode($userId, (int)$head['party_id']) : null;
+            $fxCur = null;
+            if ($fxCode !== null && $id > 0) {
+                $fr0 = Database::getConnection()->prepare('SELECT fx_rate FROM biz_invoices WHERE id = :id AND user_id = :u');
+                $fr0->execute(['id' => $id, 'u' => $userId]);
+                $v = $fr0->fetchColumn();
+                $fxCur = $v !== false && $v !== null ? (float)$v : null;
+            }
+            $fr = BizFx::docRate($fxCode, $in['fx_rate'] ?? '', $fxCur);
+            if (!$fr['ok']) { return ['ok' => false, 'message' => $fr['message']]; }
+            $fx = $fr['rate'];
+        }
 
         $pdo = Database::getConnection();
         $pdo->beginTransaction();
@@ -582,6 +598,10 @@ final class BizInvoices
             if ($wh !== false) {
                 $pdo->prepare('UPDATE biz_invoices SET warehouse_id = :w WHERE id = :id AND user_id = :u')
                     ->execute(['w' => $wh, 'id' => $id, 'u' => $userId]);
+            }
+            if ($fx !== false) {
+                $pdo->prepare('UPDATE biz_invoices SET fx_rate = :r WHERE id = :id AND user_id = :u')
+                    ->execute(['r' => $fx, 'id' => $id, 'u' => $userId]);
             }
             // ⛔ سرگذشت: ویرایشِ پیش‌نویسی که **شماره دارد** (صادر شده بود و برای
             //    اصلاح برگشت) با عکسِ پیش از ویرایش — همان سندی که دستِ مشتری است.
@@ -1425,6 +1445,18 @@ final class BizPay
         if ($catId !== null) {
             $pdo->prepare('UPDATE biz_payments SET category_id = :c WHERE id = :id AND user_id = :u')
                 ->execute(['c' => $catId, 'id' => $id, 'u' => $userId]);
+        }
+        // ⛔ دریافت/پرداختِ طرف‌حسابِ ارزی: نرخِ فرم، وگرنه (بی‌فاکتور) نرخِ روز. پولِ همراهِ
+        //    فاکتور بی‌نرخ می‌ماند و نرخِ خودِ فاکتور را می‌گیرد (`BizFx::balances()`).
+        if ($party > 0 && in_array($kind, ['receipt', 'payment'], true) && BizFx::ready()
+            && ($fxCode = BizFx::partyCode($userId, $party)) !== null) {
+            $fxIn = BizFx::parseRate($in['fx_rate'] ?? '');
+            if ($fxIn === null) { return ['ok' => false, 'message' => 'نرخِ ' . BizFx::label($fxCode) . ' معتبر نیست.']; }
+            $fxRate = $fxIn > 0 ? $fxIn : ($invId > 0 ? null : BizFx::todayRate($fxCode));
+            if ($fxRate !== null) {
+                $pdo->prepare('UPDATE biz_payments SET fx_rate = :r WHERE id = :id AND user_id = :u')
+                    ->execute(['r' => $fxRate, 'id' => $id, 'u' => $userId]);
+            }
         }
         if ($chq !== null) {
             $pdo->prepare("UPDATE biz_payments SET cheque_no = :no, cheque_bank = :b, cheque_due = :d, cheque_status = 'pending'
@@ -2619,3 +2651,5 @@ final class BizLog
 require_once __DIR__ . '/biz_acc.php';
 // ارتباط با مشتری — `issueTx()` سدِ امتیازِ وفاداری را از آن می‌پرسد
 require_once __DIR__ . '/biz_comms.php';
+// امانی، ارز، مغایرت‌گیریِ بانکی، هزینه‌ی تکراری — `saveDraft()`/`createTx()` نرخِ ارز را از آن می‌پرسند
+require_once __DIR__ . '/biz_ops.php';

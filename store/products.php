@@ -37,6 +37,7 @@ require __DIR__ . '/../includes/biz_head.php';
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('products-io.php')) ?>">ورود و خروجِ اکسل</a>
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('products-cleanup.php')) ?>">پاک‌سازی و حذفِ کالاها</a>
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('print.php') . '?' . http_build_query(array_filter(['doc' => 'stock', 'f' => $filter, 'c' => $cat], fn($v) => $v !== ''))) ?>">چاپ</a>
+        <?php if (!empty($list['rows'])): ?><a class="st-btn st-btn-ghost" href="<?= h(Biz::url('labels.php?ids=' . implode(',', array_map(fn($p) => (int)$p['id'], $list['rows'])))) ?>">برچسبِ کالاهای این صفحه</a><?php endif; ?>
         <?php if (Biz::can('products')): ?><a class="st-btn" href="<?= h(Biz::url('product.php')) ?>">+ کالای تازه</a><?php endif; ?>
     </div>
 </div>

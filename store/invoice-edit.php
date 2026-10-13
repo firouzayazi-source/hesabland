@@ -68,6 +68,8 @@ $form = [
     'pay_mode' => 'none', 'pay_amount' => '', 'account_id' => (int)($accounts[0]['id'] ?? 0), 'method' => 'cash',
     'warehouse_id' => (int)($inv['warehouse_id'] ?? 0),
     'loyalty_points' => (string)(int)($inv['loyalty_points'] ?? 0),
+    // ⛔ نرخِ ارزِ سند (طرف‌حسابِ ارزی، `BizFx`) — خالی = نرخِ خودِ پیش‌نویس یا نرخِ روز
+    'fx_rate' => isset($inv['fx_rate']) && $inv['fx_rate'] !== null ? rtrim(rtrim((string)$inv['fx_rate'], '0'), '.') : '',
 ];
 // ⛔ امتیازِ وفاداری فقط روی فروش و فقط وقتی باشگاهِ مشتری روشن است (`BizLoyalty`)
 $loyaltyOn = $kind === 'sale' && BizComms::ready() && BizComms::settings($userId)['loyalty_on'];
@@ -100,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'vat_rate' => isset($_POST['vat_rate']) ? postParam('vat_rate') : null,
     ];
     if ($warehouses && isset($_POST['warehouse_id'])) { $in['warehouse_id'] = (int)postParam('warehouse_id'); }
+    if (isset($_POST['fx_rate'])) { $in['fx_rate'] = postParam('fx_rate'); }
     if ($loyaltyOn && isset($_POST['loyalty_points'])) { $in['loyalty_points'] = trim(postParam('loyalty_points')) === '' ? '0' : postParam('loyalty_points'); }
     $rawLines = array_values(array_filter($in['lines'], 'is_array'));
     $filled   = fn($l) => trim((string)($l['item'] ?? '')) !== '' || trim((string)($l['price'] ?? '')) !== ''
@@ -116,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'discount' => $in['discount'], 'extra' => $in['extra'], 'note' => $in['note'], 'lines' => array_values($in['lines']),
         'vat_rate' => $in['vat_rate'] ?? $form['vat_rate'],
         'warehouse_id' => (int)($in['warehouse_id'] ?? $form['warehouse_id']),
+        'fx_rate' => (string)($in['fx_rate'] ?? $form['fx_rate']),
         'loyalty_points' => (string)($in['loyalty_points'] ?? $form['loyalty_points']),
         'pay_mode' => in_array(postParam('pay_mode'), ['none', 'full', 'part'], true) ? postParam('pay_mode') : 'none',
         'pay_amount' => postParam('pay_amount'), 'account_id' => (int)postParam('account_id'),
@@ -433,7 +437,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <select name="party_id" data-party>
                     <option value="0"><?= $isSale ? 'مشتریِ گذری (نقدی)' : 'فروشنده‌ی گذری (نقدی)' ?></option>
                     <?php foreach ($parties as $p): ?>
-                        <option value="<?= (int)$p['id'] ?>" data-balance="<?= (int)$p['balance'] ?>" data-level="<?= h((string)($p['price_level'] ?? 'retail')) ?>"<?= (int)$p['id'] === (int)$form['party_id'] ? ' selected' : '' ?>><?= h($p['name']) ?></option>
+                        <option value="<?= (int)$p['id'] ?>" data-balance="<?= (int)$p['balance'] ?>" data-level="<?= h((string)($p['price_level'] ?? 'retail')) ?>"<?= !empty($p['fx_code']) ? ' data-fx="' . h(BizFx::label((string)$p['fx_code'])) . '"' : '' ?><?= (int)$p['id'] === (int)$form['party_id'] ? ' selected' : '' ?>><?= h($p['name']) ?><?= !empty($p['fx_code']) ? ' (' . h(BizFx::label((string)$p['fx_code'])) . ')' : '' ?></option>
                     <?php endforeach; ?>
                 </select>
                 <a class="st-field-link" href="<?= h(Biz::url('party.php?kind=' . ($isSale ? 'customer' : 'supplier'))) ?>">+ <?= h($partyLbl) ?>ِ تازه</a>
@@ -443,6 +447,12 @@ require __DIR__ . '/../includes/biz_head.php';
                 <input data-num type="text" name="inv_date" value="<?= h((string)$form['inv_date']) ?>" dir="ltr" placeholder="۱۴۰۵/۰۷/۰۵" inputmode="numeric">
             </label>
         </div>
+        <?php if (array_filter($parties, fn($p) => !empty($p['fx_code']))): /* ⛔ فقط وقتی طرف‌حسابِ ارزی هست؛ store.js برای طرف‌حسابِ تومانی پنهانش می‌کند */ ?>
+        <label class="st-field" data-fx-field>
+            <span>نرخِ ارز <small class="st-muted">(فقط طرف‌حسابِ ارزی — تومان برای یک واحد؛ خالی = نرخِ روز)</small></span>
+            <input data-money type="text" name="fx_rate" inputmode="decimal" dir="ltr" value="<?= h((string)$form['fx_rate']) ?>">
+        </label>
+        <?php endif; ?>
         <?php if ($warehouses): ?>
         <label class="st-field">
             <span>انبار</span>

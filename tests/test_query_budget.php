@@ -132,6 +132,7 @@ const NO_BUDGET = [
     'store/return.php', 'store/sales.php', 'store/products-cleanup.php', 'store/invoice-design.php',
     'store/account.php', 'store/accounting.php', 'store/cash-count.php', 'store/payroll.php',
     'store/errors.php', 'store/staff.php', 'store/repairs.php', 'store/repair.php', 'store/installments.php', 'store/warehouses.php',
+    'store/consignments.php', 'store/recurring.php', 'store/bank-rec.php', 'store/reorder.php', 'store/insights.php', 'store/labels.php',
 ];
 
 // ---------------------------------------------------------------
@@ -645,7 +646,11 @@ try {
     //     • A/B روی دفترِ کلِ فروشگاه (migration_biz_books): با برداشتنِ همه‌ی جدول‌ها و
     //       ستونش عدد ۳۸۰۸ → ۳۸۰۷ — بی‌اثر.
     //   جدایی از جهشِ «هر دو ایندکس را بردار» (۴۸۵۹/۴۳۸۳) هنوز ۱۰۰۰ ردیف است.
-    $LIST_CAP = 3850;
+    // ⚠ و به **۳۹۰۰** (migration_biz_ops: امانی، ارز، مغایرت‌گیری، هزینه‌ی تکراری) — A/B با
+    //   برداشتن و دوباره ساختنِ همان سه جدول و سه ستون، باز اول کفِ مشترک:
+    //     • `privacy.php` ۲۲۹۶ → **۲۳۴۳** (+۴۷)، `index.php` ۳۸۳۴ → **۳۸۸۹** (+۵۵)،
+    //       `transactions.php` ۳۵۰۳ → ۳۵۵۴ (+۵۱) — همان رشدِ نقشه‌ی ساختار در هر صفحه، نه فهرست.
+    $LIST_CAP = 3900;
     foreach (['index.php', 'transactions.php'] as $page) {
         $read = $pageReads($page);
         if (getenv('QB_DUMP')) { printf("    %-24s %d ردیف خوانده شد\n", $page, $read); }
