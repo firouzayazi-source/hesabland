@@ -425,7 +425,7 @@ try {
         T::ok(false, 'سرور آزمایشی بالا آمد', substr((string)@file_get_contents($log), 0, 200));
     } else {
         $mkReq = function (string $jar) use ($port) {
-            return function (string $path, array $post = null) use ($port, $jar): array {
+            return function (string $path, ?array $post = null) use ($port, $jar): array {
                 $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
                 curl_setopt_array($ch, [
                     CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar,

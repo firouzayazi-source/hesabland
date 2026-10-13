@@ -20,6 +20,7 @@
  */
 
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/outbound.php';
 
 /**
  * ⛔ تنظیمات از دو جا می‌آید و ترتیبش عمدی است: **اول `config.php`،
@@ -773,6 +774,8 @@ class Sms
      */
     private static function post(string $url, string $body, array $headers): ?array
     {
+        // ⛔ اجرای تست‌ها: هیچ پیامکی به پنلِ واقعی نمی‌رود (`Outbound`، `tests/run.sh`)
+        if (($e = Outbound::blockedFor($url, 'پیامک')) !== null) { self::$lastError = $e; return null; }
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [
@@ -786,7 +789,7 @@ class Sms
             $out  = curl_exec($ch);
             $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $err  = curl_error($ch);
-            curl_close($ch);
+            unset($ch);   // ⛔ نه `curl_close()` — از PHP 8.0 بی‌اثر و در 8.5 منسوخ
 
             if ($out === false) { self::$lastError = 'خطای شبکه: ' . $err; return null; }
             return ['code' => $code, 'body' => (string)$out];
@@ -808,7 +811,7 @@ class Sms
         if ($out === false) { self::$lastError = 'خطای شبکه در ارسال پیامک.'; return null; }
 
         $code = 0;
-        foreach ($http_response_header ?? [] as $h) {
+        foreach (Outbound::responseHeaders(get_defined_vars()) as $h) {
             if (preg_match('~^HTTP/\S+\s+(\d{3})~', $h, $m)) { $code = (int)$m[1]; }
         }
         return ['code' => $code, 'body' => (string)$out];

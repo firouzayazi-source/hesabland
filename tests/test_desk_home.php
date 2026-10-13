@@ -130,7 +130,7 @@ try {
     T::ok($up, 'سرور آزمایشی بالا آمد');
 
     $jar = tempnam(sys_get_temp_dir(), 'deskjar');
-    $get = function (string $path, array $post = null, bool $desk = false) use ($port, $jar): array {
+    $get = function (string $path, ?array $post = null, bool $desk = false) use ($port, $jar): array {
         $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar,
                                 CURLOPT_FOLLOWLOCATION => false, CURLOPT_TIMEOUT => 30]);

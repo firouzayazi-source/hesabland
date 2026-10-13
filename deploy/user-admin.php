@@ -565,11 +565,11 @@ if ($cmd === '--sms-check') {
     // ⚠ این دو خصوصی‌اند و عمداً با Reflection خوانده می‌شوند: نوشتنِ
     //   دوباره‌ی همان کوئری یعنی نسخه‌ی دوم که از اصل عقب می‌افتد.
     $rw = new ReflectionMethod('SmsLogin', 'resendWait');
-    $rw->setAccessible(true);
+    if (PHP_VERSION_ID < 80100) { $rw->setAccessible(true); }   // از 8.1 لازم نیست و در 8.5 منسوخ
     $wait = (int)$rw->invoke(null, $phone);
 
     $cr = new ReflectionMethod('SmsLogin', 'countRecent');
-    $cr->setAccessible(true);
+    if (PHP_VERSION_ID < 80100) { $cr->setAccessible(true); }
     $perPhone = (int)$cr->invoke(null, 'phone', $phone);
 
     out("  فاصله تا درخواستِ بعدی: {$wait} ثانیه (سقف " . SmsLogin::RESEND_WAIT_SEC . ")");

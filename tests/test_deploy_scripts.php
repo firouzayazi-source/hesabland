@@ -211,6 +211,8 @@ for a in "$@"; do case "$a" in --defaults-extra-file=*) f="${a#*=}"; echo "MODE:
 echo 'CREATE TABLE `transactions` (id int);'
 SH);
 chmod("$tmp/bin/mysqldump", 0755);
+// ⚠ `config-lib.sh` اگر `mariadb-dump` باشد آن را صدا می‌زند (MariaDB 11) — همان برنامه‌ی ساختگی با هر دو نام
+copy("$tmp/bin/mysqldump", "$tmp/bin/mariadb-dump"); chmod("$tmp/bin/mariadb-dump", 0755);
 $B = "$tmp/backups";
 @mkdir($B, 0700, true);
 $log = "$tmp/dump.log";
@@ -268,6 +270,7 @@ T::group('⛔ restore.sh: فقط دیتابیس‌های همین پروژه، �
 
 file_put_contents("$tmp/bin/mysql", "#!/bin/sh\nexit 1\n");   // اتصال نمی‌گیرد؛ به آن نمی‌رسیم
 chmod("$tmp/bin/mysql", 0755);
+copy("$tmp/bin/mysql", "$tmp/bin/mariadb"); chmod("$tmp/bin/mariadb", 0755);
 $restore = fn(string $args) => $bash("export PATH='$tmp/bin':\"\$PATH\" CONFIG='$cfg' BACKUP_DIR='$B' STAGING_DIR='$tmp/nostg'\nbash "
     . escapeshellarg($root . '/deploy/restore.sh') . " $args");
 [$rc, $o] = $restore('--admin --into bots_db');

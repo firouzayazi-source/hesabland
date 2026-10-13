@@ -142,7 +142,7 @@ try {
     }
     if (!$up) { T::blocked('رفتارهای app.js', 'سرور آزمایشی بالا نیامد'); $cleanup(); exit(T::report()); }
 
-    $get = function (string $path, array $post = null) use ($port, $jar): array {
+    $get = function (string $path, ?array $post = null) use ($port, $jar): array {
         $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar,

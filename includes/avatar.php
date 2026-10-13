@@ -108,8 +108,7 @@ function saveUserAvatar(int $userId, $file): array
         imagefilledrectangle($dst, 0, 0, AVATAR_SIZE, AVATAR_SIZE, imagecolorallocate($dst, 255, 255, 255)); // پس‌زمینه برای PNGِ شفاف
         imagecopyresampled($dst, $src, 0, 0, $sx, $sy, AVATAR_SIZE, AVATAR_SIZE, $side, $side);
         $ok = imagejpeg($dst, $target, 82);
-        imagedestroy($src);
-        imagedestroy($dst);
+        unset($src, $dst);   // ⛔ نه `imagedestroy()` — در PHP 8.5 منسوخ
         if (!$ok) {
             return $fail('ذخیره تصویر ناموفق بود.', 500);
         }

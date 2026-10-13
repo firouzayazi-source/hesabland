@@ -231,7 +231,7 @@ if ($pdoOk) {
     $jar = tempnam(sys_get_temp_dir(), 'apijar');
 
     /** درخواست با کوکی — نشست بین فراخوانی‌ها می‌ماند. */
-    $sess = function (string $path, array $fields = null, string $method = 'GET') use ($port, $jar): array {
+    $sess = function (string $path, ?array $fields = null, string $method = 'GET') use ($port, $jar): array {
         $ch = curl_init("http://127.0.0.1:$port$path");
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,

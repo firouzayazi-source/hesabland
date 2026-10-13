@@ -141,7 +141,7 @@ try {
         exit(T::report());
     }
 
-    $get = function (string $path, array $post = null) use ($port, $jar): array {
+    $get = function (string $path, ?array $post = null) use ($port, $jar): array {
         $ch = curl_init("http://127.0.0.1:{$port}/{$path}");
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,

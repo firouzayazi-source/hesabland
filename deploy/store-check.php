@@ -183,7 +183,7 @@ say($C['b'] . '  ۳) درخواست به حسابداری فروشگاه' . $C['
  *    پراکسیِ محیط، مهلتِ سه‌ثانیه‌ای و سرآیندها را واقعی نگه می‌دارد.
  */
 $ref = new ReflectionMethod(StoreShare::class, 'fetch');
-$ref->setAccessible(true);
+if (PHP_VERSION_ID < 80100) { $ref->setAccessible(true); }   // از 8.1 لازم نیست و در 8.5 منسوخ
 $res  = $ref->invoke(null);
 $code = (int)($res['code'] ?? 0);
 

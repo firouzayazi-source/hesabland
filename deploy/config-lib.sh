@@ -165,3 +165,18 @@ fpm_config_test() {
     printf 'php-fpm%s پیدا نشد — پیکربندی سنجیده نشد.\n' "$ver"
     return 1
 }
+
+# ─── ⛔ نامِ کلاینتِ دیتابیس: `mariadb` پیش از `mysql` ────────────────
+#
+# در MariaDB 11 نامِ `mysql`/`mysqldump` منسوخ است: یا هر بار هشدارِ
+# «Deprecated program name» روی stderr می‌دهد (که در `2>&1`ِ migrate.sh
+# کنارِ خطای واقعی می‌نشیند) یا اصلاً نصب نیست (بسته‌ی جدای
+# `mariadb-client-compat`). این دو تابع همه‌ی فراخوانی‌های اسکریپت‌هایی
+# را که این فایل را source می‌کنند — و هر `$(...)`ِ داخلشان — به نامِ
+# تازه می‌برند؛ روی MariaDB/MySQLِ قدیم که `mariadb` ندارد، همان `mysql`.
+if command -v mariadb >/dev/null 2>&1; then
+    mysql() { command mariadb "$@"; }
+fi
+if command -v mariadb-dump >/dev/null 2>&1; then
+    mysqldump() { command mariadb-dump "$@"; }
+fi

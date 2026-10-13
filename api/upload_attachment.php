@@ -46,7 +46,7 @@ $mime = null;
 if (function_exists('finfo_open')) {
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
+    unset($finfo);   // ⛔ نه `finfo_close()` — در PHP 8.5 منسوخ
 } elseif (function_exists('mime_content_type')) {
     $mime = mime_content_type($file['tmp_name']);
 }

@@ -32,6 +32,7 @@
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/log.php';
+require_once __DIR__ . '/outbound.php';
 
 final class Push
 {
@@ -289,6 +290,8 @@ final class Push
     /** @return int کدِ HTTP؛ ۰ یعنی به سرویس نرسید. */
     public static function sendRaw(string $endpoint, string $body, string $auth, int $ttl = self::TTL): int
     {
+        // ⛔ اجرای تست‌ها: هیچ اعلانی به سرویسِ واقعیِ مرورگر نمی‌رود (فقط `push_sink`ِ محلی)
+        if (Outbound::blockedFor($endpoint, 'اعلان') !== null) { return 0; }
         $headers = [
             'Content-Type: application/octet-stream',
             'Content-Encoding: aes128gcm',
@@ -306,7 +309,7 @@ final class Push
             ]);
             curl_exec($ch);
             $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+            unset($ch);   // ⛔ نه `curl_close()` — از PHP 8.0 بی‌اثر و در 8.5 منسوخ
             return $code;
         }
         $ctx = stream_context_create(['http' => [
@@ -314,8 +317,9 @@ final class Push
             'timeout' => 8, 'ignore_errors' => true,
         ]]);
         $r = @file_get_contents($endpoint, false, $ctx);
-        if ($r === false && empty($http_response_header)) { return 0; }
-        return preg_match('#^HTTP/\S+\s+(\d{3})#', (string)($http_response_header[0] ?? ''), $m) ? (int)$m[1] : 0;
+        $hdrs = Outbound::responseHeaders(get_defined_vars());
+        if ($r === false && !$hdrs) { return 0; }
+        return preg_match('#^HTTP/\S+\s+(\d{3})#', (string)($hdrs[0] ?? ''), $m) ? (int)$m[1] : 0;
     }
 
     /**

@@ -6241,16 +6241,24 @@ if (!preg_match('/^\s+migration_home_widgets\.sql$/m', $migHome) || strpos($migH
 }
 T::bulk(count(HOME_WIDGETS) + 10, $badHome, '⛔ قلم‌های خانه: هر کلید واقعاً چیزی را خاموش کند، یک فهرست، یک نویسنده، کارتِ بی‌ارتفاعِ ثابت');
 
+// ⛔ همه‌ی فایل‌های PHPِ مخزن (زیرپوشه‌ها، `tests/` و `deploy/` هم) — و با `E_ALL`: هشدارِ
+//    «Deprecated»ِ هنگامِ کامپایل هم شکست است، نه فقط خطای نحو. انتقال به PHP 8.5 (مهر ۱۴۰۵)
+//    ۱۹ «Implicitly marking parameter … as nullable» در `tests/` نشان داد که این lint نمی‌دید:
+//    `tests/` و `api/v1` در فهرستِ قبلی نبودند و `-l` بی‌`error_reporting=E_ALL` اجرا می‌شد.
 $all = [];
-foreach (['api', 'includes', 'admin', 'store', 'config', '.'] as $dir) {
-    foreach (glob(__DIR__ . '/../' . $dir . '/*.php') as $p) { $all[realpath($p)] = true; }
+$it = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
+    new RecursiveDirectoryIterator(realpath(__DIR__ . '/..'), FilesystemIterator::SKIP_DOTS),
+    fn($f) => !($f->isDir() && in_array($f->getFilename(), ['.git', 'vendor', 'node_modules', 'var', 'uploads', 'mobile'], true))));
+foreach ($it as $f) { if ($f->isFile() && $f->getExtension() === 'php') { $all[$f->getPathname()] = true; } }
+$lintIn = tempnam(sys_get_temp_dir(), 'lint');
+file_put_contents($lintIn, implode("\0", array_keys($all)));
+exec('xargs -0 -n 25 -P 8 php -d error_reporting=' . E_ALL . ' -d display_errors=stderr -d log_errors=0 -l < '
+     . escapeshellarg($lintIn) . ' 2>&1', $out, $rc);
+@unlink($lintIn);
+foreach ($out as $line) {
+    if (preg_match('/^(PHP )?(Parse error|Fatal error|Deprecated|Warning|Errors parsing)/', $line)) { $bad[] = $line; }
 }
-foreach (array_keys($all) as $p) {
-    exec('php -l ' . escapeshellarg($p) . ' 2>&1', $out, $rc);
-    if ($rc !== 0) { $bad[] = basename($p) . ' — ' . implode(' ', $out); }
-    $out = [];
-}
-T::bulk(count($all), $bad, 'همه‌ی فایل‌های PHP نحو درست دارند');
+T::bulk(count($all), $bad, 'همه‌ی فایل‌های PHP نحو درست دارند و هیچ هشدارِ Deprecatedِ هنگامِ کامپایل ندارند (E_ALL)');
 
 // =====================================================================
 // ⛔ قاعده ۶۴ — به‌روزرسانیِ درون‌برنامه‌ای

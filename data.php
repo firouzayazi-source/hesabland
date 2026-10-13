@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && postParam('action') === 'preview') 
         $parsed = [];
         foreach ($lines as $line) {
             if (trim($line) === '') { continue; }
-            $parsed[] = str_getcsv($line);
+            $parsed[] = str_getcsv($line, ',', '"', '');   // ⛔ `$escape` صریح، همان خروجیِ `txCsvStream()`
         }
 
         if (count($parsed) < 2) {

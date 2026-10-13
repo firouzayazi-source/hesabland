@@ -298,11 +298,11 @@ final class BizInvoiceDesign
             imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
         }
         imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
-        imagedestroy($src);
+        unset($src);   // ⛔ نه `imagedestroy()` — در PHP 8.5 منسوخ
         ob_start();
         $okOut = $alpha ? imagepng($dst, null, 9) : imagejpeg($dst, null, 88);
         $out = (string)ob_get_clean();
-        imagedestroy($dst);
+        unset($dst);
         if (!$okOut || $out === '') { return ['ok' => false, 'message' => 'تصویر ساخته نشد؛ فایلِ دیگری امتحان کنید.']; }
         $b64 = base64_encode($out);
         if (strlen($b64) > self::LOGO_MAX_STORED) {

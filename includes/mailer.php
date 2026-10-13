@@ -18,6 +18,7 @@
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/log.php';
+require_once __DIR__ . '/outbound.php';
 
 class Mailer
 {
@@ -128,6 +129,8 @@ class Mailer
 
     private static function sendMailFunc(string $to, string $subject, string $html, string $text): bool
     {
+        // ⛔ `mail()` همیشه به MTAِ واقعیِ سیستم می‌رود — در اجرای تست‌ها هرگز
+        if (Outbound::noSend()) { throw new RuntimeException('ایمیل در اجرای تست‌ها فرستاده نمی‌شود (' . Outbound::ENV . '=1).'); }
         $boundary = 'b' . bin2hex(random_bytes(12));
         $headers = [
             'MIME-Version: 1.0',
@@ -151,6 +154,8 @@ class Mailer
     private static function sendSmtp(string $to, string $subject, string $html, string $text): bool
     {
         $host    = SMTP_HOST;
+        // ⛔ اجرای تست‌ها: هیچ ایمیلی به SMTPِ واقعی نمی‌رود (فقط سرورِ ساختگیِ محلی)
+        if (($e = Outbound::blockedFor($host, 'ایمیل')) !== null) { throw new RuntimeException($e); }
         $port    = defined('SMTP_PORT') ? (int)SMTP_PORT : 587;
         $secure  = defined('SMTP_SECURE') ? strtolower(SMTP_SECURE) : 'tls'; // tls | ssl | none
         $user    = defined('SMTP_USER') ? SMTP_USER : '';

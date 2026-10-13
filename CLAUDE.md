@@ -392,6 +392,8 @@ sudo ./hesabland release     # همان abc1234 — و فقط همان — رو�
 
 ### `docs/decisions/testing.md` — تست‌ها
 - سه لایه برای اندپوینت و صفحه (بی‌ورود، با ورود، مسیرِ واقعیِ پول)؛ `</html>` نشانه‌ی رندرِ کامل؛ `EXPECT` بسته. هر تستِ تازه با جهش سنجیده می‌شود — **جهشِ زنده‌مانده یعنی تست ناقص است، نه کد امن.**
+- **تست هرگز پیامک/ایمیل/اعلانِ واقعی نمی‌فرستد:** `run.sh` همیشه `HESAB_NO_SEND=1` و سدش فقط در درِ خروجِ هر کانال (`Outbound::blockedFor()` در `Sms::post`، `Mailer::sendSmtp`/`sendMailFunc`، `Push::sendRaw`)؛ کانالِ تازه = همان سد. `run.sh` روی `/opt/hesab/app` اجرا نمی‌شود؛ هر «Deprecated» شکست است.
+- کلاینتِ دیتابیس در اسکریپت‌ها با `mariadb`/`mariadb-dump` اگر باشد (`config-lib.sh`، MariaDB 11)؛ `curl_close`/`imagedestroy`/`finfo_close`/`$http_response_header` ممنوع (PHP 8.5؛ سرآیند فقط `Outbound::responseHeaders()`)، و `fputcsv`/`str_getcsv` همیشه با `$escape` صریح.
 
 ### `docs/decisions/platform.md` — استقرار، پروانه، اسکریپت‌ها
 - `hesabland`: نحو پیش از فرود، کانفیگ پیش از فرود، سلامت با `--resolve` و `--noproxy`، برگشتِ خودکار فقط بی‌migration، نشانه فقط بعد از سبز؛ `deploy.sh` فقط پوسته. ثابت‌های کانفیگ از پوسته فقط `deploy/config-lib.sh`.

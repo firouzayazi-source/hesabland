@@ -129,7 +129,7 @@ class SafeFetch
             $type  = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
             $loc   = (string)curl_getinfo($ch, CURLINFO_REDIRECT_URL);
             $err   = curl_error($ch);
-            curl_close($ch);
+            unset($ch);   // ⛔ نه `curl_close()` — از PHP 8.0 بی‌اثر و در 8.5 منسوخ
             if ($tooBig) { return ['ok' => false, 'message' => 'پاسخِ سایت بیش از ۵ مگابایت است.']; }
             if ($okRun === false) { return ['ok' => false, 'message' => 'به سایت وصل نشد (' . $err . ').']; }
             if ($code >= 300 && $code < 400 && $loc !== '') { $url = $loc; continue; }

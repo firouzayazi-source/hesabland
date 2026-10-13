@@ -51,6 +51,7 @@
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/outbound.php';
 
 final class StoreShare
 {
@@ -1448,7 +1449,7 @@ final class StoreShare
             $out = curl_exec($ch);
             $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $err  = curl_error($ch);
-            curl_close($ch);
+            unset($ch);   // ⛔ نه `curl_close()` — از PHP 8.0 بی‌اثر و در 8.5 منسوخ
             if ($out === false) {
                 return $bad + ['message' => 'به حسابداری فروشگاه وصل نشد: ' . $err];
             }
@@ -1466,7 +1467,7 @@ final class StoreShare
                 return $bad + ['message' => 'به حسابداری فروشگاه وصل نشد.'];
             }
             $body = (string)$out;
-            foreach ($http_response_header ?? [] as $h) {
+            foreach (Outbound::responseHeaders(get_defined_vars()) as $h) {
                 if (preg_match('~^HTTP/\S+\s+(\d{3})~', $h, $m)) { $code = (int)$m[1]; }
             }
         } else {
