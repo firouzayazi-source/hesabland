@@ -2892,6 +2892,115 @@ function appMain() {
         syncHomeDots();
     }
 
+    /* ---------- کارتِ «مانده این ماه»: ماه‌های قبل با کشیدن به بالا ----------
+       **خواسته‌ی مالکِ نصب:** بالا کشیدن = ماهِ قبل، بالاتر = ماهِ قبل‌تر (تا یازده
+       ماه، با ماهِ جاری دوازده)، و «وقتی کاربر رهاش میکنه برگرد رو ماه فعلی».
+       ⛔ داده با **اولین لمس** گرفته می‌شود (`api/month_history.php`)، نه با بارگذاریِ
+          خانه: بیشترِ بازدیدها کارت را نمی‌کشند و نباید هزینه‌اش را بدهند.
+       ⛔ عمودی فقط روی همین کارت گرفته می‌شود (`touch-action: pan-x` در CSS)؛ کشیدنِ
+          افقی همان اسلایدرِ بومیِ کارت‌های حساب است و این‌جا دست نمی‌خورد.
+       ⚠ اشاره‌گر (pointer) است نه touch: موس روی دسکتاپ هم همان را می‌کشد، و
+         بالا/پایینِ صفحه‌کلید روی کارتِ فوکوس‌شده هم. */
+    (function setupMonthStack() {
+        var card = document.getElementById('monthStack');
+        if (!card) { return; }
+        var past = card.querySelector('.ms-past');
+        var rail = card.querySelector('.ms-rail');
+        var months = null, loading = null, idx = 0, idleTimer = 0, dragged = false;
+        var IDLE_MS = 6000, MIN_DY = 36;
+
+        var load = function () {
+            if (months || loading) { return loading; }
+            loading = fetch(card.getAttribute('data-src'), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (j) {
+                    months = (j && j.success && Array.isArray(j.months)) ? j.months.slice(0, 11) : [];
+                    card.classList.toggle('is-empty', months.length === 0);
+                    rail.innerHTML = '';
+                    for (var i = 0; i <= months.length && months.length; i++) {
+                        rail.appendChild(document.createElement('i'));
+                    }
+                    paintRail();
+                })
+                .catch(function () { months = []; card.classList.add('is-empty'); })
+                .then(function () { loading = null; });
+            return loading;
+        };
+        var paintRail = function () {
+            Array.prototype.forEach.call(rail.children, function (d, n) { d.classList.toggle('is-on', n === idx); });
+        };
+        var armIdle = function () {
+            clearTimeout(idleTimer);
+            if (idx > 0) { idleTimer = setTimeout(function () { show(0, 'down'); }, IDLE_MS); }
+        };
+        var show = function (n, dir) {
+            if (!months) { return; }
+            n = Math.max(0, Math.min(months.length, n));
+            if (n === idx) { armIdle(); return; }
+            idx = n;
+            if (n > 0) {
+                var m = months[n - 1];
+                past.querySelector('.ms-month').textContent = m.label;
+                past.querySelector('.ms-ago').textContent = n === 1 ? 'ماهِ قبل' : toPersianDigitsJs(n) + ' ماه قبل';
+                var net = past.querySelector('.ms-net');
+                net.textContent = m.net;
+                net.classList.toggle('is-neg', !!m.neg);
+                var inEl = past.querySelector('.ms-in'), outEl = past.querySelector('.ms-out');
+                if (inEl) { inEl.textContent = m.income; }
+                if (outEl) { outEl.textContent = m.expense; }
+                past.querySelector('.ms-open').setAttribute('href', m.url);
+                card.classList.add('is-past');
+            } else {
+                card.classList.remove('is-past');
+            }
+            /* انیمیشن روی محتوا، نه روی خودِ کارت (کارت جای ثابتش را در اسلایدر دارد) */
+            var cls = dir === 'up' ? 'ms-anim-up' : 'ms-anim-down';
+            var layer = n > 0 ? past : card.querySelector('.balance-value');
+            [past, card.querySelector('.balance-value')].forEach(function (el) {
+                if (el) { el.classList.remove('ms-anim-up', 'ms-anim-down'); }
+            });
+            if (layer) { void layer.offsetWidth; layer.classList.add(cls); }
+            paintRail();
+            armIdle();
+        };
+
+        var sx = 0, sy = 0, down = false;
+        card.addEventListener('pointerdown', function (e) {
+            down = true; dragged = false; sx = e.clientX; sy = e.clientY;
+            clearTimeout(idleTimer);
+            load();
+        });
+        var finish = function (e) {
+            if (!down) { return; }
+            down = false;
+            var dx = e.clientX - sx, dy = e.clientY - sy;
+            if (Math.abs(dy) >= MIN_DY && Math.abs(dy) > Math.abs(dx) * 1.2) {
+                dragged = true;
+                var go = function () { show(dy < 0 ? idx + 1 : idx - 1, dy < 0 ? 'up' : 'down'); };
+                if (months) { go(); } else if (loading) { loading.then(go); }
+            } else {
+                armIdle();
+            }
+        };
+        card.addEventListener('pointerup', finish);
+        card.addEventListener('pointercancel', function () { down = false; armIdle(); });
+        /* کشیدن نباید روی لینکِ «تراکنش‌های این ماه» کلیک هم حساب شود */
+        card.addEventListener('click', function (e) {
+            if (dragged) { e.preventDefault(); e.stopPropagation(); dragged = false; }
+        }, true);
+        card.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') { return; }
+            e.preventDefault();
+            var up = e.key === 'ArrowUp';
+            (months ? Promise.resolve() : load()).then(function () { show(up ? idx + 1 : idx - 1, up ? 'up' : 'down'); });
+        });
+        /* رفتن به کارتِ حساب یا ترکِ صفحه = رها کردن؛ برگشت بی‌انتظار */
+        if (homeSlides) {
+            homeSlides.addEventListener('scroll', function () { if (idx > 0 && Math.abs(homeSlides.scrollLeft) > 20) { show(0, 'down'); } }, { passive: true });
+        }
+        document.addEventListener('visibilitychange', function () { if (document.hidden && idx > 0) { show(0, 'down'); } });
+    })();
+
     /* ---------- پین کردنِ حساب روی صفحه‌ی خانه ----------
        ⚠ صفحه **تازه‌سازی نمی‌شود** و این عمدی است، برخلافِ بیشترِ
          تغییرهای این اپ: هیچ عددی روی همین صفحه عوض نمی‌شود (نوارِ

@@ -291,7 +291,35 @@ include __DIR__ . '/includes/header.php';
 
 <div class="home-carousel">
     <div class="home-slides" id="homeSlides">
-        <div class="balance-ribbon">
+        <?php /* ⛔ «ماه‌های قبل»: بالا کشیدن = یک ماه عقب‌تر، تا یازده ماه؛ رها کردن =
+                 برگشت به ماهِ جاری (`setupMonthStack()` در `app.js`، داده از
+                 `api/month_history.php` با همان تعریفِ `monthComparison()`). داده
+                 **با اولین لمس** گرفته می‌شود، نه با بارگذاریِ صفحه.
+                 ⚠ `.ms-past` لایه‌ی **شفاف** روی همین کارت است، نه کارتِ دوم: پس‌زمینه،
+                 حلقه‌های تزئینی و پالت همان می‌مانند. */ ?>
+        <div class="balance-ribbon month-stack" id="monthStack" tabindex="0"
+             data-src="<?= APP_BASE_PATH ?>/api/month_history.php"
+             aria-label="مانده این ماه — برای ماه‌های قبل به بالا بکشید">
+            <div class="ms-past" aria-live="polite">
+                <div class="balance-label"><span class="ms-month"></span><span class="ms-ago"></span><a class="ms-open" href="<?= APP_BASE_PATH ?>/transactions.php">تراکنش‌ها ←</a></div>
+                <div class="balance-value"><span class="bv-num ms-net"></span><span class="bv-unit">تومان</span></div>
+                <?php /* ⛔ همان انتخابِ کاربر (`HOME_WIDGETS`): «دریافتی/پرداختی»ِ خاموش در ماهِ
+                         قبل هم خاموش است. */ ?>
+                <?php if ($hw('split')): ?>
+                <div class="balance-split">
+                    <div class="bs-in-row">
+                        <div class="bs-label">دریافتی</div>
+                        <div class="bs-value bs-in ms-in"></div>
+                    </div>
+                    <div class="bs-out-row">
+                        <div class="bs-label">پرداختی</div>
+                        <div class="bs-value bs-out ms-out"></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+            <div class="ms-rail" aria-hidden="true"></div>
+            <span class="ms-grab" aria-hidden="true"></span>
             <div class="balance-label">مانده این ماه</div>
             <div class="balance-value"><span class="bv-num"><?= $monthNet < 0 ? '−' : '' ?><?= formatMoney(abs($monthNet)) ?></span><span class="bv-unit">تومان</span></div>
             <?php if ($hw('meter') && $meter['pct'] !== null): ?>

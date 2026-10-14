@@ -33,6 +33,7 @@ $csrfExempt = [
     'cheque_value_preview.php',
     'day_detail.php',
     'home_calendar.php',
+    'month_history.php',
     'savings_history.php',
     'transaction_attachments.php',
     'view_attachment.php',

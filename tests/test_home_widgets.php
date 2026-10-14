@@ -207,7 +207,7 @@ try {
     T::same('date,split,overdue', $stored(), 'دیتابیس فقط خاموش‌ها را نگه می‌دارد');
     [, $home] = $req('index.php');
     T::same(['meter', 'compare', 'budget', 'growth'], $seen($home), 'خاموش‌ها رندر نمی‌شوند و بقیه سرِ جایشان‌اند');
-    T::ok(strpos($home, 'class="balance-ribbon"') !== false, 'کارتِ ماه خودش می‌ماند (فقط کوچک‌تر)');
+    T::ok(strpos($home, 'class="balance-ribbon') !== false, 'کارتِ ماه خودش می‌ماند (فقط کوچک‌تر)');
 
     // همه خاموش
     [$c, $d] = $post([]);

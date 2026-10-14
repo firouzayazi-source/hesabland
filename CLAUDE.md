@@ -97,7 +97,7 @@ $userId = Auth::userId();   // همیشه از اینجا، هرگز از ورو
 
 1. **جداسازی کاربران:** هر کوئری روی داده‌ی کاربر باید `WHERE user_id = :uid` داشته باشد. `user_id` همیشه از `Auth::userId()` می‌آید، هرگز از `$_POST`. **استثنایی هم ندارد:** تنها استثنای قبلی `admin/all-transactions.php` بود که حذف شد (پایین‌تر در «آمار استفاده» توضیح داده شده).
 2. **کوئری‌ها:** فقط `prepare()` + پارامتر نام‌دار. اگر ناچار به ساختن پویای `WHERE` شدید، مثل `transactions.php` عمل کنید: قطعه‌های ثابت در آرایه، مقادیر همیشه bind. رشته‌ی ورودی کاربر هرگز داخل SQL درج نشود.
-3. **CSRF:** هر اندپوینتی که چیزی می‌نویسد `Csrf::verifyOrFail()` دارد. اندپوینت‌های فقط-خواندنی (`dashboard_stats`, `day_detail`, `home_calendar`, `category_transactions`, `savings_history`, `transaction_attachments`, `view_attachment`, `cheque_value_preview`) عمداً ندارند — اگر روزی نویسنده شدند، باید اضافه شود.
+3. **CSRF:** هر اندپوینتی که چیزی می‌نویسد `Csrf::verifyOrFail()` دارد. اندپوینت‌های فقط-خواندنی (`dashboard_stats`, `day_detail`, `home_calendar`, `month_history`, `category_transactions`, `savings_history`, `transaction_attachments`, `view_attachment`, `cheque_value_preview`) عمداً ندارند — اگر روزی نویسنده شدند، باید اضافه شود.
 4. **خروجی HTML:** هر مقدار متغیر با `h()` یا `htmlspecialchars` فرار داده شود.
 5. **مسیرها:** لینک‌ها و آدرس دارایی‌ها با ثابت `APP_BASE_PATH` ساخته شوند تا نصب در زیرپوشه نشکند.
 6. **تاریخ:** ذخیره در دیتابیس میلادی (`DATE`)، نمایش شمسی. تبدیل فقط با توابع خود پروژه — مبدأ الگوریتم PHP و `assets/js/jalali-datepicker.js` باید یکی بماند.
@@ -321,6 +321,7 @@ sudo ./hesabland release     # همان abc1234 — و فقط همان — رو�
 - `[hidden]` بدونِ قاعده‌ی خودش کار نمی‌کند (قاعده ۱۸). حاشیه‌ی امن را قاعده‌ی **برنده** باید داشته باشد. نیم‌فاصله جای شکستن است (`nowrap` روی دکمه).
 - قالب‌های مشترک هیچ متغیرِ سراسریِ بی‌`__` نمی‌سازند (قاعده ۵۰). HTML هرگز کش نمی‌شود (`no-store`، `sw.js`).
 - **تقویم نه در «سررسیدها»** (`includes/home_calendar.php`): گوشی اولین کارتِ «گزارش» (`dashboard.php`؛ خانه‌ی گوشی تقویم ندارد)، دسکتاپ خانه زیرِ «آخرین تراکنش‌ها» (ستونِ کناری با «مانده‌ی حساب‌ها» شروع می‌شود)؛ پهنی با container query؛ یک رندرکننده (`homeCalendarHtml()`)، صفحه فقط پوسته‌ی بی‌کوئری و داده از `api/home_calendar.php`؛ آدرس فقط `homeCalendarUrl()` با `deskView()` (`calendar.php` و `due.php?t=calendar` هدایت).
+- **ماه‌های قبل روی کارتِ «مانده این ماه»** (`#monthStack`): بالا کشیدن = ماهِ قبل تا یازده ماه، رها کردن (۶ ثانیه) = برگشت؛ عدد فقط `monthHistory()` (همان تعریفِ `monthComparison()`)، داده با اولین لمس از `api/month_history.php` نه با بارگذاریِ خانه؛ `touch-action: pan-x` فقط روی همین کارت (`test_month_stack`).
 - قلم‌های خانه `HOME_WIDGETS` (خاموش رندر نمی‌شود)؛ دسکتاپ با `deskView()`/کوکی؛ حساب‌های پین‌شده فقط `pinnedWallets()`؛ «حذف — لغو» با `Undo` جز جایی که برگشت کامل نیست.
 - هر تغییرِ پول یا منو صفحه را تازه می‌کند — **فقط با `window.reloadPage()`** نه `location.reload()`ِ خام (قاعده ۷۲)؛ هر قابلیتی که تنها راهش `.bottom-nav` است روی دسکتاپ وجود ندارد.
 - **شیت/مودال روی گوشی:** «برگشت»ِ اندروید رویی‌ترین لایه را می‌بندد (`watchOverlays()`، `OVERLAY_STATE`)؛ با کیبوردِ باز لایه روی viewport دیداری (`fitOverlaysToKeyboard()`) و شیت `max-height: min(…, 100%)`؛ کشیدنِ سرِ شیت به پایین می‌بندد (`test_sheet_mobile`).

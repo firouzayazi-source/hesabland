@@ -3288,6 +3288,88 @@ function monthComparison(int $userId): array
 }
 
 /**
+ * ⛔ ماه‌های قبل روی کارتِ «مانده این ماه» — بالا کشیدن یعنی یک ماه عقب‌تر.
+ *
+ * **خواسته‌ی مالکِ نصب (مهر ۱۴۰۵):** «اگه به سمت بالا بکشیم خود کارت رو دقیقا مبالغ
+ * ماه قبلش و همونجور به سمت بالاتر بکشیم ماه قبلش … وقتی کاربر رهاش میکنه برگرد
+ * رو ماه فعلی.»
+ *
+ * ⛔ **همان تعریفِ `monthComparison()`**: جمعِ درآمد و هزینه‌ی `transactions` در
+ *    ماهِ شمسی (وصولِ طلب و چکِ پاس‌شده جزوِ درآمد/هزینه نیستند — `moneyMoves()`).
+ *    با تعریفِ دوم، کاربری که از «مهر» به «شهریور» می‌کشد و برمی‌گردد دو قاعده‌ی
+ *    متفاوت را مقایسه می‌کرد.
+ * ⛔ ماهِ گذشته **کامل** است (از روزِ اول تا آخرین روز)؛ فقط ماهِ جاری «تا امروز»
+ *    است و آن را خودِ صفحه دارد — این‌جا نمی‌آید.
+ * ⛔ یک کوئری برای همه‌ی ماه‌ها (جمعِ روزانه، دسته‌بندی در PHP با تقویمِ خودِ
+ *    پروژه — مرزِ ماهِ شمسی در SQL ساختنی نیست).
+ * ⛔ ماه‌های خالیِ **پیش از اولین فعالیت** حذف می‌شوند (کاربرِ دوماهه یازده کارتِ
+ *    صفر نمی‌بیند)؛ ماهِ خالیِ **میانِ** دو ماهِ پر می‌ماند — آن هم یک حقیقت است.
+ *
+ * @return list<array{jy:int, jm:int, label:string, income:int, expense:int, net:int, from:string, to:string}>
+ *         تازه‌ترین ماه اول
+ */
+function monthHistoryBuckets(array $daily, int $jy, int $jm, int $count): array
+{
+    static $names = ['', 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+                     'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    $sum = [];
+    foreach ($daily as $r) {
+        $d = (string)($r['d'] ?? '');
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $d, $m)) { continue; }
+        [$y, $mo] = gregorianToJalali((int)$m[1], (int)$m[2], (int)$m[3]);
+        $k = $y * 100 + $mo;
+        $sum[$k]['in']  = ($sum[$k]['in']  ?? 0) + (int)($r['income'] ?? 0);
+        $sum[$k]['out'] = ($sum[$k]['out'] ?? 0) + (int)($r['expense'] ?? 0);
+    }
+
+    $out = [];
+    $y = $jy; $mo = $jm;
+    for ($i = 0; $i < $count; $i++) {
+        if (--$mo < 1) { $mo = 12; $y--; }
+        $k   = $y * 100 + $mo;
+        $in  = (int)($sum[$k]['in'] ?? 0);
+        $exp = (int)($sum[$k]['out'] ?? 0);
+        $g1 = jalaliToGregorian($y, $mo, 1);
+        $g2 = jalaliToGregorian($y, $mo, jalaliMonthLength($y, $mo));
+        $out[] = [
+            'jy' => $y, 'jm' => $mo,
+            'label'   => $names[$mo] . ' ' . toPersianDigits((string)$y),
+            'income'  => $in, 'expense' => $exp, 'net' => $in - $exp,
+            'from'    => sprintf('%04d-%02d-%02d', $g1[0], $g1[1], $g1[2]),
+            'to'      => sprintf('%04d-%02d-%02d', $g2[0], $g2[1], $g2[2]),
+        ];
+    }
+    // ماه‌های خالیِ ته (قدیمی‌ترین‌ها، پیش از اولین فعالیت) — نه خالی‌های میانه
+    while ($out && end($out)['income'] === 0 && end($out)['expense'] === 0) { array_pop($out); }
+    return $out;
+}
+
+/** @see monthHistoryBuckets() — همان، با یک کوئری از دیتابیس. پیش‌فرض: یازده ماهِ قبل (با ماهِ جاری، ۱۲). */
+function monthHistory(int $userId, int $count = 11): array
+{
+    $count = max(1, min(24, $count));
+    [$jy, $jm] = gregorianToJalali((int)date('Y'), (int)date('m'), (int)date('d'));
+
+    $y = $jy; $mo = $jm - $count;
+    while ($mo < 1) { $mo += 12; $y--; }
+    $g = jalaliToGregorian($y, $mo, 1);
+    $from = sprintf('%04d-%02d-%02d', $g[0], $g[1], $g[2]);
+    $g = jalaliToGregorian($jy, $jm, 1);
+    $to = date('Y-m-d', strtotime(sprintf('%04d-%02d-%02d', $g[0], $g[1], $g[2]) . ' -1 day'));
+
+    $q = Database::getConnection()->prepare('
+        SELECT transaction_date AS d,
+               COALESCE(SUM(CASE WHEN type = "income"  THEN amount ELSE 0 END), 0) AS income,
+               COALESCE(SUM(CASE WHEN type = "expense" THEN amount ELSE 0 END), 0) AS expense
+        FROM transactions
+        WHERE user_id = :u AND transaction_date BETWEEN :f AND :t
+        GROUP BY transaction_date
+    ');
+    $q->execute(['u' => $userId, 'f' => $from, 't' => $to]);
+    return monthHistoryBuckets($q->fetchAll(), $jy, $jm, $count);
+}
+
+/**
  * ⛔ جمله‌های بینش — تنها جایی که اپ **حرف می‌زند**، نه عدد نشان می‌دهد.
  *
  * دلیل وجودش: همه‌ی این اعداد از قبل بودند (`monthComparison`,
