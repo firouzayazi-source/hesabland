@@ -41,6 +41,19 @@ T::same('127.0.0.1', $host, 'خطِ با کامنتِ ته‌خط هم جایگ�
 T::ok(str_contains($out, 'تکراری'), 'حذفِ تکراری گفته شد');
 T::same('', (string)shell_exec('php -l ' . escapeshellarg($cfg) . ' 2>&1 | grep -v "No syntax errors"'), 'نحوِ config.php سالم');
 
+T::group('⛔ تعریفِ چندخطی و if بی‌آکولاد (نحوِ فایل نباید بشکند)');
+// ⚠ بقیه‌ی ثابت‌ها از قبل هستند تا چیزی ته فایل افزوده نشود: بی‌این، خطِ افزوده بدنه‌ی
+//   همان `if`ِ آویزان می‌شد و نحوِ شکسته پنهان می‌ماند (جهشِ «حذفِ تکراری با هیچ» زنده ماند).
+$others = '';
+foreach (['APP_URL', 'MAIL_METHOD', 'MAIL_FROM', 'MAIL_FROM_NAME', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_EHLO'] as $c) { $others .= "define('{$c}', 'x');\n"; }
+file_put_contents($cfg, "<?php\n{$others}if (!defined('SMTP_PASS'))\n    define('SMTP_PASS', 'line1\nline2');\ndefine('SMTP_HOST', 'h'); /* a */\nif (!defined('X')) { define('X', 1); }\n// ---- ارسال ایمیل (deploy/mail-setup.sh) ----\ndefine(\n    'SMTP_PASS',\n    'third'\n);\nif (defined('SMTP_PASS'))\n    define('SMTP_PASS', 'fourth');\n");
+[$rc, $out] = $run('Zz9yy8xx7');
+T::same(0, $rc, 'اسکریپت موفق تمام شد', $out);
+T::same('', (string)shell_exec('php -l ' . escapeshellarg($cfg) . ' 2>&1 | grep -v "No syntax errors"'), '⛔ نحوِ config.php سالم ماند');
+T::same('Zz9yy8xx7', $read()[0], '⛔ رمزِ تازه همان است که PHP می‌خواند');
+$w = (string)shell_exec('php -r ' . escapeshellarg('require ' . var_export($cfg, true) . ';') . ' 2>&1');
+T::same('', $w, 'هیچ هشدارِ «already defined» نماند');
+
 T::group('رمزِ با کاراکترهای خاص');
 [$rc] = $run('a\\b$c\'d);e');
 T::same('a\\b$c\'d);e', $read()[0], '⛔ بک‌اسلش، $، کوتیشن و «);» دست‌نخورده می‌رسند');

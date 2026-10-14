@@ -328,22 +328,56 @@ $vals = [
     "SMTP_EHLO"      => getenv("V_SMTP_EHLO"),
 ];
 
-$add = [];
+// ⛔ هر `define("K", …);` با **توکنایزرِ خودِ PHP** پیدا می‌شود — کلِ دستور، هر چند
+//    خط که باشد، نه یک خطِ متن. اولی جایگزین، بقیه «;» (دستورِ خالی، نه هیچ).
+//    خرابی‌های واقعی (مهر ۱۴۰۵، انتقال به سرورِ تازه):
+//    ۱. config.php دو `define("SMTP_PASS")` داشت؛ PHP **اولی** را می‌خواند و نسخه‌ی
+//       قبلی فقط دومی را عوض می‌کرد (الگوی خطی کامنتِ ته‌خط را نمی‌پذیرفت) — هیچ
+//       رمزی، حتی رمزِ درست، اثر نمی‌کرد و فقط «535» بود.
+//    ۲. نسخه‌ی خطیِ بعدی تکراری را با «» عوض کرد و نحوِ فایل شکست (تعریفِ چندخطی یا
+//       داخلِ `if`ِ بی‌آکولاد) — «;» در هر دو جا هنوز یک دستورِ درست است.
+// ⚠ این کد داخلِ کوتیشنِ تکیِ bash است: هیچ کوتیشنِ تکی در آن نیست (`chr(39)`).
+$toks = token_get_all($src);
+$pos = 0; $spans = [];
+for ($i = 0, $c = count($toks); $i < $c; $i++) {
+    $t = $toks[$i];
+    $txt = is_array($t) ? $t[1] : $t;
+    $start = $pos; $pos += strlen($txt);
+    if (!is_array($t) || $t[0] !== T_STRING || strcasecmp($t[1], "define") !== 0) { continue; }
+    // فراخوانیِ تابع، نه ->define یا ::define
+    for ($p = $i - 1; $p >= 0 && is_array($toks[$p]) && in_array($toks[$p][0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true); $p--) {}
+    if ($p >= 0 && is_array($toks[$p]) && in_array($toks[$p][0], [T_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_NEW], true)) { continue; }
+    // نامِ ثابت: اولین توکنِ بعد از «(»
+    $j = $i + 1; $end = $pos; $name = null; $depth = 0; $endsAt = null;
+    for (; $j < $c; $j++) {
+        $u = $toks[$j]; $ut = is_array($u) ? $u[1] : $u; $end += strlen($ut);
+        if ($u === "(") { $depth++; continue; }
+        if ($u === ")") { $depth--; if ($depth === 0) { $endsAt = $j; break; } continue; }
+        if ($name === null && $depth === 1 && is_array($u) && $u[0] === T_CONSTANT_ENCAPSED_STRING) {
+            $name = trim($u[1], chr(34) . chr(39));
+        } elseif ($name === null && $depth === 1 && !(is_array($u) && $u[0] === T_WHITESPACE)) {
+            $name = "";   // نامِ پویا — دست نزن
+        }
+    }
+    if ($endsAt === null || $name === null || $name === "") { continue; }
+    // «;» بعدِ «)» هم جزوِ دستور است
+    for ($k2 = $endsAt + 1; $k2 < $c && is_array($toks[$k2]) && $toks[$k2][0] === T_WHITESPACE; $k2++) { $end += strlen($toks[$k2][1]); }
+    if ($k2 < $c && $toks[$k2] === ";") { $end += 1; } else { continue; }
+    $spans[] = [$start, $end, $name];
+}
+
+$add = []; $repl = []; $dupes = [];
 foreach ($vals as $k => $v) {
     $line = "define(" . var_export($k, true) . ", " . var_export($v, true) . ");";
-    // ⛔ **همه‌ی** خط‌های define همین ثابت، کلِ خط (با کامنتِ ته‌اش):
-    //    اولی جایگزین، بقیه حذف. خرابیِ واقعی (مهر ۱۴۰۵، انتقال به سرورِ تازه):
-    //    config.php دو `define("SMTP_PASS")` داشت؛ PHP **اولی** را می‌خواند و
-    //    نسخه‌ی قبلیِ این اسکریپت فقط یکی را عوض می‌کرد (الگو کامنتِ ته‌خط را
-    //    نمی‌پذیرفت) — پس هیچ رمزی، حتی رمزِ درست، اثر نمی‌کرد و فقط «535» بود.
-    // ⛔ جایگزینی با callback، نه رشته: در رشته‌ی جایگزینِ preg_replace «\\»ِ
-    //    var_export یکی می‌شد و رمزی که بک‌اسلش داشت بی‌صدا عوض می‌شد.
-    $re = "/^[ \t]*define\s*\(\s*[\x27\"]" . preg_quote($k, "/") . "[\x27\"]\s*,[^\n]*$/mi";
-    $n = 0;
-    $src = preg_replace_callback($re, function () use (&$n, $line) { return $n++ === 0 ? $line : ""; }, $src);
-    if ($n === 0) { $add[] = $line; }
-    elseif ($n > 1) { fwrite(STDERR, "  ⚠ " . ($n - 1) . " خطِ تکراریِ {$k} از config.php حذف شد.\n"); }
+    $mine = array_values(array_filter($spans, function ($s) use ($k) { return $s[2] === $k; }));
+    if (!$mine) { $add[] = $line; continue; }
+    foreach ($mine as $n => $s) { $repl[] = [$s[0], $s[1], $n === 0 ? $line : ";"]; }
+    if (count($mine) > 1) { $dupes[$k] = count($mine) - 1; }
 }
+// از ته به سر، تا جای بقیه جابه‌جا نشود
+usort($repl, function ($a, $b) { return $b[0] <=> $a[0]; });
+foreach ($repl as $r) { $src = substr($src, 0, $r[0]) . $r[2] . substr($src, $r[1]); }
+foreach ($dupes as $k => $n) { fwrite(STDERR, "  ⚠ {$n} تعریفِ تکراریِ {$k} از config.php برداشته شد.\n"); }
 
 if ($add) {
     // تگ بستن پایانی اگر باشد برداشته شود، وگرنه کد بعدش اجرا نمی‌شود
@@ -355,8 +389,10 @@ file_put_contents($path, $src);
 ' || { cp -p "$BACKUP" "$CONFIG"; die 'نوشتن تنظیمات شکست خورد — بکاپ برگردانده شد.'; }
 
 # نحو باید سالم باشد، وگرنه کل اپ ۵۰۰ می‌دهد
-if ! php -l "$CONFIG" >/dev/null 2>&1; then
+if ! _lint="$(php -l "$CONFIG" 2>&1)"; then
   cp -p "$BACKUP" "$CONFIG"
+  # فقط شماره‌ی خط، نه متنِ خط (رمز دارد)
+  warn "  $(printf '%s' "$_lint" | grep -oE 'on line [0-9]+' | head -1)"
   die 'فایل بعد از ویرایش نحو درستی نداشت — بکاپ برگردانده شد. چیزی تغییر نکرد.'
 fi
 
