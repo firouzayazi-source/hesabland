@@ -21,7 +21,7 @@
 #     bash deploy/mail-setup.sh --yes \
 #       --app-url https://hesab.stland.ir \
 #       --smtp-host mail.stland.ir --smtp-port 587 --smtp-secure tls \
-#       --smtp-user no-reply@stland.ir --smtp-pass 'رمزصندوق'
+#       --smtp-user no-reply@stland.ir --smtp-pass 'YOUR_MAILBOX_PASSWORD'
 #
 #   رمز را حتماً داخل ' ' بگذارید تا کاراکترهایش را bash تفسیر نکند.
 
@@ -96,7 +96,7 @@ show_current() {
     foreach ($rows as $k) {
       if (!defined($k)) { printf("  %-16s \033[0;31mتعریف نشده\033[0m\n", $k); continue; }
       $v = constant($k);
-      if ($k === "SMTP_PASS") { $v = $v === "" ? "" : "•••••• (" . strlen($v) . " کاراکتر)"; }
+      if ($k === "SMTP_PASS") { $v = $v === "" ? "" : "•••••• (" . mb_strlen($v, "UTF-8") . " کاراکتر)"; }
       if ($v === "" || $v === null) { printf("  %-16s \033[0;33mخالی\033[0m\n", $k); continue; }
       printf("  %-16s %s\n", $k, $v);
     }
@@ -268,6 +268,13 @@ if [[ -z "$SMTP_PASS_IN" ]]; then
   SMTP_PASS_IN="$(ask_required '  SMTP_PASS (نمایش داده نمی‌شود): ' 1)"
 fi
 
+# ⛔ رمزِ غیرِانگلیسی تقریباً همیشه یعنی جای‌نگه‌دارِ راهنما («رمزصندوق») عوض نشده
+#    — دو بار واقعاً همین شد و سرورِ ایمیل فقط «535» گفت. سرورهای SMTP هم رمزِ
+#    غیرِASCII را معمولاً نمی‌پذیرند.
+if LC_ALL=C grep -q '[^ -~]' <<<"$SMTP_PASS_IN"; then
+  die 'رمز حرفِ غیرِانگلیسی دارد — احتمالاً جای‌نگه‌دارِ راهنما را به‌جای رمزِ واقعی نوشته‌اید. رمزِ صندوق را (فقط حرفِ انگلیسی و عدد) بدهید. چیزی تغییر نکرد.'
+fi
+
 if (( INTERACTIVE )); then
   say ''
   read -r -p "  MAIL_FROM [$SMTP_USER_IN]: " _from
@@ -324,13 +331,18 @@ $vals = [
 $add = [];
 foreach ($vals as $k => $v) {
     $line = "define(" . var_export($k, true) . ", " . var_export($v, true) . ");";
-    // define موجود را جایگزین کن (هر جای فایل، با هر فاصله‌گذاری)
-    $re = "/^[ \t]*define\s*\(\s*[\x27\"]" . preg_quote($k, "/") . "[\x27\"]\s*,.*?\)\s*;[ \t]*$/mi";
-    if (preg_match($re, $src)) {
-        $src = preg_replace($re, str_replace("$", "\\$", $line), $src, 1);
-    } else {
-        $add[] = $line;
-    }
+    // ⛔ **همه‌ی** خط‌های define همین ثابت، کلِ خط (با کامنتِ ته‌اش):
+    //    اولی جایگزین، بقیه حذف. خرابیِ واقعی (مهر ۱۴۰۵، انتقال به سرورِ تازه):
+    //    config.php دو `define("SMTP_PASS")` داشت؛ PHP **اولی** را می‌خواند و
+    //    نسخه‌ی قبلیِ این اسکریپت فقط یکی را عوض می‌کرد (الگو کامنتِ ته‌خط را
+    //    نمی‌پذیرفت) — پس هیچ رمزی، حتی رمزِ درست، اثر نمی‌کرد و فقط «535» بود.
+    // ⛔ جایگزینی با callback، نه رشته: در رشته‌ی جایگزینِ preg_replace «\\»ِ
+    //    var_export یکی می‌شد و رمزی که بک‌اسلش داشت بی‌صدا عوض می‌شد.
+    $re = "/^[ \t]*define\s*\(\s*[\x27\"]" . preg_quote($k, "/") . "[\x27\"]\s*,[^\n]*$/mi";
+    $n = 0;
+    $src = preg_replace_callback($re, function () use (&$n, $line) { return $n++ === 0 ? $line : ""; }, $src);
+    if ($n === 0) { $add[] = $line; }
+    elseif ($n > 1) { fwrite(STDERR, "  ⚠ " . ($n - 1) . " خطِ تکراریِ {$k} از config.php حذف شد.\n"); }
 }
 
 if ($add) {
