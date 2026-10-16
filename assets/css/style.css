@@ -1327,6 +1327,10 @@ textarea { resize: vertical; }
 .tx-row-amount { font-size: 15px; font-weight: 700; white-space: nowrap; letter-spacing: -.2px; }
 .tx-row-chevron { display: none; }
 .tx-row.expanded .tx-row-chevron { transform: rotate(180deg); }
+/* ⛔ ردیفِ باز عنوانِ کامل را نشان می‌دهد: بسته، `ellipsis` در متنِ راست‌به‌چپ
+      ابتدای نامِ لاتین را می‌برد («…e 12 Pro» به‌جای «iPhone 12 Pro») و در
+      جزئیات هم جای دیگری برای خواندنش نبود. */
+.tx-row.expanded .tx-row-title { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
 
 .tx-row-details {
     display: none;

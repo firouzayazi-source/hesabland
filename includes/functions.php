@@ -4705,6 +4705,23 @@ function storeShareMarkSvg(int $size = 22): string
          . '<path d="M299 338H402L374 366H262Z"/></g></svg>';
 }
 
+/**
+ * «زمانِ ثبت» در جزئیاتِ ردیفِ تراکنش.
+ *
+ * ⛔ فقط ساعت وقتی روزِ ثبت همان «تاریخ»ِ تراکنش است؛ وگرنه **تاریخ هم**. سطرِ
+ *    «زمان ثبت» درست زیرِ «تاریخ» می‌نشیند و ساعتِ تنها به همان تاریخ نسبت داده
+ *    می‌شد — سودِ فروشگاه (تاریخِ فروش) یا تراکنشی که با تاریخِ گذشته ثبت شده،
+ *    روزی ثبت شده که با تاریخش یکی نیست (خواسته‌ی مالکِ نصب، مهر ۱۴۰۵).
+ */
+function txCreatedLabel(string $createdAt, string $txDate): string
+{
+    $ts = strtotime($createdAt);
+    if ($ts === false) { return ''; }
+    $time = toPersianDigits(date('H:i', $ts));
+    $day  = date('Y-m-d', $ts);
+    return $day === substr($txDate, 0, 10) ? $time : toJalali($day) . '، ساعت ' . $time;
+}
+
 function renderTransactionRow(array $tx): void
 {
     if (!empty($tx['move'])) { renderMoneyMoveRow($tx); return; }
@@ -4732,7 +4749,7 @@ function renderTransactionRow(array $tx): void
             <div class="tx-row-details-line"><span>نوع</span><span class="type-tag type-tag-<?= h($tx['type']) ?>"><?= typeLabel($tx['type']) ?></span></div>
             <div class="tx-row-details-line"><span>تاریخ</span><span><?= toJalali($tx['transaction_date']) ?></span></div>
             <?php if (isset($tx['created_at'])): ?>
-                <div class="tx-row-details-line"><span>زمان ثبت</span><span><?= toPersianDigits(date('H:i', strtotime($tx['created_at']))) ?></span></div>
+                <div class="tx-row-details-line"><span>زمان ثبت</span><span><?= txCreatedLabel((string)$tx['created_at'], (string)$tx['transaction_date']) ?></span></div>
             <?php endif; ?>
             <?php if (!empty($tx['note'])): ?>
                 <div class="tx-row-details-line"><span>توضیح</span><span><?= h($tx['note']) ?></span></div>
