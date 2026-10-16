@@ -21,6 +21,7 @@ require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_acc.php';
 require_once __DIR__ . '/../includes/biz_dash.php';
 require_once __DIR__ . '/../includes/biz_moadian.php';
+require_once __DIR__ . '/../includes/biz_print.php';
 
 $userId = Biz::ownerId();
 $TABS = ['balance' => 'ترازنامه', 'trial' => 'ترازِ آزمایشی', 'journal' => 'روزنامه', 'vat' => 'مالیات بر ارزش افزوده',
@@ -215,7 +216,10 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
     $chart = BizCoa::map($userId);
     $shown = 0;
 ?>
-<div class="st-head-actions"><a class="st-btn st-btn-ghost" href="<?= h($keep(['csv' => '1'])) ?>">دریافتِ CSV برای حسابدار</a></div>
+<?php $lbq = array_filter(['p' => $period, 'from' => $period === 'custom' ? BizDocView::jDate($rFrom) : '', 'to' => $period === 'custom' ? BizDocView::jDate($rTo) : '']); ?>
+<div class="st-head-actions"><a class="st-btn st-btn-ghost" href="<?= h($keep(['csv' => '1'])) ?>">دریافتِ CSV برای حسابدار</a>
+    <a class="st-btn st-btn-ghost" href="<?= h(BizPrint::url('legal_journal', $lbq)) ?>">دفترِ روزنامه‌ی قانونی</a>
+    <a class="st-btn st-btn-ghost" href="<?= h(BizPrint::url('legal_ledger', $lbq)) ?>">دفترِ کلِ قانونی</a></div>
 <?php if (!$entries): ?><p class="st-muted">در این بازه سندی نیست.</p><?php endif; ?>
 <?php foreach ($entries as $n => $e): if ($shown >= BizLedger::JOURNAL_CAP) { break; } $shown += count($e['lines']); ?>
 <section class="st-card st-journal">

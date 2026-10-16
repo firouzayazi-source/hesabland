@@ -183,3 +183,10 @@ body.pr-body {
     .pr-ifoot .pr-totals { width: 100%; }
 }
 .pr-itable .pr-c-sku { white-space: nowrap; }
+/* دفاترِ قانونی: هر صفحه جدا، ردیفِ بستانکار با تورفتگی (شکلِ دفترِ روزنامه) */
+.pr-legal { break-after: page; }
+.pr-legal:last-of-type { break-after: auto; }
+.pr-legal .pr-legal-cr { padding-inline-start: 2em; }
+.pr-page-no { text-align: center; }
+.pr-h2 { font-size: 14px; margin: 14px 0 6px; }
+@media print { .no-print { display: none; } }

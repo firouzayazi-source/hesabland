@@ -598,6 +598,163 @@ final class BizLedger
 }
 
 /* =================================================================
+   دفاترِ قانونی — روزنامه و کل (مهر ۱۴۰۵)
+   ================================================================= */
+/**
+ * ⛔ **مشتقِ همان `BizLedger::entries()`** — هیچ جدول و هیچ ثبتِ دومی ندارد.
+ *
+ * **خواسته‌ی مالکِ نصب** (بعد از مقایسه با «قیاس»): دفترِ روزنامه و کل به شکلی که
+ * برای دفاترِ قانونی تحویل داده می‌شود.
+ *
+ * - روزنامه: **یک سند در روز** (سندِ خلاصه‌ی روزانه)، ردیف‌ها به تفکیکِ حسابِ کل، بدهکار و
+ *   بستانکار جدا (هر دو سمتِ یک حساب در یک روز دو ردیف‌اند، خالص نمی‌شوند — گردش گم نشود).
+ *   سندِ شماره‌ی ۱ «افتتاحیه» است: مانده‌ی حساب‌های دائمی تا روزِ پیش از شروعِ دوره، و
+ *   خالصِ درآمد و هزینه‌های پیش از آن به «سود و زیانِ انباشته» (`RE`). شماره‌ی سندها پیاپی.
+ * - کل: هر حساب جدا، مانده‌ی اول دوره، هر ردیفِ روزنامه با شماره‌ی سندش، مانده‌ی جاری با
+ *   تشخیص (بد/بس).
+ * - صفحه‌بندی با «نقل از صفحه‌ی قبل / به صفحه‌ی بعد» (`pages()`) — همان شکلِ دفترِ کاغذی.
+ *
+ * ⚠ قالبِ رسمیِ «دفاترِ الکترونیکی»ِ سازمان منتشر نشده؛ این خروجیِ چاپی و CSVِ همان دو دفتر است.
+ */
+final class BizLegalBooks
+{
+    /** کلیدِ «سود و زیانِ انباشته» در افتتاحیه — کدِ حساب نیست، تا با حسابِ دلخواهِ کاربر برخورد نکند. */
+    public const RE = 'RE';
+    public const RE_NAME = 'سود و زیانِ انباشته';
+
+    /** ردیفِ هر صفحه‌ی چاپی. */
+    public const PAGE_ROWS = 28;
+
+    /**
+     * روزنامه‌ی قانونی.
+     * @return array{docs:list<array{no:int, date:string, desc:string, lines:list<array{code:string, name:string, dr:int, cr:int}>}>, dr:int, cr:int, chart:array}
+     */
+    public static function journal(int $userId, string $from, string $to): array
+    {
+        $chart = BizCoa::map($userId);
+        $name = fn(string $c): string => $c === self::RE ? self::RE_NAME : ($chart[$c][0] ?? $c);
+        $all = BizLedger::entries($userId, $to);
+        $docs = [];
+
+        // ۱) افتتاحیه: همه‌ی سندهای پیش از `$from`
+        $open = [];
+        foreach ($all as $e) {
+            if ($e['date'] >= $from) { continue; }
+            foreach ($e['lines'] as [$code, , , $d, $c]) {
+                $t = $chart[$code][1] ?? 'expense';
+                $k = in_array($t, ['income', 'expense'], true) ? self::RE : (string)$code;
+                $open[$k] = ($open[$k] ?? 0) + (int)$d - (int)$c;
+            }
+        }
+        ksort($open, SORT_STRING);
+        $ol = [];
+        foreach ($open as $k => $bal) {
+            if ($bal === 0) { continue; }
+            $ol[] = ['code' => $k, 'name' => $name($k), 'dr' => max(0, $bal), 'cr' => max(0, -$bal)];
+        }
+        if ($ol) {
+            usort($ol, fn($a, $b) => [$a['dr'] === 0, $a['code']] <=> [$b['dr'] === 0, $b['code']]);
+            $docs[] = ['no' => 1, 'date' => $from, 'desc' => 'سندِ افتتاحیه — مانده‌ی حساب‌ها در آغازِ دوره', 'lines' => $ol];
+        }
+
+        // ۲) یک سند در روز، ردیف‌ها به تفکیکِ حسابِ کل و سمت
+        $byDay = [];
+        foreach ($all as $e) {
+            if ($e['date'] < $from || $e['date'] > $to) { continue; }
+            foreach ($e['lines'] as [$code, , , $d, $c]) {
+                $byDay[$e['date']][(string)$code]['dr'] = ($byDay[$e['date']][(string)$code]['dr'] ?? 0) + (int)$d;
+                $byDay[$e['date']][(string)$code]['cr'] = ($byDay[$e['date']][(string)$code]['cr'] ?? 0) + (int)$c;
+            }
+        }
+        ksort($byDay);
+        foreach ($byDay as $date => $codes) {
+            ksort($codes, SORT_STRING);
+            $dl = []; $cl = [];
+            foreach ($codes as $code => $v) {
+                if ($v['dr'] !== 0) { $dl[] = ['code' => (string)$code, 'name' => $name((string)$code), 'dr' => $v['dr'], 'cr' => 0]; }
+                if ($v['cr'] !== 0) { $cl[] = ['code' => (string)$code, 'name' => $name((string)$code), 'dr' => 0, 'cr' => $v['cr']]; }
+            }
+            if (!$dl && !$cl) { continue; }
+            $docs[] = ['no' => count($docs) + 1, 'date' => (string)$date, 'desc' => 'سندِ خلاصه‌ی روزِ ' . toJalali((string)$date), 'lines' => array_merge($dl, $cl)];
+        }
+        $dr = 0; $cr = 0;
+        foreach ($docs as $d) { foreach ($d['lines'] as $l) { $dr += $l['dr']; $cr += $l['cr']; } }
+        return ['docs' => $docs, 'dr' => $dr, 'cr' => $cr, 'chart' => $chart];
+    }
+
+    /**
+     * دفترِ کل — از همان روزنامه (یک منبع).
+     * @return array<string, array{code:string, name:string, open:int, rows:list<array{date:string, no:int, desc:string, dr:int, cr:int, bal:int}>, dr:int, cr:int, close:int}>
+     */
+    public static function ledger(array $journal): array
+    {
+        $out = [];
+        foreach ($journal['docs'] as $doc) {
+            $opening = $doc['no'] === 1 && str_starts_with($doc['desc'], 'سندِ افتتاحیه');
+            foreach ($doc['lines'] as $l) {
+                $out[$l['code']] ??= ['code' => $l['code'], 'name' => $l['name'], 'open' => 0, 'rows' => [], 'dr' => 0, 'cr' => 0, 'close' => 0];
+                $a = &$out[$l['code']];
+                $a['close'] += $l['dr'] - $l['cr'];
+                $a['dr'] += $l['dr']; $a['cr'] += $l['cr'];
+                $a['rows'][] = ['date' => $doc['date'], 'no' => $doc['no'], 'desc' => $opening ? 'افتتاحیه' : 'طبقِ سندِ روزنامه‌ی شماره‌ی ' . toPersianDigits((string)$doc['no']),
+                                'dr' => $l['dr'], 'cr' => $l['cr'], 'bal' => $a['close']];
+                unset($a);
+            }
+        }
+        ksort($out, SORT_STRING);
+        return $out;
+    }
+
+    /**
+     * صفحه‌بندیِ ردیف‌ها با نقلِ جمع: هر صفحه `carry_in` (جمعِ صفحه‌های قبل) و `carry_out`.
+     * @param list<array{dr:int, cr:int}> $rows
+     * @return list<array{rows:list<array>, carry_in:array{dr:int,cr:int}, carry_out:array{dr:int,cr:int}}>
+     */
+    public static function pages(array $rows, int $per = self::PAGE_ROWS): array
+    {
+        $pages = []; $sum = ['dr' => 0, 'cr' => 0];
+        foreach (array_chunk($rows, max(1, $per)) as $chunk) {
+            $in = $sum;
+            foreach ($chunk as $r) { $sum['dr'] += (int)$r['dr']; $sum['cr'] += (int)$r['cr']; }
+            $pages[] = ['rows' => $chunk, 'carry_in' => $in, 'carry_out' => $sum];
+        }
+        return $pages ?: [['rows' => [], 'carry_in' => $sum, 'carry_out' => $sum]];
+    }
+
+    /** ردیف‌های تختِ روزنامه برای صفحه‌بندی و CSV. */
+    public static function journalRows(array $journal): array
+    {
+        $rows = [];
+        foreach ($journal['docs'] as $d) {
+            foreach ($d['lines'] as $i => $l) {
+                $rows[] = ['no' => $d['no'], 'date' => $d['date'], 'desc' => $i === 0 ? $d['desc'] : '', 'code' => $l['code'], 'name' => $l['name'], 'dr' => $l['dr'], 'cr' => $l['cr']];
+            }
+        }
+        return $rows;
+    }
+
+    /** CSVِ روزنامه یا کل (BOM، سدِ فرمول — `BizSheet::writeCsv()`). */
+    public static function csv(array $journal, string $book): string
+    {
+        require_once __DIR__ . '/biz_io.php';
+        if ($book === 'ledger') {
+            $rows = [['کدِ حساب', 'حساب', 'تاریخ', 'شماره‌ی سند', 'شرح', 'بدهکار', 'بستانکار', 'مانده', 'تشخیص']];
+            foreach (self::ledger($journal) as $a) {
+                foreach ($a['rows'] as $r) {
+                    $rows[] = [$a['code'] === self::RE ? '' : $a['code'], $a['name'], toJalali($r['date']), $r['no'], $r['desc'], $r['dr'], $r['cr'], abs($r['bal']), $r['bal'] >= 0 ? 'بد' : 'بس'];
+                }
+            }
+            return BizSheet::writeCsv($rows);
+        }
+        $rows = [['شماره‌ی سند', 'تاریخ', 'شرح', 'کدِ حساب', 'حساب', 'بدهکار', 'بستانکار']];
+        foreach (self::journalRows($journal) as $r) {
+            $rows[] = [$r['no'], toJalali($r['date']), $r['desc'], $r['code'] === self::RE ? '' : $r['code'], $r['name'], $r['dr'], $r['cr']];
+        }
+        return BizSheet::writeCsv($rows);
+    }
+}
+
+/* =================================================================
    بستنِ سالِ مالی
    ================================================================= */
 final class BizYear

@@ -30,6 +30,8 @@ final class BizPrint
         'by_party'   => 'خلاصه‌ی گردشِ اشخاص',
         'serials'    => 'گزارش IMEI گوشی‌ها',
         'partnos'    => 'گزارشِ پارت‌نامبر',
+        'legal_journal' => 'دفترِ روزنامه',
+        'legal_ledger'  => 'دفترِ کل',
         'account'    => 'گردشِ صندوق و بانک',
         'cheques'    => 'دفترِ چک',
         'repair'     => 'قبضِ پذیرشِ تعمیر',
@@ -45,6 +47,7 @@ final class BizPrint
         'prices' => null, 'invoice' => null, 'payment' => null, 'party' => 'receive',
         'stock' => 'reports', 'parties' => 'reports', 'kardex' => 'reports', 'sales' => 'reports',
         'by_product' => 'reports', 'by_invoice' => 'reports', 'by_party' => 'reports', 'serials' => 'reports', 'partnos' => 'reports',
+        'legal_journal' => 'accounting', 'legal_ledger' => 'accounting',
         'account' => 'money', 'cheques' => 'money', 'repair' => 'repairs', 'commission' => 'reports',
     ];
 
@@ -67,6 +70,10 @@ final class BizPrint
         'مالی' => [
             ['doc' => 'sales', 'label' => 'صورت سود و زیان', 'input' => 'period',
              'desc' => 'فروشِ خالص، بهای تمام‌شده، سودِ ناخالص، هزینه‌ها به تفکیکِ شرح و سودِ خالص.'],
+            ['doc' => 'legal_journal', 'label' => 'دفترِ روزنامه‌ی قانونی', 'input' => 'period',
+             'desc' => 'سندِ افتتاحیه و یک سندِ خلاصه در هر روز به تفکیکِ حسابِ کل، با نقلِ جمع از صفحه‌ای به صفحه‌ی دیگر.'],
+            ['doc' => 'legal_ledger', 'label' => 'دفترِ کلِ قانونی', 'input' => 'period',
+             'desc' => 'هر حساب با مانده‌ی اول دوره، ردیف‌های روزنامه با شماره‌ی سند و مانده‌ی جاری (بد/بس).'],
         ],
         'اشخاص' => [
             ['doc' => 'parties', 'label' => 'بدهکاران و بستانکاران', 'input' => 'cfilter',

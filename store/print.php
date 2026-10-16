@@ -367,6 +367,71 @@ case 'repair':
     <?php BizPrint::foot($userId, ['امضای تحویل‌گیرنده (فروشگاه)', 'امضای مشتری']);
     break;
 
+case 'legal_journal':
+case 'legal_ledger':
+    // ⛔ دفاترِ قانونی — مشتقِ `BizLedger::entries()` (`BizLegalBooks`)، هیچ ثبتِ دومی
+    require_once __DIR__ . '/../includes/biz_acc.php';
+    if (!Biz::accReady()) { Biz::notFound(); }
+    $lj = BizLegalBooks::journal($userId, $rf, $rt);
+    if (getParam('csv') === '1') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . ($doc === 'legal_ledger' ? 'ledger' : 'journal') . '-' . $rf . '-' . $rt . '.csv"');
+        header('Cache-Control: no-store');
+        echo BizLegalBooks::csv($lj, $doc === 'legal_ledger' ? 'ledger' : 'journal');
+        exit;
+    }
+    $csvUrl = Biz::url('print.php') . '?' . http_build_query(['doc' => $doc, 'csv' => '1'] + array_filter(['p' => $period,
+              'from' => $period === 'custom' ? BizDocView::jDate($rf) : '', 'to' => $period === 'custom' ? BizDocView::jDate($rt) : '']));
+    BizPrint::head($userId, BizPrint::DOCS[$doc], $periodBack, ['بازه' => BizReports::rangeLabel($rf, $rt),
+        'جمعِ گردش' => formatMoney($lj['dr']) . ' تومان']);
+    $carry = fn(string $label, array $c, int $span) => '<tr class="pr-group"><td colspan="' . $span . '">' . $label . '</td><td class="pr-c-num">' . $money($c['dr']) . '</td><td class="pr-c-num">' . $money($c['cr']) . '</td>' . ($doc === 'legal_ledger' ? '<td></td>' : '') . '</tr>';
+    if ($doc === 'legal_journal'):
+        $pgs = BizLegalBooks::pages(BizLegalBooks::journalRows($lj)); ?>
+    <p class="pr-note no-print"><a href="<?= h($csvUrl) ?>">دریافتِ CSV</a></p>
+    <?php foreach ($pgs as $pi => $pg): ?>
+    <table class="pr-table pr-legal">
+        <thead><tr><th>سند</th><th>تاریخ</th><th>شرح</th><th>کد</th><th>حساب</th><th class="pr-c-num">بدهکار</th><th class="pr-c-num">بستانکار</th></tr></thead>
+        <tbody>
+        <?php if ($pi > 0) { echo $carry('نقل از صفحه‌ی قبل', $pg['carry_in'], 5); } ?>
+        <?php if (!$pg['rows']): ?><tr><td colspan="7" class="pr-empty">در این بازه سندی نیست.</td></tr><?php endif; ?>
+        <?php foreach ($pg['rows'] as $r): ?>
+            <tr><td class="pr-num"><?= $r['desc'] !== '' ? toPersianDigits((string)$r['no']) : '' ?></td><td class="pr-num"><?= $r['desc'] !== '' ? h(toJalali($r['date'])) : '' ?></td>
+                <td><?= h($r['desc']) ?></td><td class="pr-num"><?= $r['code'] === BizLegalBooks::RE ? '' : h(toPersianDigits($r['code'])) ?></td>
+                <td<?= $r['cr'] > 0 ? ' class="pr-legal-cr"' : '' ?>><?= h($r['name']) ?></td>
+                <td class="pr-c-num"><?= $r['dr'] ? $money($r['dr']) : '' ?></td><td class="pr-c-num"><?= $r['cr'] ? $money($r['cr']) : '' ?></td></tr>
+        <?php endforeach; ?>
+        <?= $carry($pi === count($pgs) - 1 ? 'جمعِ کل' : 'نقل به صفحه‌ی بعد', $pg['carry_out'], 5) ?>
+        </tbody>
+    </table>
+    <p class="pr-note pr-page-no">صفحه‌ی <?= toPersianDigits((string)($pi + 1)) ?> از <?= toPersianDigits((string)count($pgs)) ?></p>
+    <?php endforeach; ?>
+    <p class="pr-note">هر روز یک سندِ خلاصه به تفکیکِ حسابِ کل؛ سندِ ۱ افتتاحیه است (مانده‌ی حساب‌های دائمی و سود و زیانِ انباشته در آغازِ دوره). مبلغ‌ها به تومان.</p>
+    <?php else:
+        $led = BizLegalBooks::ledger($lj); ?>
+    <p class="pr-note no-print"><a href="<?= h($csvUrl) ?>">دریافتِ CSV</a></p>
+    <?php if (!$led): ?><p class="pr-empty">در این بازه سندی نیست.</p><?php endif; ?>
+    <?php foreach ($led as $a): $pgs = BizLegalBooks::pages($a['rows']); ?>
+    <h2 class="pr-h2"><?= $a['code'] === BizLegalBooks::RE ? '' : h(toPersianDigits($a['code'])) . ' — ' ?><?= h($a['name']) ?></h2>
+    <?php foreach ($pgs as $pi => $pg): ?>
+    <table class="pr-table pr-legal">
+        <thead><tr><th>تاریخ</th><th>سند</th><th>شرح</th><th class="pr-c-num">بدهکار</th><th class="pr-c-num">بستانکار</th><th class="pr-c-num">مانده</th></tr></thead>
+        <tbody>
+        <?php if ($pi > 0) { echo $carry('نقل از صفحه‌ی قبل', $pg['carry_in'], 3); } ?>
+        <?php foreach ($pg['rows'] as $r): ?>
+            <tr><td class="pr-num"><?= h(toJalali($r['date'])) ?></td><td class="pr-num"><?= toPersianDigits((string)$r['no']) ?></td><td><?= h($r['desc']) ?></td>
+                <td class="pr-c-num"><?= $r['dr'] ? $money($r['dr']) : '' ?></td><td class="pr-c-num"><?= $r['cr'] ? $money($r['cr']) : '' ?></td>
+                <td class="pr-c-num"><?= $money(abs($r['bal'])) ?> <span class="pr-sub"><?= $r['bal'] >= 0 ? 'بد' : 'بس' ?></span></td></tr>
+        <?php endforeach; ?>
+        <?= $carry($pi === count($pgs) - 1 ? 'جمع' : 'نقل به صفحه‌ی بعد', $pg['carry_out'], 3) ?>
+        </tbody>
+    </table>
+    <?php endforeach; ?>
+    <?php endforeach; ?>
+    <p class="pr-note">مانده‌ی هر حساب با تشخیص (بد = بدهکار، بس = بستانکار). ردیف‌ها همان سندهای دفترِ روزنامه‌ی همین بازه‌اند. مبلغ‌ها به تومان.</p>
+    <?php endif;
+    BizPrint::foot($userId, ['حسابدار', 'مدیر']);
+    break;
+
 case 'sales':
     $sa = BizReports::sales($userId, $rf, $rt);
     $ca = BizReports::cash($userId, $rf, $rt);
