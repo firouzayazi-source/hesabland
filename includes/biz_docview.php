@@ -255,6 +255,21 @@ final class BizDocView
         return $bad ? ' <span class="st-imei-warn" title="' . h(BizSerial::luhnMessage($bad)) . '">⚠ رقمِ کنترلِ IMEI نامعتبر</span>' : '';
     }
 
+    /**
+     * ⛔ «استعلام از همتا» کنارِ IMEIِ هر ردیف — فقط صفحه‌ی سند، نه چاپ. پیامکِ
+     *    آماده به ۷۷۷۷ (`BizSerial::hamtaSms()`)؛ پاسخِ رسمی همان‌جا می‌رسد.
+     */
+    public static function hamtaLinks(array $l): string
+    {
+        $out = '';
+        foreach ([(string)($l['imei1'] ?? ''), (string)($l['imei2'] ?? '')] as $i => $m) {
+            if (($href = BizSerial::hamtaSms($m)) === '') { continue; }
+            $out .= ' <a class="st-hamta" href="' . h($href) . '" title="پیامکِ IMEI به ' . toPersianDigits(BizSerial::HAMTA_SMS)
+                  . ' — پاسخِ رسمیِ رجیستری">استعلامِ همتا' . ($i === 1 ? ' (IMEI ۲)' : '') . '</a>';
+        }
+        return $out;
+    }
+
     public static function imeiLine(array $l, string $class = 'st-imei'): string
     {
         $n = array_values(array_filter([(string)($l['imei1'] ?? ''), (string)($l['imei2'] ?? '')], fn($v) => $v !== ''));

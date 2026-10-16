@@ -424,6 +424,9 @@ require __DIR__ . '/../includes/biz_head.php';
 <?php if (($lw = BizSerial::luhnMessage(BizSerial::luhnWarnings($parsed['lines']))) !== ''): /* فقط هشدار — صدور بسته نیست */ ?>
 <div class="st-flash st-flash-warn" role="status" data-imei-luhn><?= h($lw) ?></div>
 <?php endif; ?>
+<?php if (($tw = BizSerial::tacMessage(BizSerial::tacWarnings(Database::getConnection(), $userId, $parsed['lines'], $id))) !== ''): /* TAC: فقط هشدار */ ?>
+<div class="st-flash st-flash-warn" role="status" data-imei-tac><?= h($tw) ?></div>
+<?php endif; ?>
 <?php if ($costWarn): ?>
 <div class="st-flash st-flash-warn" role="status">زیرِ بهای خرید: <?= h(implode('، ', array_map(fn($w) => '«' . $w['desc'] . '» ' . formatMoney($w['per']) . ' (بها ' . formatMoney($w['cost']) . ')', $costWarn))) ?></div>
 <?php endif; ?>

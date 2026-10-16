@@ -55,6 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $res = Biz::saveRateRound($userId, (int)postParam('rate_round', '1000'));
         redirectWithMessage(Biz::url('settings.php') . '#rates', $res['ok'] ? 'success' : 'error', $res['message']);
     }
+    // ⛔ فهرستِ TACِ مشکوک مالِ کلِ نصب است، نه یک فروشگاه — فقط مدیرِ نصب، و
+    //    فقط `BizSerial::saveFlaggedTacs()`. همکار هرگز (او مدیرِ نصب نیست).
+    if (postParam('action') === 'flagged_tacs') {
+        if (!Auth::isAdmin() || Biz::isStaff()) { Biz::denied('settings'); }
+        $res = BizSerial::saveFlaggedTacs((string)postParam('tacs'));
+        redirectWithMessage(Biz::url('settings.php') . '#tacs', $res['ok'] ? 'success' : 'error', $res['message']);
+    }
     if (postParam('action') === 'accounting') {
         $res = Biz::saveAccounting($userId, $_POST);
         redirectWithMessage(Biz::url('settings.php') . '#accounting', $res['ok'] ? 'success' : 'error', $res['message']);
@@ -337,4 +344,17 @@ $prevEnd  = date('Y-m-d', strtotime(startOfJalaliMonth() . ' -1 day'));   // پ�
         <?php endif; ?>
     </div>
 </form>
+<?php if (Auth::isAdmin() && !Biz::isStaff()): $__tacs = BizSerial::flaggedTacs(); ?>
+<h2 class="st-h2 st-section-title" id="tacs">IMEIِ مشکوک (مدیرِ نصب)</h2>
+<form method="post" class="st-card st-form" action="<?= h(Biz::url('settings.php')) ?>">
+    <?= Csrf::field() ?>
+    <input type="hidden" name="action" value="flagged_tacs">
+    <p class="st-muted">هشت رقمِ اولِ IMEI (TAC) مدلِ دستگاه را نشان می‌دهد. TACهایی را که در اطلاعیه‌ها مشکوک اعلام شده‌اند (مثلاً IMEIِ کارت‌خوان روی گوشی) اینجا بنویسید — هر خط یک TAC و بعد یادداشت. هنگامِ خرید و فروشِ گوشی با این IMEIها هشدار داده می‌شود (ثبت بسته نمی‌شود). این فهرست برای همه‌ی فروشگاه‌های این نصب است.</p>
+    <label class="st-field">
+        <span>فهرست (<?= toPersianDigits((string)count($__tacs)) ?> TAC)</span>
+        <textarea name="tacs" rows="5" dir="ltr" placeholder="35391810 POS"><?= h(implode("\n", array_map(fn($t, $n) => $t . ($n !== '' ? ' ' . $n : ''), array_keys($__tacs), $__tacs))) ?></textarea>
+    </label>
+    <button type="submit" class="st-btn">ذخیره</button>
+</form>
+<?php endif; ?>
 <?php require __DIR__ . '/../includes/biz_foot.php'; ?>

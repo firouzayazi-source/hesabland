@@ -825,6 +825,8 @@ final class BizInvoices
         }
         // ⛔ هشدارِ رقمِ کنترلِ IMEI — فقط پیام، صدور انجام شده است
         $lw = BizSerial::luhnMessage(BizSerial::luhnWarnings($lines));
+        $tw = BizSerial::tacMessage(BizSerial::tacWarnings($pdo, $userId, $lines, $id));
+        $lw = trim($lw . ($lw !== '' && $tw !== '' ? ' ' : '') . $tw);
         return ['ok' => true, 'message' => self::KINDS[$kind] . ' شماره‌ی ' . toPersianDigits((string)$number) . ' صادر شد.'
                                            . ($lw !== '' ? ' ⚠ ' . $lw : ''), 'imei_warn' => $lw];
     }
@@ -2294,6 +2296,151 @@ final class BizSerial
         if (!$imeis) { return ''; }
         return 'IMEI ' . implode('، ', $imeis) . ' رقمِ کنترلِ درستی ندارد — یک بار با جعبه یا ‎*#06#‎ مقایسه کنید'
              . ' (اشتباهِ تایپی، یا گوشیِ کپی). ثبت انجام می‌شود.';
+    }
+
+    /* ------------------------------------------------------------
+       ⛔ TAC — هشت رقمِ اولِ IMEI، که مدلِ دستگاه را نشان می‌دهد.
+
+       **خواسته‌ی مالکِ نصب (مهر ۱۴۰۵):** انجمنِ تلفنِ همراه هشدار داد که گوشی‌هایی
+       در بازار است که IMEIشان در اصل مالِ دستگاهِ دیگری (کارت‌خوان) است و بعد
+       آنتن‌شان قطع می‌شود. رقمِ کنترل (Luhn) این را نمی‌گیرد — IMEIِ واقعیِ یک
+       دستگاهِ دیگر است.
+
+       ⚠ فهرستِ رسمیِ TAC (GSMA) پولی و بسته است و حدس زدنِ TAC ممنوع است.
+         پس دو منبع، هر دو واقعی:
+         ۱. **سابقه‌ی همین فروشگاه:** TACی که قبلاً با مدلِ دیگری (برندِ دیگر)
+            خرید یا فروخته شده و حالا زیرِ این کالا آمده ⇒ هشدار. هم اشتباهِ
+            انتخابِ کالا را می‌گیرد، هم IMEIِ جابه‌جاشده را.
+         ۲. **فهرستِ TACِ مشکوکِ نصب** (`app_settings.imei_flagged_tacs`) که مدیرِ
+            نصب از اطلاعیه‌ها وارد می‌کند — `flaggedTacs()`.
+       ⛔ مثلِ Luhn **فقط هشدار، هرگز سد**؛ و استعلامِ قطعی همیشه «همتا» است
+         (`hamtaSms()`).
+       ------------------------------------------------------------ */
+
+    /** کلیدِ فهرستِ TACِ مشکوکِ نصب در `app_settings`. */
+    public const FLAGGED_TACS_KEY = 'imei_flagged_tacs';
+
+    /** سقفِ فهرست — اطلاعیه‌ها چند ده مدل‌اند، نه هزار. */
+    public const FLAGGED_TACS_MAX = 500;
+
+    /** شماره‌ی استعلامِ پیامکیِ همتا (سازمانِ تنظیمِ مقررات): IMEIِ ۱۵ رقمی به این شماره. */
+    public const HAMTA_SMS = '7777';
+
+    /** TACِ یک IMEI (هشت رقمِ اول)، یا خالی. */
+    public static function tac(string $imei): string
+    {
+        $imei = self::norm($imei);
+        return self::valid($imei) ? substr($imei, 0, 8) : '';
+    }
+
+    /**
+     * «خانواده»ی یک نامِ کالا برای مقایسه‌ی TAC: اولین واژه‌ی لاتین (iphone،
+     * galaxy، redmi)، وگرنه اولین واژه. ⚠ عمداً درشت: رنگ و حافظه‌ی یک مدل
+     * کالاهای جدا ولی TACِ یکسان دارند و نباید هشدار بسازند.
+     */
+    public static function family(string $name): string
+    {
+        $name = mb_strtolower(trim($name));
+        if (preg_match('/[a-z]{2,}/', $name, $m)) { return $m[0]; }
+        $w = preg_split('/\s+/u', $name) ?: [''];
+        return (string)$w[0];
+    }
+
+    /**
+     * فهرستِ TACِ مشکوکِ نصب: `[tac => یادداشت]`. هر خط «TAC یادداشت».
+     * @return array<string,string>
+     */
+    public static function flaggedTacs(): array
+    {
+        $out = [];
+        foreach (preg_split('/\R/u', getSetting(self::FLAGGED_TACS_KEY, '')) ?: [] as $line) {
+            $line = trim(toLatinDigits($line));
+            if (preg_match('/^(\d{8})\s*[|،,:\-]?\s*(.*)$/u', $line, $m)) { $out[$m[1]] = mb_substr(trim($m[2]), 0, 120); }
+        }
+        return $out;
+    }
+
+    /**
+     * ⛔ تنها نویسنده‌ی فهرستِ TACِ مشکوک (فقط مدیرِ نصب — صفحه می‌سنجد).
+     *    خطِ نامعتبر رد می‌شود و گفته می‌شود، نه بی‌صدا دور ریخته.
+     * @return array{ok:bool, message:string}
+     */
+    public static function saveFlaggedTacs(string $raw): array
+    {
+        $out = []; $bad = [];
+        foreach (preg_split('/\R/u', $raw) ?: [] as $n => $line) {
+            $line = trim(toLatinDigits($line));
+            if ($line === '') { continue; }
+            if (!preg_match('/^(\d{8})\s*[|،,:\-]?\s*(.*)$/u', $line, $m)) { $bad[] = toPersianDigits((string)($n + 1)); continue; }
+            $out[$m[1]] = $m[1] . ($m[2] !== '' ? ' ' . mb_substr(trim($m[2]), 0, 120) : '');
+        }
+        if ($bad) {
+            return ['ok' => false, 'message' => 'خطِ ' . implode('، ', $bad) . ' با هشت رقمِ TAC شروع نمی‌شود (مثلاً «۳۵۳۹۱۸۱۰ کارت‌خوان»).'];
+        }
+        if (count($out) > self::FLAGGED_TACS_MAX) {
+            return ['ok' => false, 'message' => 'حداکثر ' . toPersianDigits((string)self::FLAGGED_TACS_MAX) . ' TAC.'];
+        }
+        setSetting(self::FLAGGED_TACS_KEY, implode("\n", $out));
+        return ['ok' => true, 'message' => $out ? toPersianDigits((string)count($out)) . ' TACِ مشکوک ذخیره شد.' : 'فهرستِ TACِ مشکوک خالی شد.'];
+    }
+
+    /**
+     * هشدارهای TAC برای ردیف‌های یک سند (یکتا، به ترتیب). سندِ `$exceptInvoice`
+     * در سابقه شمرده نمی‌شود (خودش را با خودش نسنجد).
+     * @return list<string>
+     */
+    public static function tacWarnings(PDO $pdo, int $userId, array $lines, int $exceptInvoice = 0): array
+    {
+        $flag = self::flaggedTacs();
+        $want = [];   // tac => [[imei, family, desc], …]
+        foreach ($lines as $l) {
+            if (empty($l['product_id'])) { continue; }
+            $desc = trim((string)($l['description'] ?? ''));
+            foreach ([(string)($l['imei1'] ?? ''), (string)($l['imei2'] ?? '')] as $m) {
+                $t = self::tac($m);
+                if ($t !== '') { $want[$t][] = [self::norm($m), self::family($desc), $desc]; }
+            }
+        }
+        if (!$want) { return []; }
+
+        // سابقه: هر TAC با چه نام‌هایی در سندِ صادرشده آمده — یک کوئری، با ایندکسِ imei1
+        $seen = [];
+        $or = []; $par = ['u' => $userId, 'x' => $exceptInvoice];
+        foreach (array_keys($want) as $i => $t) { $or[] = "l.imei1 LIKE :t{$i}"; $par["t{$i}"] = $t . '%'; }
+        $st = $pdo->prepare("SELECT LEFT(l.imei1, 8) AS tac, l.description FROM biz_invoice_lines l
+                             JOIN biz_invoices i ON i.id = l.invoice_id AND i.user_id = l.user_id AND i.status = 'issued'
+                             WHERE l.user_id = :u AND l.invoice_id <> :x AND l.product_id IS NOT NULL AND (" . implode(' OR ', $or) . ')
+                             GROUP BY LEFT(l.imei1, 8), l.description LIMIT 200');
+        $st->execute($par);
+        foreach ($st->fetchAll() as $r) { $seen[(string)$r['tac']][self::family((string)$r['description'])] = (string)$r['description']; }
+
+        $out = [];
+        foreach ($want as $t => $rows) {
+            foreach ($rows as [$imei, $fam, $desc]) {
+                if (isset($flag[$t])) {
+                    $out[] = 'IMEI ' . $imei . ' در فهرستِ TACِ مشکوک است' . ($flag[$t] !== '' ? ' (' . $flag[$t] . ')' : '')
+                           . ' — پیش از خرید یا فروش در «همتا» استعلام کنید.';
+                } elseif (isset($seen[$t]) && !isset($seen[$t][$fam])) {
+                    $out[] = 'IMEI ' . $imei . ' مالِ مدلی است که پیش‌تر با نامِ «' . reset($seen[$t]) . '» ثبت شده، نه «' . $desc
+                           . '» — کالای درست را انتخاب کرده‌اید؟ اگر بله، IMEI را در «همتا» استعلام کنید.';
+                }
+            }
+        }
+        return array_values(array_unique($out));
+    }
+
+    /** متنِ هشدارِ TAC (یا خالی). */
+    public static function tacMessage(array $warnings): string
+    {
+        return implode(' ', $warnings);
+    }
+
+    /** لینکِ پیامکِ استعلامِ همتا برای یک IMEI (فقط ۱۴ تا ۱۵ رقمِ اول). */
+    public static function hamtaSms(string $imei): string
+    {
+        $n = self::norm($imei);
+        if (!self::valid($n)) { return ''; }
+        return 'sms:' . self::HAMTA_SMS . '?body=' . rawurlencode(substr($n, 0, 15));
     }
 
     /**
