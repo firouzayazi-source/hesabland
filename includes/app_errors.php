@@ -376,6 +376,24 @@ final class AppErrors
         }
     }
 
+    /**
+     * «برطرف شد» برای همه‌ی ردیف‌های بازِ یک فایل — فقط برای پایشی که خودش
+     * می‌فهمد مشکل رفع شده (`SslWatch`: گواهیِ تمدیدشده). رخدادِ دوباره
+     * همچنان بازش می‌کند.
+     */
+    public static function resolveFile(string $file): int
+    {
+        if ($file === '' || !self::triageAvailable()) { return 0; }
+        try {
+            $st = Database::getConnection()->prepare(
+                'UPDATE app_errors SET resolved_at = NOW() WHERE file = :f AND resolved_at IS NULL');
+            $st->execute(['f' => $file]);
+            return $st->rowCount();
+        } catch (Throwable $e) {
+            return 0;
+        }
+    }
+
     /** برگرداندن به «باز» — برای وقتی که اشتباهی رسیدگی‌شده علامت خورده. */
     public static function reopen(int $id, ?string $area = null): bool
     {

@@ -106,6 +106,7 @@ hesabland — کارهای سرورِ حساب لند، همه از یک جا
   backup            بکاپِ فوریِ دیتابیس
   rollback          برگشت به نسخه‌ی قبلی
   logs              آخرین خطاهای ثبت‌شده‌ی اپ
+  ssl               تمدید و رفعِ فوریِ گواهیِ SSLِ همین سایت (--force: تمدیدِ اجباری)
   staging           استقرار روی نسخه‌ی آزمایشی (اول آنجا ببینید)
   release           انتشارِ **همان** نسخه‌ای که در staging دیدید روی سایتِ اصلی
   help              همین راهنما
@@ -425,6 +426,75 @@ cmd_logs() {
 }
 
 # ---------------------------------------------------------------------
+# ⛔ رفعِ سریعِ گواهیِ SSL — همان دستوری که هشدارِ `SslWatch` می‌گوید.
+#
+#    با HSTS، گواهیِ منقضی یعنی سایتِ بسته برای همه؛ پس رفع باید یک دستور باشد،
+#    نه جست‌وجوی راهنما از گوشی. فقط گواهیِ **همین دامنه** تمدید می‌شود
+#    (`--cert-name`، نه `certbot renew`ِ همه — گواهی‌های سرویس‌های دیگرِ سرور
+#    مالِ ما نیستند) و nginx فقط بعد از `nginx -t` سبز reload می‌شود.
+#    آخرش همان سنجشِ cron اجرا می‌شود تا «درست شد» را خودِ گواهیِ تحویل‌شده بگوید.
+# ---------------------------------------------------------------------
+cmd_ssl() {
+    local force=0 host name rc=0
+    for a in "$@"; do [[ "$a" == "--force" ]] && force=1; done
+    host="$(app_host)"
+    if [[ -z "$host" ]]; then
+        red "⛔ دامنه‌ی سایت از APP_URL خوانده نشد."
+        return 1
+    fi
+
+    step "گواهیِ فعلیِ $host"
+    php deploy/ssl-check.php --host "$host" 2>&1 | sed 's/^/  /' || true
+
+    if ! command -v certbot >/dev/null 2>&1; then
+        red "⛔ certbot روی این سرور نیست — گواهی را با آن نگرفته‌اید."
+        return 1
+    fi
+
+    step "تمدیدِ گواهیِ همین سایت"
+    name="$(certbot certificates -d "$host" 2>/dev/null | awk -F': ' '/Certificate Name:/ { print $2; exit }')"
+    if [[ -z "$name" ]]; then
+        red "⛔ در certbot گواهی‌ای برای $host پیدا نشد."
+        info "برای گرفتنِ گواهیِ تازه:  sudo certbot --nginx -d $host"
+        return 1
+    fi
+    info "نامِ گواهی: $name"
+    local args=(renew --cert-name "$name" --non-interactive)
+    (( force )) && args+=(--force-renewal)
+    if ! certbot "${args[@]}" 2>&1 | sed 's/^/  /'; then
+        red "⛔ certbot تمدید نکرد — علت در خطوطِ بالاست."
+        info "رایج‌ترین‌ها: پورتِ ۸۰ از بیرون بسته است، یا DNSِ دامنه به این سرور اشاره نمی‌کند."
+        rc=1
+    fi
+
+    step "بارگذاریِ دوباره‌ی nginx"
+    if nginx -t >/dev/null 2>&1; then
+        systemctl reload nginx && green "✓ nginx گواهیِ روی دیسک را گرفت."
+    else
+        red "⛔ nginx -t رد شد — reload نشد:"
+        nginx -t 2>&1 | sed 's/^/  /' || true
+        return 1
+    fi
+
+    step "سنجشِ دوباره"
+    local ok=0
+    for _ in 1 2 3 4 5; do
+        sleep 1
+        if php deploy/ssl-check.php --run --host "$host" >/dev/null 2>&1; then ok=1; break; fi
+    done
+    php deploy/ssl-check.php --host "$host" 2>&1 | sed 's/^/  /' || true
+    if (( ok )); then
+        green "✅ گواهی سالم است و هشدارِ «خطاهای برنامه» بسته شد."
+        return 0
+    fi
+    if (( ! force )) && (( rc == 0 )); then
+        warn "⚠ هنوز سالم نیست. اگر certbot گفت «not due for renewal» ولی گواهی مشکل دارد:"
+        info "sudo ./hesabland ssl --force"
+    fi
+    return 1
+}
+
+# ---------------------------------------------------------------------
 cmd_status() {
     bold "══ وضعیتِ حساب لند ══"
 
@@ -528,6 +598,10 @@ cmd_status() {
         warn "  pool این اپ پیدا نشد (pool.d/${POOL_NAME}.conf)"
     fi
     systemctl is-active --quiet nginx 2>/dev/null && info "  nginx: فعال" || warn "  nginx: فعال نیست"
+    # گواهیِ SSL — همان سنجشِ cron، بی‌هشدار و بی‌نوشتن
+    if [[ -n "$(app_host)" ]]; then
+        php deploy/ssl-check.php --host "$(app_host)" 2>/dev/null | head -2 | sed 's/^/  /' || true
+    fi
     echo
 }
 
@@ -1183,6 +1257,7 @@ case "$CMD" in
     backup)   cmd_backup "$@" ;;
     rollback) cmd_rollback "$@" ;;
     logs)     cmd_logs ;;
+    ssl)      cmd_ssl "$@" ;;
     staging)  cmd_staging "$@" ;;
     release)  cmd_release "$@" ;;
     help|-h|--help) usage ;;

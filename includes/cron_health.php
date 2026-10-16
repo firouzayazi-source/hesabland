@@ -50,6 +50,8 @@ final class CronHealth
         // ⚠ همان استدلالِ store-sync: هر دقیقه، ولی دوره ۱ ساعت نوشته شده.
         'push'       => ['اعلانِ گوشی (Web Push)',      1, 'deploy/push-send.php'],
         'rates'      => ['نرخِ ارز، طلا و سکه',         6, 'deploy/rates.php'],
+        // ⛔ با HSTS، گواهیِ منقضی یعنی سایتِ بسته — پایشِ مرده باید دیده شود.
+        'ssl'        => ['پایشِ گواهیِ SSL',            6, 'deploy/ssl-check.php'],
     ];
 
     /** پوشه‌ی نشانه‌ها — همان `var/` که `deploy.sh` نوشتنی نگه می‌دارد. */

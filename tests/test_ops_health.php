@@ -43,7 +43,9 @@ $installers = [];
 foreach (glob($root . '/deploy/*') as $p) {
     if (is_dir($p)) { continue; }
     $src = (string)file_get_contents($p);
-    if (strpos($src, '--install-cron') !== false) {
+    // ⚠ «خودش این گزینه را می‌پذیرد» (رشته‌ی کوتیشن‌دار یا برچسبِ case)، نه «نامش آمده»:
+    //   `nginx-hsts.sh` فقط `ssl-check.php --install-cron` را صدا می‌زند و کارِ cronِ خودش را ندارد.
+    if (preg_match('/[\'"]--install-cron[\'"]|^\s*--install-cron\)/m', $src)) {
         $installers[] = 'deploy/' . basename($p);
     }
 }

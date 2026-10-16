@@ -177,7 +177,7 @@ $userId = Auth::userId();   // همیشه از اینجا، هرگز از ورو
 | pool مربوط به PHP | `/etc/php/<نسخه>/fpm/pool.d/hesab.conf` |
 | سوکت | `/run/php/php-hesab.sock` |
 | دیتابیس / کاربر | `hesab_db` / `'hesab_user'@'localhost'` با `GRANT ... ON hesab_db.*` |
-| بکاپ | `/opt/hesab/backups` و `/etc/cron.d/hesab-*` (backup، sessions، due، reminders، offsite، store-sync، push، rates) |
+| بکاپ | `/opt/hesab/backups` و `/etc/cron.d/hesab-*` (backup، sessions، due، reminders، offsite، store-sync، push، rates، ssl) |
 | **نسخه‌ی آزمایشی** | پوشه‌ی `/opt/hesab/staging`، کاربرِ `hesabstg`، سایت و pool به نامِ `hesab-staging` (سوکت `/run/php/php-hesab-staging.sock`)، دیتابیسِ `hesab_staging` با `'hesab_stg'@'localhost'` (`GRANT ... ON hesab_staging.*`)، و `/etc/nginx/hesab-staging.htpasswd` |
 
 > **دام دسترسی `var/sessions`:** `deploy.sh` عمداً `chown -R root:root .` می‌زند تا PHP نتواند کد را عوض کند. ولی `session.save_path` این pool داخل خودِ پوشه‌ی اپ است (`var/sessions`)، پس همان دستور آن را هم مال root می‌کرد و PHP — که با کاربر `hesab` اجرا می‌شود — دیگر نمی‌توانست فایل نشست بنویسد. **خرابیِ حاصل هیچ ردی در لاگ نداشت:** هر درخواست یک نشستِ خالیِ تازه می‌گرفت، پس توکن CSRF هرگز نمی‌ماند و صفحه‌ی ورود در حلقه‌ی «نشست شما منقضی شده بود» گیر می‌کرد — هیچ‌کس نمی‌توانست وارد شود، و هر بار اجرای `deploy.sh` دوباره خرابش می‌کرد. `deploy.sh` حالا مثل `uploads`، پوشه‌ی `var` را هم برمی‌گرداند و نوشتنی بودنش را با `sudo -u hesab test -w` واقعاً می‌آزماید. قاعده ۸ در `test_api_contract.php` این را می‌سنجد.
@@ -213,6 +213,8 @@ $userId = Auth::userId();   // همیشه از اینجا، هرگز از ورو
 - **نرخِ ارز، طلا و سکه، هر ۶ ساعت: `deploy/rates.php --install-cron`** (`--probe` بی‌نوشتن هر منبع را می‌آزماید؛ منبع‌ها و نرخِ دستی در `admin/rates.php`) (`docs/decisions/rates.md`)
 - **بستنِ `var/` از وب روی نصبِ موجود: `deploy/nginx-var.sh`** (نمایشی؛ با `--apply` اعمال)
 - **سنجش و بازیابی بکاپ: `deploy/restore.sh`**
+- **HSTS (فقط https در مرورگر): `deploy/nginx-hsts.sh`** (نمایشی؛ `--apply` روشن، `--off` خاموش — فقط با گواهیِ سالم و پایشِ نصب‌شده روشن می‌شود)
+- **پایشِ گواهیِ SSL، هر ۶ ساعت: `deploy/ssl-check.php --install-cron`** (۱۴ روز مانده هشدار، ۳ روز خراب؛ ایمیل + اعلانِ گوشی + «خطاهای برنامه»)؛ **رفعِ یک‌دستوری: `sudo ./hesabland ssl`** (فقط `certbot renew --cert-name` همین دامنه، reload بعد از `nginx -t`) (`docs/decisions/platform.md`)
 - افزودن استثنای سرویس‌ورکر به nginx روی نصب موجود: `deploy/nginx-sw.sh` (نمایشی؛ با `--apply` اعمال)
 - روشن کردن HTTP/2 روی سایت (سرعت روی شبکه‌ی پرتأخیر): `deploy/nginx-perf.sh` (نمایشی؛ با `--apply` اعمال)
 - تنظیم ارسال ایمیل: `deploy/mail-setup.sh`
