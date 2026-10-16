@@ -77,6 +77,8 @@ final class Audit
         'store_share.house',
         // همکارانِ فروشگاه (صاحبِ فروشگاه) — دادنِ دسترسی به دفترِ فروشگاه
         'store.staff_added', 'store.staff_changed', 'store.staff_removed',
+        // فروشگاهِ دوم (`Biz::createShop()`) — یک حسابِ داده‌ی تازه زیرِ همان ورود
+        'store.shop_created',
     ];
 
     /** کلیدهای تنظیماتی که مقدارشان هرگز در `detail` نمی‌آید. */

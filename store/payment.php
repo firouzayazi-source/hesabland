@@ -115,8 +115,11 @@ $form = [
     'to_account_id' => (int)($accounts[1]['id'] ?? 0),
     'method' => getParam('method') === 'cheque' && in_array($kind, ['receipt', 'payment'], true) ? 'cheque' : 'cash',
     'pay_date' => BizDocView::jDate(date('Y-m-d')), 'title' => '', 'note' => '', 'category_id' => (int)getParam('cat', '0'),
-    'cheque_no' => '', 'cheque_bank' => '', 'cheque_due' => '', 'fx_rate' => '',
+    'cheque_no' => '', 'cheque_bank' => '', 'cheque_due' => '', 'fx_rate' => '', 'pos_txn' => '',
 ];
+// ⛔ کارت‌خوان (`BizPos`) فقط برای «دریافت»: دکمه‌ی «ارسال به کارت‌خوان» و رزروِ تراکنشِ موفق
+require_once __DIR__ . '/../includes/biz_pos.php';
+$posTerms = $kind === 'receipt' && BizPos::ready() ? BizPos::terminals($userId, true) : [];
 // ⛔ پیش‌پرِ تاریخ و شرح (مغایرت‌گیریِ بانکی: «ثبتِ سند» برای ردیفِ جفت‌نشده) — فقط پیشنهاد
 if (isValidDate(getParam('date'))) { $form['pay_date'] = BizDocView::jDate(getParam('date')); }
 if (getParam('title') !== '') { $form['title'] = mb_substr(BizCommon::line(getParam('title')), 0, BizPay::TITLE_MAX); }
@@ -131,6 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         : BizDocView::docDate((string)$form['cheque_due'], 'سررسیدِ چک', true);
     // ⛔ دو بار زدنِ «ثبت» دو دریافت نمی‌سازد (`BizOnce`)
     if ($pd['ok'] && $cd['ok'] && ($dup = BizOnce::claim()) !== null) { BizOnce::redirectDuplicate($dup, Biz::url('payments.php')); }
+    // ⛔ دریافت با کارت‌خوان: فقط با تراکنشِ موفقِ همان مبلغ و صندوق، و فقط یک بار — رزرو **پیش از** ساختنِ سند
+    $posTxn = $kind === 'receipt' ? (int)$form['pos_txn'] : 0;
+    $posClaimed = false;
+    if ($posTxn > 0 && $pd['ok'] && $cd['ok']) {
+        $pc = BizPos::claim($userId, $posTxn, sanitizeAmount($form['amount']), (int)$form['account_id']);
+        if ($pc['ok']) { $posClaimed = true; } else { $pd = ['ok' => false, 'message' => $pc['message']]; }
+    }
     $r = !$pd['ok'] ? ['ok' => false, 'message' => $pd['message']] : (!$cd['ok'] ? ['ok' => false, 'message' => $cd['message']] : BizPay::create($userId, [
         'kind' => $kind, 'party_id' => (int)$form['party_id'], 'invoice_id' => $invId, 'amount' => $form['amount'],
         'account_id' => (int)$form['account_id'], 'to_account_id' => (int)$form['to_account_id'], 'method' => $form['method'],
@@ -138,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'cheque_no' => $form['cheque_no'], 'cheque_bank' => $form['cheque_bank'],
         'cheque_due' => $cd['date'], 'fx_rate' => $form['fx_rate'],
     ]));
+    if ($posClaimed) { BizPos::settle($userId, $posTxn, $r['ok'] ? (int)$r['id'] : null); }   // ساخته نشد ⇒ رزرو برمی‌گردد
     if ($r['ok']) {
         $to = $invId ? Biz::url('invoice.php?id=' . $invId) : Biz::url('payment.php?id=' . (int)$r['id']);
         BizOnce::done($to);
@@ -237,6 +248,26 @@ require __DIR__ . '/../includes/biz_head.php';
     <?php endif; ?>
     <?php if ($kind === 'transfer' && count($accounts) < 2): ?>
         <p class="st-flash st-flash-warn">برای انتقال دست‌کم دو صندوقِ فعال لازم است — <a href="<?= h(Biz::url('accounts.php')) ?>">افزودنِ صندوق</a>.</p>
+    <?php endif; ?>
+    <?php if ($posTerms): /* ⛔ store.js: start ← کارت‌خوان ← finish؛ بی‌جاوااسکریپت همان دریافتِ عادی */ ?>
+    <fieldset class="st-fieldset" data-pos-box data-pos-url="<?= h(Biz::url('pos.php')) ?>">
+        <legend>کارت‌خوان</legend>
+        <div class="st-row2">
+            <label class="st-field"><span>دستگاه</span><select data-pos-terminal><?php foreach ($posTerms as $t): ?><option value="<?= (int)$t['id'] ?>" data-account="<?= (int)$t['account_id'] ?>" data-driver="<?= h((string)$t['driver']) ?>"><?= h((string)$t['name']) ?></option><?php endforeach; ?></select></label>
+            <div class="st-field"><span>&nbsp;</span><button type="button" class="st-btn st-btn-ghost" data-pos-go>ارسالِ مبلغ به کارت‌خوان</button></div>
+        </div>
+        <div data-pos-manual hidden>
+            <p class="st-pos-amount">مبلغ را روی دستگاه بزنید: <b class="st-num" data-pos-amount></b> تومان</p>
+            <div class="st-row2">
+                <label class="st-field"><span>شماره‌ی پیگیری / مرجعِ رسید</span><input type="text" name="pos_rrn" inputmode="numeric" dir="ltr" maxlength="20" autocomplete="off" data-pos-rrn></label>
+                <label class="st-field"><span>چهار رقمِ آخرِ کارت <small class="st-muted">(اختیاری)</small></span><input type="text" name="pos_card" inputmode="numeric" dir="ltr" maxlength="4" autocomplete="off" data-pos-card></label>
+            </div>
+            <div class="st-head-actions"><button type="button" class="st-btn" data-pos-ok>پرداخت شد</button><button type="button" class="st-btn st-btn-ghost" data-pos-fail>پرداخت نشد</button></div>
+        </div>
+        <p class="st-muted" data-pos-status role="status"></p>
+        <input type="hidden" name="pos_txn" value="<?= h((string)$form['pos_txn']) ?>" data-pos-txn>
+    </fieldset>
+    <?php foreach (assetUrls(['js/store-pos.js']) as $__u): ?><script defer src="<?= h($__u) ?>"></script><?php endforeach; ?>
     <?php endif; ?>
     <label class="st-field"><span>توضیح <small class="st-muted">(اختیاری)</small></span><textarea name="note" rows="2" maxlength="300"><?= h((string)$form['note']) ?></textarea></label>
     <button type="submit" class="st-btn">ثبتِ <?= h(BizPay::KINDS[$kind]) ?></button>

@@ -147,6 +147,8 @@ final class Biz
         'labels.php'       => 'products.php',
         // چند فروشگاه — از منوی پروفایل، زیرِ «تنظیمات»
         'shops.php'        => 'settings.php',
+        // کارت‌خوان‌ها — زیرِ «صندوق و بانک»
+        'pos.php'          => 'accounts.php',
     ];
 
     /**
@@ -716,6 +718,8 @@ final class Biz
         'insights.php' => 'reports', 'labels.php' => 'products',
         // چند فروشگاه — فقط صاحب (همکار «تنظیمات» ندارد؛ صفحه خودش هم `isStaff()` را رد می‌کند)
         'shops.php' => 'settings',
+        // کارت‌خوان — صفحه خودش جدا می‌سنجد: تعریف = «پول»، اندپوینتِ start/finish = «دریافت»
+        'pos.php' => null,
     ];
 
     /**

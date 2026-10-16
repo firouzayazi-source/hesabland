@@ -1537,3 +1537,6 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-md-failed, .st-md-error { color: #b91c1c; }
 .st-md-sent { color: #b45309; }
 .st-inline-form { display: inline; }
+/* کارت‌خوان در فرمِ دریافت */
+.st-pos-amount { font-size: 15px; margin: 6px 0 10px; }
+.st-pos-amount b { font-size: 22px; }
