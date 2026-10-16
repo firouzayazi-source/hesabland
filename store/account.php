@@ -33,7 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (postParam('action') === 'export') {
         if (Biz::isStaff()) { redirectWithMessage($self, 'error', 'بکاپِ فروشگاه را فقط صاحبِ فروشگاه می‌گیرد.'); }
         // موفق: فایل فرستاده شد و همین‌جا خارج شد
-        redirectWithMessage($self, 'error', sendUserExport($userId));
+        // ⛔ بکاپِ **همین** فروشگاه (`ownerId()`)؛ هر فروشگاهِ اضافه دفترِ جدای خودش را دارد
+        redirectWithMessage($self, 'error', sendUserExport(Biz::ownerId()));
     }
     redirectWithMessage($self, 'error', 'درخواست نامعتبر است.');
 }

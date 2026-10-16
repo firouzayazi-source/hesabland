@@ -233,6 +233,15 @@ function deleteUserAccount(int $userId): array
         $staffLogins = array_map('intval', $sl->fetchAll(PDO::FETCH_COLUMN));
     }
 
+    // ⛔ فروشگاه‌های اضافه‌ی این صاحب (`store_shops`) حسابِ داده‌ی جدا دارند و بی‌صاحب
+    //    بی‌معنا‌اند — بعد از commit همان‌طور که همکاران حذف می‌شوند (هر کدام سدِ خودش).
+    $shopAccounts = [];
+    if (in_array('store_shops', $tables, true)) {
+        $ss = $pdo->prepare('SELECT shop_id FROM store_shops WHERE user_id = :u');
+        $ss->execute(['u' => $userId]);
+        $shopAccounts = array_map('intval', $ss->fetchAll(PDO::FETCH_COLUMN));
+    }
+
     $pdo->beginTransaction();
     try {
         $passes = 0;
@@ -302,6 +311,9 @@ function deleteUserAccount(int $userId): array
             revokeAllAccessFor($sid);
             deleteUserAccount($sid);
         }
+    }
+    foreach ($shopAccounts as $sid) {
+        if ($sid !== $userId) { deleteUserAccount($sid); }
     }
 
     return ['ok' => true, 'deleted' => $deleted];

@@ -2510,7 +2510,6 @@ final class BizSerial
      */
     public static function tacWarnings(PDO $pdo, int $userId, array $lines, int $exceptInvoice = 0): array
     {
-        $flag = self::flaggedTacs();
         $want = [];   // tac => [[imei, family, desc], …]
         foreach ($lines as $l) {
             if (empty($l['product_id'])) { continue; }
@@ -2520,7 +2519,8 @@ final class BizSerial
                 if ($t !== '') { $want[$t][] = [self::norm($m), self::family($desc), $desc]; }
             }
         }
-        if (!$want) { return []; }
+        if (!$want) { return []; }   // ⛔ پیش از هر کوئری: سندِ بی‌IMEI هیچ هزینه‌ای ندارد
+        $flag = self::flaggedTacs();
 
         // سابقه: هر TAC با چه نام‌هایی در سندِ صادرشده آمده — یک کوئری، با ایندکسِ imei1
         $seen = [];

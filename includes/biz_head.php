@@ -208,6 +208,9 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
                     <a href="<?= h(Biz::url('settings.php')) ?>#avatar">تصویر شخصی</a>
                     <a href="<?= h(Biz::url('account.php')) ?>">رمز و بکاپ</a>
                     <a href="<?= h(Biz::url('settings.php')) ?>">تنظیمات فروشگاه</a>
+                    <?php if (!Biz::isStaff() && Biz::$shopsJoined): /* ⛔ بی‌کوئری: از همان کوئریِ نوعِ حساب؛ فهرست در خودِ صفحه */ ?>
+                    <a href="<?= h(Biz::url('shops.php')) ?>">فروشگاه‌های من</a>
+                    <?php endif; ?>
                     <a href="<?= h(Biz::url('invoice-design.php')) ?>">طراحی فاکتور</a>
                     <?php if (!Biz::isStoreOnly()): ?>
                     <a href="<?= h(Biz::personalUrl()) ?>">دفتر شخصی</a>

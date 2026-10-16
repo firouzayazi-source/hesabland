@@ -145,6 +145,8 @@ final class Biz
         'products-io.php'  => 'import.php',
         // چاپِ برچسبِ کالا و IMEI
         'labels.php'       => 'products.php',
+        // چند فروشگاه — از منوی پروفایل، زیرِ «تنظیمات»
+        'shops.php'        => 'settings.php',
     ];
 
     /**
@@ -498,15 +500,28 @@ final class Biz
         try {
             // ⛔ همکاری در **همین** کوئری (LEFT JOIN) — صفر کوئریِ اضافه برای هر صفحه
             //    (`STORE_BUDGET`). جدولِ نیامده (42S02) ← همان کوئریِ قبلی بی‌همکار.
+            // ⛔ و فروشگاهِ انتخاب‌شده (`store_shops`) هم در **همین** کوئری — مالکیتش هر صفحه
+            //    از دیتابیس سنجیده می‌شود، نه از نشست. جدولِ نیامده ← کوئریِ بی‌آن (پله‌پله).
+            $pick = (int)($_SESSION['biz_shop'] ?? 0);
             try {
                 $st = Database::getConnection()->prepare(
-                    'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active
-                     FROM users u LEFT JOIN store_staff s ON s.staff_id = u.id WHERE u.id = :id LIMIT 1');
-                $st->execute(['id' => $uid]);
+                    'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active, sh.shop_id
+                     FROM users u LEFT JOIN store_staff s ON s.staff_id = u.id
+                     LEFT JOIN store_shops sh ON sh.user_id = u.id AND sh.shop_id = :shop WHERE u.id = :id LIMIT 1');
+                $st->execute(['id' => $uid, 'shop' => $pick]);
+                self::$shopsJoined = true;
             } catch (PDOException $e) {
                 if ((string)$e->getCode() !== '42S02') { throw $e; }
-                $st = Database::getConnection()->prepare('SELECT account_type, avatar FROM users WHERE id = :id LIMIT 1');
-                $st->execute(['id' => $uid]);
+                try {
+                    $st = Database::getConnection()->prepare(
+                        'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active
+                         FROM users u LEFT JOIN store_staff s ON s.staff_id = u.id WHERE u.id = :id LIMIT 1');
+                    $st->execute(['id' => $uid]);
+                } catch (PDOException $e2) {
+                    if ((string)$e2->getCode() !== '42S02') { throw $e2; }
+                    $st = Database::getConnection()->prepare('SELECT account_type, avatar FROM users WHERE id = :id LIMIT 1');
+                    $st->execute(['id' => $uid]);
+                }
             }
             $row = $st->fetch() ?: [];
             self::applyStaff($row);
@@ -533,7 +548,14 @@ final class Biz
     private static function applyStaff(array $row): void
     {
         unset($_SESSION['biz_owner'], $_SESSION['biz_role'], $_SESSION['biz_off']);
-        if (empty($row['staff_owner'])) { return; }
+        if (empty($row['staff_owner'])) {
+            // ⛔ صاحب در فروشگاهِ دیگرش: فقط وقتی همین کوئری مالکیت را دید. انتخابِ کهنه
+            //    (فروشگاهِ حذف‌شده، یا نشستی که حسابش عوض شده) بی‌صدا به فروشگاهِ اصلی برمی‌گردد.
+            if (!empty($row['shop_id'])) { $_SESSION['biz_owner'] = (int)$row['shop_id']; $_SESSION['biz_role'] = 'owner'; }
+            else { unset($_SESSION['biz_shop']); }
+            return;
+        }
+        unset($_SESSION['biz_shop']);   // ⛔ همکار فروشگاهِ دیگری انتخاب نمی‌کند
         if ((int)$row['staff_active'] !== 1) { $_SESSION['biz_off'] = 1; return; }
         $role = (string)$row['staff_role'];
         $_SESSION['biz_owner'] = (int)$row['staff_owner'];
@@ -692,6 +714,8 @@ final class Biz
         // migration_biz_ops: امانی و پیشنهادِ خرید = خرید؛ مغایرت‌گیری و هزینه‌ی تکراری = پول؛ برچسب = کالا
         'consignments.php' => 'buy', 'reorder.php' => 'buy', 'bank-rec.php' => 'money', 'recurring.php' => 'money',
         'insights.php' => 'reports', 'labels.php' => 'products',
+        // چند فروشگاه — فقط صاحب (همکار «تنظیمات» ندارد؛ صفحه خودش هم `isStaff()` را رد می‌کند)
+        'shops.php' => 'settings',
     ];
 
     /**
@@ -772,6 +796,88 @@ final class Biz
     public static function markStaffLogin(PDO $pdo, int $staffId): void
     {
         $pdo->prepare("UPDATE users SET account_type = 'business' WHERE id = :id")->execute(['id' => $staffId]);
+    }
+
+    /* ============================================================
+       چند فروشگاه با یک حساب (migration_biz_shops)
+       ============================================================ */
+
+    /** بیشترین فروشگاهِ اضافه برای هر صاحب. */
+    public const SHOPS_MAX = 10;
+
+    /** جدولِ `store_shops` در کوئریِ همین صفحه (`refreshType()`) بود؟ — برای منو، **بی‌کوئری**. */
+    public static bool $shopsJoined = false;
+
+    public static function shopsReady(): bool
+    {
+        return function_exists('tableHasColumn') && tableHasColumn('store_shops', 'shop_id');
+    }
+
+    /**
+     * فروشگاه‌های یک صاحب — اول فروشگاهِ اصلی (حسابِ خودش)، بعد بقیه به ترتیبِ ساخت.
+     * @return list<array{id:int, name:string, main:bool}>
+     */
+    public static function shops(int $loginId): array
+    {
+        $out = [];
+        $ready = self::$shopsJoined || self::shopsReady();   // در صفحه از کوئریِ نوعِ حساب، بی‌سنجشِ ساختار
+        $st = Database::getConnection()->prepare(
+            "SELECT u.id, COALESCE(NULLIF(b.shop_name, ''), u.full_name) AS name FROM users u LEFT JOIN biz_settings b ON b.user_id = u.id WHERE u.id = :u"
+            . ($ready ? " UNION ALL SELECT u.id, COALESCE(NULLIF(b.shop_name, ''), u.full_name) FROM store_shops s
+               JOIN users u ON u.id = s.shop_id LEFT JOIN biz_settings b ON b.user_id = u.id WHERE s.user_id = :u2" : ''));
+        $st->execute(['u' => $loginId] + ($ready ? ['u2' => $loginId] : []));
+        foreach ($st->fetchAll() as $i => $r) { $out[] = ['id' => (int)$r['id'], 'name' => (string)$r['name'], 'main' => $i === 0]; }
+        if ($out) { $out[0]['name'] = $out[0]['name'] !== '' ? $out[0]['name'] : 'فروشگاهِ اصلی'; }
+        return $out;
+    }
+
+    /**
+     * ⛔ تنها سازنده‌ی فروشگاهِ اضافه: یک حسابِ داده‌ی بی‌رمز و بی‌شماره (هرگز خودش وارد
+     *    نمی‌شود — `password_hash` تهی یعنی «رمز ندارد») با نوعِ «فقط فروشگاه»، سربرگِ
+     *    همان نام، و پیوند به صاحب — همه در یک تراکنش. فقط صاحب (نه همکار) — صفحه می‌سنجد.
+     * @return array{ok:bool, message:string, id?:int}
+     */
+    public static function createShop(int $loginId, string $name): array
+    {
+        if (!self::shopsReady()) { return ['ok' => false, 'message' => 'چند فروشگاه هنوز راه نیفتاده است (migration_biz_shops).']; }
+        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '');
+        if ($name === '' || mb_strlen($name) > self::SETTING_LIMITS['shop_name']) { return ['ok' => false, 'message' => 'نامِ فروشگاه را بنویسید (حداکثر ' . toPersianDigits((string)self::SETTING_LIMITS['shop_name']) . ' نویسه).']; }
+        $pdo = Database::getConnection();
+        $n = $pdo->prepare('SELECT COUNT(*) FROM store_shops WHERE user_id = :u');
+        $n->execute(['u' => $loginId]);
+        if ((int)$n->fetchColumn() >= self::SHOPS_MAX) { return ['ok' => false, 'message' => 'حداکثر ' . toPersianDigits((string)self::SHOPS_MAX) . ' فروشگاهِ اضافه.']; }
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("INSERT INTO users (full_name, username, email, password_hash, role, account_type) VALUES (:n, :un, NULL, NULL, 'user', 'business')")
+                ->execute(['n' => mb_substr($name, 0, 100), 'un' => '~shop' . $loginId . '-' . bin2hex(random_bytes(5))]);
+            $sid = (int)$pdo->lastInsertId();
+            $pdo->prepare('INSERT INTO biz_settings (user_id, shop_name) VALUES (:u, :n)')->execute(['u' => $sid, 'n' => $name]);
+            $pdo->prepare('INSERT INTO store_shops (user_id, shop_id) VALUES (:u, :s)')->execute(['u' => $loginId, 's' => $sid]);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            Log::error('store.shop_create', $e);
+            return ['ok' => false, 'message' => 'فروشگاه ساخته نشد.'];
+        }
+        if (class_exists('Audit')) { Audit::log('store.shop_created', 'user', $sid, ['owner' => $loginId], $loginId, $loginId); }
+        return ['ok' => true, 'message' => 'فروشگاهِ «' . $name . '» ساخته شد.', 'id' => $sid];
+    }
+
+    /**
+     * ⛔ تنها راهِ عوض کردنِ فروشگاه: فقط به فروشگاهِ اصلیِ خود یا فروشگاهی که `store_shops`
+     *    به همین صاحب داده. همکار هرگز. اعتبارِ انتخاب هر صفحه دوباره سنجیده می‌شود (`refreshType()`).
+     * @return array{ok:bool, message:string}
+     */
+    public static function switchShop(int $loginId, int $shopId): array
+    {
+        if (self::isStaff()) { return ['ok' => false, 'message' => 'همکار فروشگاه عوض نمی‌کند.']; }
+        foreach (self::shops($loginId) as $sh) {
+            if ($sh['id'] !== $shopId) { continue; }
+            if ($sh['main']) { unset($_SESSION['biz_shop'], $_SESSION['biz_owner'], $_SESSION['biz_role']); }
+            else { $_SESSION['biz_shop'] = $shopId; $_SESSION['biz_owner'] = $shopId; $_SESSION['biz_role'] = 'owner'; }
+            return ['ok' => true, 'message' => 'حالا در «' . $sh['name'] . '» هستید.'];
+        }
+        return ['ok' => false, 'message' => 'این فروشگاه مالِ شما نیست.'];
     }
 
     /** ⛔ تنها قاعده‌ی «این نقش با این نوعِ حساب جور است؟». */
@@ -1063,7 +1169,11 @@ final class Biz
             'vat_rate' => (float)($row['vat_rate'] ?? 0),
             'moadian_memory_id' => (string)($row['moadian_memory_id'] ?? ''),
             'moadian_sstid' => (string)($row['moadian_sstid'] ?? ''),
-        ] : ['vat_rate' => 0.0, 'moadian_memory_id' => '', 'moadian_sstid' => ''];
+            // ارسالِ مستقیمِ مودیان (`BizMoadianLive::config()`) — از همین ردیف، صفر کوئریِ اضافه.
+            // ⛔ خودِ کلیدِ خصوصی این‌جا نگه داشته نمی‌شود، فقط «هست یا نه».
+            'moadian_on' => (int)($row['moadian_on'] ?? 0), 'moadian_env' => (string)($row['moadian_env'] ?? 'sandbox'),
+            'moadian_has_key' => ($row['moadian_key'] ?? null) !== null, 'moadian_cert' => (string)($row['moadian_cert'] ?? ''),
+        ] : ['vat_rate' => 0.0, 'moadian_memory_id' => '', 'moadian_sstid' => '', 'moadian_on' => 0, 'moadian_env' => 'sandbox', 'moadian_has_key' => false, 'moadian_cert' => ''];
         if ($row) {
             self::$infoReady = array_key_exists('invoice_prefs', $row);
             self::$accReady  = array_key_exists('vat_rate', $row);
@@ -1157,6 +1267,13 @@ final class Biz
     {
         self::settings($userId);
         return self::accReady() ? (float)(self::$accRow[$userId]['vat_rate'] ?? 0) : 0.0;
+    }
+
+    /** ردیفِ حسابداریِ کش‌شده‌ی `settings()` — برای `BizMoadianLive::config()`، بی‌کوئری. */
+    public static function accRow(int $userId): array
+    {
+        self::settings($userId);
+        return self::$accRow[$userId] ?? [];
     }
 
     /** شناسه‌ی حافظه و شناسه‌ی کالا/خدمتِ پیش‌فرضِ سامانه‌ی مودیان. @return array{memory_id:string, sstid:string} */

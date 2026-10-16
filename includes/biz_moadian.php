@@ -63,11 +63,10 @@ final class BizMoadianLive
     /** @return array{on:bool, env:string, has_key:bool, cert:string, memory_id:string} */
     public static function config(int $userId): array
     {
-        $st = Database::getConnection()->prepare('SELECT moadian_on, moadian_env, moadian_key IS NOT NULL AS has_key, moadian_cert, moadian_memory_id FROM biz_settings WHERE user_id = :u');
-        $st->execute(['u' => $userId]);
-        $r = $st->fetch() ?: [];
+        // ⛔ از همان ردیفِ `Biz::settings()` (صفر کوئریِ اضافه برای هر صفحه)
+        $r = Biz::accRow($userId);
         return ['on' => (int)($r['moadian_on'] ?? 0) === 1, 'env' => isset(self::ENVS[$r['moadian_env'] ?? '']) ? (string)$r['moadian_env'] : 'sandbox',
-                'has_key' => (int)($r['has_key'] ?? 0) === 1, 'cert' => (string)($r['moadian_cert'] ?? ''), 'memory_id' => (string)($r['moadian_memory_id'] ?? '')];
+                'has_key' => !empty($r['moadian_has_key']), 'cert' => (string)($r['moadian_cert'] ?? ''), 'memory_id' => (string)($r['moadian_memory_id'] ?? '')];
     }
 
     /** کلیدِ خصوصیِ بازشده، یا خالی. ⛔ هرگز به صفحه یا لاگ نمی‌رود. */

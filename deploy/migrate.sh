@@ -160,6 +160,7 @@ MIGRATIONS=(
     migration_biz_ops.sql
     migration_biz_partno.sql
     migration_biz_moadian.sql
+    migration_biz_shops.sql
 )
 
 # migration هایی که پیش از راه‌اندازی ردیابی وجود داشتند.
@@ -401,6 +402,7 @@ declare -A SENTINEL=(
     [migration_biz_ops.sql]="biz_recurring:idx_biz_recurring_user"
     [migration_biz_partno.sql]="biz_invoice_lines:idx_biz_lines_partno"
     [migration_biz_moadian.sql]="biz_moadian_sends:idx_biz_moadian_status"
+    [migration_biz_shops.sql]="store_shops:idx_store_shops_owner"
 )
 
 # آیا شاهد یک migration در دیتابیس هست؟
