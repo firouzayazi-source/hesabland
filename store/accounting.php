@@ -20,6 +20,7 @@ Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_acc.php';
 require_once __DIR__ . '/../includes/biz_dash.php';
+require_once __DIR__ . '/../includes/biz_moadian.php';
 
 $userId = Biz::ownerId();
 $TABS = ['balance' => 'ترازنامه', 'trial' => 'ترازِ آزمایشی', 'journal' => 'روزنامه', 'vat' => 'مالیات بر ارزش افزوده',
@@ -56,6 +57,10 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
         case 'fa_undispose': $r = BizAssets::undispose($userId, (int)postParam('id')); break;
         case 'fa_remove':    $r = BizAssets::remove($userId, (int)postParam('id')); break;
+        // ⛔ ارسالِ مستقیم به مودیان — فقط `BizMoadianLive` (ثبت‌کننده = کسی که وارد شده)
+        case 'md_send':      $r = BizMoadianLive::send($userId, (int)postParam('id'), false, Auth::userId()); break;
+        case 'md_cancel':    $r = BizMoadianLive::send($userId, (int)postParam('id'), true, Auth::userId()); break;
+        case 'md_inquire':   $r = BizMoadianLive::inquire($userId, (int)postParam('id')); break;
         default:            $r = ['ok' => false, 'message' => 'درخواست نامعتبر است.'];
     }
     redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
@@ -307,6 +312,8 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
     $m = Biz::moadian($userId);
     $shop = Biz::settings($userId);
     $list = BizMoadian::list($userId, $rFrom, $rTo);
+    $mdOn = BizMoadianLive::ready() && BizMoadianLive::config($userId)['on'];
+    $mdLast = $mdOn ? BizMoadianLive::lastFor($userId, array_column($list, 'id')) : [];
 ?>
 <section class="st-card">
     <h2 class="st-h3">آمادگی</h2>
@@ -317,12 +324,32 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
     </ul>
     <p class="st-muted">خروجی، صورتحسابِ استانداردِ سامانه‌ی مودیان است (سرآیند، اقلام، مبلغ‌ها به <b>ریال</b>، شماره‌ی مالیاتیِ ۲۲ نویسه‌ای) برای تحویل به شرکتِ معتمد یا ابزارِ ارسال. <b>ارسالِ مستقیم</b> امضای دیجیتال با کلیدِ خصوصیِ خودِ فروشگاه می‌خواهد و از اینجا انجام نمی‌شود؛ این خروجی با سامانه‌ی واقعی آزموده نشده است.</p>
 </section>
+<?php if ($mdOn): ?>
+<p class="st-muted">ارسالِ مستقیم روشن است (<a href="<?= h(Biz::url('settings.php#moadian')) ?>">تنظیمات</a>). هر صورتحساب یک بار فرستاده می‌شود؛ نتیجه را چند دقیقه بعد با «استعلام» بگیرید. سندی که در حسابداری باطل می‌کنید و در سامانه ثبت شده، «ابطالیه» می‌خواهد.</p>
+<?php elseif (BizMoadianLive::ready()): ?>
+<p class="st-muted">ارسالِ مستقیم خاموش است — با کلید و گواهیِ امضا در <a href="<?= h(Biz::url('settings.php#moadian')) ?>">تنظیمات</a> روشن می‌شود.</p>
+<?php endif; ?>
+<?php if ($mdOn && ($mdCancel = BizMoadianLive::pendingCancels($userId))): ?>
+<section class="st-card">
+    <h2 class="st-h3">باطل‌شده در حسابداری، ثبت‌شده در سامانه</h2>
+    <p class="st-muted">این سندها در حسابداری باطل شده‌اند ولی صورتحسابشان در سامانه هنوز معتبر است. ابطالیه همان صورتحساب را با موضوعِ «ابطالی» می‌فرستد.</p>
+    <ul class="st-list">
+    <?php foreach ($mdCancel as $c): ?>
+        <li class="st-list-row"><a href="<?= h(Biz::url('invoice.php?id=' . (int)$c['id'])) ?>"><?= h(BizInvoices::title($c)) ?></a> <span class="st-num"><?= h(toJalali((string)$c['inv_date'])) ?></span>
+            <form method="post" action="<?= h($self) ?>" class="st-inline-form" onsubmit="return confirm('ابطالیه‌ی این صورتحساب به سامانه‌ی مودیان فرستاده شود؟');"><?= Csrf::field() ?><input type="hidden" name="action" value="md_cancel"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>"><button type="submit" class="st-btn st-btn-ghost">ارسالِ ابطالیه</button></form></li>
+    <?php endforeach; ?>
+    </ul>
+</section>
+<?php endif; ?>
 <?php if ($list): ?>
-<div class="st-head-actions"><a class="st-btn st-btn-ghost" href="<?= h($keep(['json' => 'all'])) ?>">دریافتِ همه (JSON)</a></div>
+<div class="st-head-actions"><a class="st-btn st-btn-ghost" href="<?= h($keep(['json' => 'all'])) ?>">دریافتِ همه (JSON)</a>
+<?php if ($mdOn && array_filter($mdLast, fn($x) => $x['status'] === 'sent')): ?>
+    <form method="post" action="<?= h($self) ?>" class="st-inline-form"><?= Csrf::field() ?><input type="hidden" name="action" value="md_inquire"><button type="submit" class="st-btn st-btn-ghost">استعلامِ همه</button></form>
+<?php endif; ?></div>
 <?php endif; ?>
 <div class="st-table-wrap">
     <table class="st-table st-table-compact">
-        <thead><tr><th>سند</th><th>تاریخ</th><th class="st-hide-sm">طرف‌حساب</th><th class="st-td-num">مبلغ</th><th class="st-td-num st-hide-sm">مالیات</th><th></th></tr></thead>
+        <thead><tr><th>سند</th><th>تاریخ</th><th class="st-hide-sm">طرف‌حساب</th><th class="st-td-num">مبلغ</th><th class="st-td-num st-hide-sm">مالیات</th><?php if ($mdOn): ?><th>سامانه</th><?php endif; ?><th></th></tr></thead>
         <tbody>
         <?php foreach ($list as $r): ?>
             <tr><td><a href="<?= h(Biz::url('invoice.php?id=' . (int)$r['id'])) ?>"><?= h(BizInvoices::title($r)) ?></a></td>
@@ -330,9 +357,22 @@ if (in_array($t, ['trial', 'journal', 'moadian'], true)): ?>
                 <td class="st-hide-sm"><?= h((string)($r['party_name'] ?? 'گذری')) ?></td>
                 <td class="st-td-num"><?= $money((int)$r['total']) ?></td>
                 <td class="st-td-num st-hide-sm"><?= $money((int)$r['tax_total']) ?></td>
-                <td><a class="st-link-btn" href="<?= h($keep(['json' => (int)$r['id']])) ?>">JSON</a></td></tr>
+                <?php if ($mdOn): $ls = $mdLast[(int)$r['id']] ?? null; ?>
+                <td><?php if ($ls): ?><span class="st-md st-md-<?= h((string)$ls['status']) ?>" title="<?= h((string)($ls['message'] ?? '')) ?>"><?= h(((int)$ls['subject'] === BizMoadianLive::SUBJECT_CANCEL ? 'ابطالیه: ' : '') . BizMoadianLive::STATUSES[$ls['status']]) ?></span>
+                        <?php if ($ls['reference']): ?><br><small class="st-muted ltr-num" dir="ltr"><?= h((string)$ls['taxid']) ?></small><?php endif; ?>
+                        <?php if (in_array($ls['status'], ['failed', 'error'], true) && (string)$ls['message'] !== ''): ?><br><small class="st-muted"><?= h(mb_substr((string)$ls['message'], 0, 160)) ?></small><?php endif; ?>
+                    <?php else: ?><span class="st-muted">فرستاده نشده</span><?php endif; ?></td>
+                <?php endif; ?>
+                <td><a class="st-link-btn" href="<?= h($keep(['json' => (int)$r['id']])) ?>">JSON</a>
+                <?php if ($mdOn): $lsS = $ls['status'] ?? ''; $isCancel = (int)($ls['subject'] ?? 0) === BizMoadianLive::SUBJECT_CANCEL; ?>
+                    <?php if ($lsS === '' || (!$isCancel && in_array($lsS, ['failed', 'error'], true))): ?>
+                    <form method="post" action="<?= h($self) ?>" class="st-inline-form"><?= Csrf::field() ?><input type="hidden" name="action" value="md_send"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button type="submit" class="st-link-btn">ارسال</button></form>
+                    <?php elseif ($lsS === 'sent'): ?>
+                    <form method="post" action="<?= h($self) ?>" class="st-inline-form"><?= Csrf::field() ?><input type="hidden" name="action" value="md_inquire"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button type="submit" class="st-link-btn">استعلام</button></form>
+                    <?php endif; ?>
+                <?php endif; ?></td></tr>
         <?php endforeach; ?>
-        <?php if (!$list): ?><tr><td colspan="6" class="st-muted">در این بازه فاکتورِ فروشِ صادرشده‌ای نیست.</td></tr><?php endif; ?>
+        <?php if (!$list): ?><tr><td colspan="<?= $mdOn ? 7 : 6 ?>" class="st-muted">در این بازه فاکتورِ فروشِ صادرشده‌ای نیست.</td></tr><?php endif; ?>
         </tbody>
     </table>
 </div>

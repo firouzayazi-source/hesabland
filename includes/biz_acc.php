@@ -914,10 +914,11 @@ final class BizMoadian
      * (کدِ اقتصادی، شناسه‌ی حافظه، شناسه‌ی کالا…) که پیش از ارسال باید رفع شوند.
      * @return array{ok:bool, message?:string, invoice?:array, problems?:list<string>}
      */
-    public static function payload(int $userId, int $invoiceId): array
+    public static function payload(int $userId, int $invoiceId, bool $forCancel = false): array
     {
         $inv = BizInvoices::get($userId, $invoiceId);
-        if (!$inv || !isset(self::SUBJECT[$inv['kind']]) || $inv['status'] !== 'issued') {
+        // ⛔ ابطالیه (`BizMoadianLive`) همان صورتحسابِ سندی است که در حسابداری باطل شده
+        if (!$inv || !isset(self::SUBJECT[$inv['kind']]) || !($inv['status'] === 'issued' || ($forCancel && $inv['status'] === 'void'))) {
             return ['ok' => false, 'message' => 'فقط فاکتورِ فروش یا برگشت از فروشِ صادرشده.'];
         }
         $shop = Biz::settings($userId);

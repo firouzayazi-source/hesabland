@@ -669,6 +669,8 @@ function importUserData(int $userId, array $data): array
                 if ($t === 'wallets') {
                     $write = Crypto::encryptRow($write, Crypto::WALLET_FIELDS);
                 }
+                // ⛔ اعتبارنامه از فایل نوشته نمی‌شود (`USER_DATA_SECRET_COLUMNS`)
+                foreach (USER_DATA_SECRET_COLUMNS as $c) { unset($write[$c]); }
 
                 $names  = array_keys($write);
                 $quoted = array_map(fn($c) => "`{$c}`", $names);

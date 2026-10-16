@@ -66,6 +66,15 @@ const USER_EXPORT_SKIP = ['api_tokens', 'password_resets', 'trusted_devices', 'p
 const USER_SECRET_COLUMNS = ['password_hash'];
 
 /**
+ * ⛔ ستون‌های اعتبارنامه در **هر** جدولِ داده (به نامِ ستون، نه جدول — طرفِ
+ *    شخصی نامِ جدول‌های فروشگاه را نمی‌شناسد، قاعده ۷۰) — نه در خروجیِ کاربر، نه از فایل
+ *    (`importUserData()` همین را می‌اندازد). کلیدِ خصوصیِ امضای مودیان در فایلِ
+ *    بکاپی که دستِ کاربر و هر جای دیگر می‌رود جایی ندارد؛ و از فایلِ دست‌ساز
+ *    نوشتنش یعنی امضا با کلیدِ کسِ دیگر.
+ */
+const USER_DATA_SECRET_COLUMNS = ['moadian_key', 'moadian_cert', 'moadian_on'];
+
+/**
  * هر جدولی که ستون `user_id` دارد.
  *
  * @return string[] مرتب‌شده، تا خروجی بین اجراها یکسان بماند
@@ -130,6 +139,9 @@ function exportUserData(int $userId): array
             foreach ($rows as $i => $r) {
                 $rows[$i] = Crypto::decryptRow($r, Crypto::WALLET_FIELDS);
             }
+        }
+        foreach ($rows as $i => $r) {
+            foreach (USER_DATA_SECRET_COLUMNS as $c) { unset($rows[$i][$c]); }
         }
 
         $out['tables'][$t] = $rows;

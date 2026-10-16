@@ -62,6 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $res = BizSerial::saveFlaggedTacs((string)postParam('tacs'));
         redirectWithMessage(Biz::url('settings.php') . '#tacs', $res['ok'] ? 'success' : 'error', $res['message']);
     }
+    // ⛔ کلید و گواهیِ مودیان — فقط `BizMoadianLive::saveConfig()`؛ آزمونِ اتصال جدا
+    if (postParam('action') === 'moadian_live' || postParam('action') === 'moadian_check') {
+        require_once __DIR__ . '/../includes/biz_moadian.php';
+        $res = postParam('action') === 'moadian_check' ? BizMoadianLive::check($userId) : BizMoadianLive::saveConfig($userId, $_POST);
+        redirectWithMessage(Biz::url('settings.php') . '#moadian', $res['ok'] ? 'success' : 'error', $res['message']);
+    }
     if (postParam('action') === 'accounting') {
         $res = Biz::saveAccounting($userId, $_POST);
         redirectWithMessage(Biz::url('settings.php') . '#accounting', $res['ok'] ? 'success' : 'error', $res['message']);
@@ -308,6 +314,31 @@ require __DIR__ . '/../includes/biz_head.php';
     </div>
     <button type="submit" class="st-btn">ذخیره</button>
 </form>
+<?php require_once __DIR__ . '/../includes/biz_moadian.php'; if (BizMoadianLive::ready()): $ml = BizMoadianLive::config($userId); ?>
+<h2 class="st-h2 st-section-title" id="moadian">ارسالِ مستقیم به سامانه‌ی مودیان</h2>
+<form method="post" class="st-card st-form" action="<?= h(Biz::url('settings.php')) ?>">
+    <?= Csrf::field() ?>
+    <input type="hidden" name="action" value="moadian_live">
+    <p class="st-muted">با کلیدِ خصوصی و گواهیِ امضایی که هنگامِ ثبتِ حافظه‌ی مالیاتی در کارپوشه ساخته‌اید، فاکتورهای فروش از صفحه‌ی «دفاتر و مالیات ← سامانه‌ی مودیان» مستقیم فرستاده و نتیجه‌شان استعلام می‌شود. کلید فقط رمزشده نگه داشته می‌شود و در هیچ خروجی و بکاپی نمی‌آید (بعد از بازگرداندنِ بکاپ دوباره بگذارید). <b>اول در محیطِ آزمایشی امتحان کنید</b> — این بخش هنوز با سامانه‌ی واقعی آزموده نشده است.</p>
+    <p><?= $ml['has_key'] ? '✓ کلید و گواهی ثبت شده‌اند.' : '✗ هنوز کلید و گواهی ثبت نشده است.' ?> <?= $ml['on'] ? 'ارسال <b>روشن</b> است (' . h(BizMoadianLive::ENVS[$ml['env']]['label']) . ').' : 'ارسال خاموش است.' ?></p>
+    <div class="st-row2">
+        <label class="st-field"><span>محیط</span>
+            <select name="moadian_env"><?php foreach (BizMoadianLive::ENVS as $ek => $ev): ?><option value="<?= h($ek) ?>"<?= $ml['env'] === $ek ? ' selected' : '' ?>><?= h($ev['label']) ?></option><?php endforeach; ?></select></label>
+        <label class="st-check"><input type="checkbox" name="moadian_on" value="1"<?= $ml['on'] ? ' checked' : '' ?>><span>ارسالِ مستقیم روشن باشد</span></label>
+    </div>
+    <label class="st-field"><span>کلیدِ خصوصی (PEM) <small class="st-muted">(خالی = همان قبلی)</small></span>
+        <textarea name="moadian_key" rows="4" dir="ltr" autocomplete="off" spellcheck="false" placeholder="-----BEGIN PRIVATE KEY-----"></textarea></label>
+    <label class="st-field"><span>گواهیِ امضا (PEM) <small class="st-muted">(خالی = همان قبلی)</small></span>
+        <textarea name="moadian_cert" rows="4" dir="ltr" autocomplete="off" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----"></textarea></label>
+    <div class="st-head-actions">
+        <button type="submit" class="st-btn">ذخیره</button>
+        <?php if ($ml['has_key']): ?>
+        <button type="submit" name="action" value="moadian_check" class="st-btn st-btn-ghost" formnovalidate>آزمونِ اتصال</button>
+        <button type="submit" name="clear_key" value="1" class="st-btn st-btn-ghost" onclick="return confirm('کلید و گواهیِ مودیان پاک شود؟');">پاک کردنِ کلید</button>
+        <?php endif; ?>
+    </div>
+</form>
+<?php endif; ?>
 <?php endif; ?>
 
 <section class="st-card">

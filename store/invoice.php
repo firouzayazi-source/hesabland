@@ -60,6 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action === 'void') {
         $r = BizInvoices::void($userId, $id);
+        // ⛔ صورتحسابِ ثبت‌شده در مودیان با ابطال در حسابداری از سامانه پاک نمی‌شود
+        if ($r['ok'] && is_file(__DIR__ . '/../includes/biz_moadian.php')) {
+            require_once __DIR__ . '/../includes/biz_moadian.php';
+            if (BizMoadianLive::needsCancel($userId, $id)) {
+                $r['message'] .= ' ⚠ این صورتحساب در سامانه‌ی مودیان ثبت شده است — از «دفاتر و مالیات ← سامانه‌ی مودیان» ابطالیه‌اش را بفرستید.';
+            }
+        }
     } elseif ($action === 'unissue') {
         $r = BizInvoices::unissue($userId, $id);
         if ($r['ok']) { redirectWithMessage(Biz::url('invoice-edit.php?id=' . $id), 'success', $r['message']); }

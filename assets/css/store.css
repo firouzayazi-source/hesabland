@@ -1531,3 +1531,9 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-hamta:hover { text-decoration: underline; }
 /* پارت‌نامبر زیرِ دو IMEI، تمام‌عرض */
 .st-line-imei .st-partno-in { grid-column: 1 / -1; text-transform: uppercase; }
+/* وضعیتِ صورتحساب در سامانه‌ی مودیان */
+.st-md { font-size: 12px; font-weight: 600; }
+.st-md-success { color: #15803d; }
+.st-md-failed, .st-md-error { color: #b91c1c; }
+.st-md-sent { color: #b45309; }
+.st-inline-form { display: inline; }
