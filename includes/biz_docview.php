@@ -179,6 +179,7 @@ final class BizDocView
             $im1   = (string)($l['imei1'] ?? '');
             $im2   = (string)($l['imei2'] ?? '');
             $note  = (string)($l['note'] ?? '');
+            $pn    = (string)($l['part_no'] ?? '');
             $showImei = !empty($l['serial']) || !empty($l['has_serial']) || $im1 !== '' || $im2 !== '';
             // ⛔ گوشی → IMEI؛ بقیه → توضیح. توضیحِ از پیش نوشته‌شده روی گوشی هم
             //    پنهان نمی‌شود — پنهان کردنِ داده‌ی کاربر یعنی بی‌صدا گم کردنش.
@@ -198,6 +199,7 @@ final class BizDocView
                   . '<div class="st-line-imei" data-imei-box' . ($showImei ? '' : ' hidden') . '>'
                   . '<input type="text" name="lines[' . $i . '][imei1]" value="' . h($im1) . '" inputmode="numeric" dir="ltr" autocomplete="off" placeholder="IMEI ۱" aria-label="IMEI ۱" data-imei1>'
                   . '<input type="text" name="lines[' . $i . '][imei2]" value="' . h($im2) . '" inputmode="numeric" dir="ltr" autocomplete="off" placeholder="IMEI ۲" aria-label="IMEI ۲" data-imei2>'
+                  . (BizPartNo::ready() ? '<input type="text" name="lines[' . $i . '][part_no]" value="' . h($pn) . '" maxlength="' . BizPartNo::MAX . '" dir="ltr" autocomplete="off" autocapitalize="characters" placeholder="پارت‌نامبر (اختیاری)" aria-label="پارت‌نامبر" class="st-partno-in" data-partno>' : '')
                   . '</div>'
                   . '<input type="text" name="lines[' . $i . '][note]" value="' . h($note) . '" maxlength="' . BizInvoices::LINE_NOTE_MAX . '" autocomplete="off" placeholder="توضیح (رنگ، گارانتی…)" aria-label="شرحِ کالا" class="st-line-notein" data-note' . ($showNote ? '' : ' hidden') . '>'
                   . '</td>'
@@ -243,6 +245,9 @@ final class BizDocView
     public static function lineSub(array $l, string $class = 'st-imei'): string
     {
         $out = self::imeiLine($l, $class);
+        // پارت‌نامبر با منطقه و نوعِ فروش (اپل) — در چاپ هم: مشتری حق دارد بداند دستگاه بازسازی‌شده است
+        $pn = BizPartNo::label((string)($l['part_no'] ?? ''));
+        if ($pn !== '') { $out .= '<span class="' . h($class) . ' is-partno" dir="ltr">' . h($pn) . '</span>'; }
         $n = trim((string)($l['note'] ?? ''));
         return $out . ($n !== '' ? '<span class="' . h($class) . ' is-note">' . h($n) . '</span>' : '');
     }

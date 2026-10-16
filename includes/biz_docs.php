@@ -298,6 +298,7 @@ final class BizInvoices
             $imei1 = BizSerial::norm((string)($r['imei1'] ?? ''));
             $imei2 = BizSerial::norm((string)($r['imei2'] ?? ''));
             $lnote = mb_substr(BizCommon::line((string)($r['note'] ?? '')), 0, self::LINE_NOTE_MAX);
+            $partNo = BizPartNo::norm((string)($r['part_no'] ?? ''));
             if ($imei1 === '' && $imei2 !== '') { [$imei1, $imei2] = [$imei2, '']; }
             if ($item === '' && $pid === 0 && $prIn === '' && $imei1 === '') { continue; }
             $no++;
@@ -379,6 +380,7 @@ final class BizInvoices
                 if ($v !== '' && !BizSerial::valid($v)) { $errors[$i] = $tag . 'IMEI «' . $v . '» معتبر نیست (۱۴ تا ۱۷ رقم).'; continue 2; }
             }
             if ($imei1 !== '' && $imei1 === $imei2) { $errors[$i] = $tag . 'IMEI ۱ و ۲ یکی‌اند.'; continue; }
+            if (($e = BizPartNo::error($partNo)) !== null) { $errors[$i] = $tag . $e; continue; }
             if ($serial) {
                 if ($imei1 === '') { $errors[$i] = $tag . 'برای گوشیِ «' . $desc . '» IMEI را بنویسید (هر گوشی یک ردیف).'; continue; }
                 if (abs($qty - 1.0) > 0.0005) { $errors[$i] = $tag . 'هر گوشی یک ردیف است؛ تعدادِ ردیفِ IMEIدار ۱ است.'; continue; }
@@ -401,6 +403,7 @@ final class BizInvoices
                 'inactive' => $prod && (int)$prod['is_active'] !== 1,
                 'imei1' => $imei1 === '' ? null : $imei1, 'imei2' => $imei2 === '' ? null : $imei2,
                 'note' => $lnote === '' ? null : $lnote,
+                'part_no' => $partNo === '' ? null : $partNo,
                 // ⛔ معافیت از خودِ کالا؛ شرحِ آزاد مشمول است (پیش‌فرضِ قانون)
                 'vat_exempt' => $prod && (int)($prod['vat_exempt'] ?? 0) === 1,
             ];
@@ -643,10 +646,11 @@ final class BizInvoices
         // گذاشته می‌شود، نه اینکه صدورِ فاکتور بخوابد.
         $withNote = function_exists('tableHasColumn') && tableHasColumn('biz_invoice_lines', 'note');
         $withTax  = Biz::accReady();
+        $withPn   = BizPartNo::ready();
         $ins = $pdo->prepare(
             'INSERT INTO biz_invoice_lines (user_id, invoice_id, line_no, product_id, ref_line_id, description, unit, imei1, imei2, '
-            . ($withNote ? 'note, ' : '') . ($withTax ? 'tax_amount, ' : '') . 'qty, unit_price, line_discount, line_total, net_total, unit_cost)
-             VALUES (:u, :i, :no, :p, :r, :d, :un, :m1, :m2, ' . ($withNote ? ':nt2, ' : '') . ($withTax ? ':tx, ' : '') . ':q, :pr, :di, :lt, :nt, :c)'
+            . ($withPn ? 'part_no, ' : '') . ($withNote ? 'note, ' : '') . ($withTax ? 'tax_amount, ' : '') . 'qty, unit_price, line_discount, line_total, net_total, unit_cost)
+             VALUES (:u, :i, :no, :p, :r, :d, :un, :m1, :m2, ' . ($withPn ? ':pn, ' : '') . ($withNote ? ':nt2, ' : '') . ($withTax ? ':tx, ' : '') . ':q, :pr, :di, :lt, :nt, :c)'
         );
         foreach (array_values($lines) as $n => $l) {
             $row = ['u' => $userId, 'i' => $id, 'no' => $n + 1, 'p' => $l['product_id'], 'r' => $l['ref_line_id'],
@@ -655,6 +659,7 @@ final class BizInvoices
                     'di' => $l['line_discount'], 'lt' => $l['line_total'], 'nt' => $l['net_total'] ?? $l['line_total'],
                     'c' => $l['unit_cost']];
             if ($withNote) { $row['nt2'] = $l['note'] ?? null; }
+            if ($withPn)   { $row['pn'] = $l['part_no'] ?? null; }
             if ($withTax)  { $row['tx'] = (int)($l['tax_amount'] ?? 0); }
             $ins->execute($row);
         }
@@ -825,7 +830,7 @@ final class BizInvoices
         }
         // ⛔ هشدارِ رقمِ کنترلِ IMEI — فقط پیام، صدور انجام شده است
         $lw = BizSerial::luhnMessage(BizSerial::luhnWarnings($lines));
-        $tw = BizSerial::tacMessage(BizSerial::tacWarnings($pdo, $userId, $lines, $id));
+        $tw = BizSerial::tacMessage(array_merge(BizSerial::tacWarnings($pdo, $userId, $lines, $id), BizPartNo::warnings($lines)));
         $lw = trim($lw . ($lw !== '' && $tw !== '' ? ' ' : '') . $tw);
         return ['ok' => true, 'message' => self::KINDS[$kind] . ' شماره‌ی ' . toPersianDigits((string)$number) . ' صادر شد.'
                                            . ($lw !== '' ? ' ⚠ ' . $lw : ''), 'imei_warn' => $lw];
@@ -1170,7 +1175,7 @@ final class BizInvoices
                         'description' => (string)$o['description'], 'unit' => (string)$o['unit'], 'qty' => round($q, 3),
                         'unit_price' => (int)round($unitNet), 'line_discount' => 0, 'line_total' => $lt, 'net_total' => $lt,
                         'unit_cost' => null, 'imei1' => $o['imei1'] ?? null, 'imei2' => $o['imei2'] ?? null,
-                        'note' => $o['note'] ?? null, 'tax_amount' => $tx];
+                        'part_no' => $o['part_no'] ?? null, 'note' => $o['note'] ?? null, 'tax_amount' => $tx];
         }
         if (!$lines) { return ['ok' => false, 'message' => 'تعدادِ برگشت را دست‌کم برای یک ردیف بنویسید.']; }
         $taxTotal = array_sum(array_column($lines, 'tax_amount'));
@@ -2179,6 +2184,120 @@ final class BizCheques
 }
 
 /* =================================================================
+   پارت‌نامبرِ دستگاه (migration_biz_partno)
+   ================================================================= */
+final class BizPartNo
+{
+    /** بیشترین طول — ستونِ `biz_invoice_lines.part_no`. */
+    public const MAX = 30;
+
+    /** ستونش آمده؟ (migration_biz_partno) — روی نصبِ عقب‌مانده بی‌صدا کنار می‌رود. */
+    public static function ready(): bool
+    {
+        return function_exists('tableHasColumn') && tableHasColumn('biz_invoice_lines', 'part_no');
+    }
+
+    /**
+     * ⛔ حرفِ اولِ پارت‌نامبرِ اپل = نوعِ فروشِ دستگاه. فقط چهار حرفی که معنایشان
+     *    قطعی است؛ بقیه «نامعلوم» می‌مانند، حدس زده نمی‌شوند.
+     *    `warn` = هنگامِ خرید و فروش هشدار بده (مشتری حق دارد بداند).
+     */
+    public const APPLE_KINDS = [
+        'M' => ['label' => 'نو (فروشِ عادی)',        'warn' => false],
+        'F' => ['label' => 'بازسازی‌شده (Refurbished)', 'warn' => true],
+        'N' => ['label' => 'تعویضی (جایگزینِ گارانتی)', 'warn' => true],
+        'P' => ['label' => 'سفارشی (حکاکی‌شده)',       'warn' => false],
+    ];
+
+    /** کدِ منطقه‌ی اپل (حرف‌های پیش از «/A»). فقط کدهای شناخته‌شده؛ بقیه خامِ خودشان. */
+    public const APPLE_REGIONS = [
+        'LL' => 'آمریکا', 'VC' => 'کانادا', 'LZ' => 'آمریکای جنوبی', 'B' => 'انگلستان', 'ZD' => 'اروپا',
+        'RU' => 'روسیه', 'TU' => 'ترکیه', 'AE' => 'امارات', 'AB' => 'خاورمیانه', 'HN' => 'هند',
+        'CH' => 'چین', 'ZP' => 'هنگ‌کنگ', 'ZA' => 'سنگاپور', 'J' => 'ژاپن', 'KH' => 'کره', 'TA' => 'تایوان', 'X' => 'استرالیا',
+    ];
+
+    /** شکلِ یکدست: لاتین، بزرگ، بی‌فاصله. */
+    public static function norm(string $s): string
+    {
+        return strtoupper((string)preg_replace('/\s+/u', '', toLatinDigits(trim($s))));
+    }
+
+    /** خطای پارت‌نامبر، یا null. خالی مجاز است. */
+    public static function error(string $pn): ?string
+    {
+        if ($pn === '') { return null; }
+        if (strlen($pn) > self::MAX || !preg_match('~^[A-Z0-9][A-Z0-9/.\-]*$~', $pn)) {
+            return 'پارت‌نامبرِ «' . $pn . '» معتبر نیست (حرفِ لاتین، رقم، «/»، «-» — حداکثر ' . toPersianDigits((string)self::MAX) . ' نویسه).';
+        }
+        return null;
+    }
+
+    /**
+     * پارت‌نامبرِ اپل را می‌خواند: «MLPF3LL/A» ⇒ نوع (M = نو) و منطقه (LL = آمریکا).
+     * پارت‌نامبرِ غیرِ اپل (سامسونگ، شیائومی) ⇒ null — قاعده‌ی عمومی‌ای ندارد.
+     * @return array{brand:string, kind:string, kind_label:string, warn:bool, region:string, region_label:string}|null
+     */
+    public static function decode(string $pn): ?array
+    {
+        $pn = self::norm($pn);
+        if (!preg_match('~^([A-Z0-9])[A-Z0-9]{4}([A-Z]{1,2})/A$~', $pn, $m)) { return null; }
+        $k = self::APPLE_KINDS[$m[1]] ?? null;
+        return ['brand' => 'apple', 'kind' => $m[1],
+                'kind_label' => $k['label'] ?? 'نامعلوم (' . $m[1] . ')', 'warn' => (bool)($k['warn'] ?? false),
+                'region' => $m[2], 'region_label' => self::APPLE_REGIONS[$m[2]] ?? $m[2]];
+    }
+
+    /** یک خطِ خوانا: «MLPF3LL/A · آمریکا · نو (فروشِ عادی)». */
+    public static function label(string $pn): string
+    {
+        $pn = self::norm($pn);
+        if ($pn === '') { return ''; }
+        $d = self::decode($pn);
+        return $d ? $pn . ' · ' . $d['region_label'] . ' · ' . $d['kind_label'] : $pn;
+    }
+
+    /**
+     * هشدارهای پارت‌نامبرِ ردیف‌ها: دستگاهِ بازسازی‌شده یا تعویضی. ⛔ فقط هشدار.
+     * @return list<string>
+     */
+    public static function warnings(array $lines): array
+    {
+        $out = [];
+        foreach ($lines as $l) {
+            $pn = self::norm((string)($l['part_no'] ?? ''));
+            $d = $pn !== '' ? self::decode($pn) : null;
+            if ($d && $d['warn']) {
+                $out[] = 'پارت‌نامبرِ ' . $pn . ' («' . trim((string)($l['description'] ?? '')) . '») یعنی دستگاهِ ' . $d['kind_label']
+                       . ' — در فاکتور و به مشتری گفته شود.';
+            }
+        }
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * ⛔ گزارشِ پارت‌نامبر — گروه‌بندیِ همان دستگاه‌های `BizSerial::report()` (یک
+     *    منبعِ وضعیت، نه دومی). دستگاهِ بی‌پارت‌نامبر یک گروهِ جدا.
+     * @return list<array{part_no:string, label:string, product:string, in:int, out:int, buy:int, sell:int, buy_n:int, sell_n:int}>
+     */
+    public static function report(int $userId, int $productId = 0): array
+    {
+        $groups = [];
+        foreach (BizSerial::report($userId, '', $productId, 20000)['rows'] as $u) {
+            $pn  = (string)($u['part_no'] ?? '');
+            $key = $pn . "\x1f" . $u['product'];
+            $g = $groups[$key] ?? ['part_no' => $pn, 'label' => $pn !== '' ? self::label($pn) : 'بی‌پارت‌نامبر', 'product' => $u['product'],
+                                   'in' => 0, 'out' => 0, 'buy' => 0, 'sell' => 0, 'buy_n' => 0, 'sell_n' => 0];
+            $u['state'] === 'in' ? $g['in']++ : $g['out']++;
+            if (in_array($u['first']['kind'], BizSerial::IN_KINDS, true)) { $g['buy'] += $u['first']['price']; $g['buy_n']++; }
+            if ($u['state'] === 'out') { $g['sell'] += $u['last']['price']; $g['sell_n']++; }
+            $groups[$key] = $g;
+        }
+        uasort($groups, fn($a, $b) => [$a['part_no'] === '', $b['out'] + $b['in'], $a['part_no']] <=> [$b['part_no'] === '', $a['out'] + $a['in'], $b['part_no']]);
+        return array_values($groups);
+    }
+}
+
+/* =================================================================
    گوشی با IMEI (migration_biz_serials)
    ================================================================= */
 final class BizSerial
@@ -2637,7 +2756,7 @@ final class BizSerial
     public static function report(int $userId, string $filter = '', int $productId = 0, int $cap = 2000): array
     {
         $sql = "SELECT l.imei1, l.imei2, l.product_id, l.unit_price, i.kind, i.id AS invoice_id, i.number, i.inv_date,
-                       COALESCE(p.name, l.description) AS product_name, pa.name AS party_name
+                       " . (BizPartNo::ready() ? 'l.part_no' : 'NULL AS part_no') . ", COALESCE(p.name, l.description) AS product_name, pa.name AS party_name
                 FROM biz_invoice_lines l
                 JOIN biz_invoices i ON i.id = l.invoice_id AND i.user_id = l.user_id
                 LEFT JOIN biz_products p FORCE INDEX (PRIMARY) ON p.id = l.product_id AND p.user_id = l.user_id
@@ -2661,6 +2780,8 @@ final class BizSerial
             }
             $units[$key]['last']  = $ev;
             $units[$key]['state'] = in_array($r['kind'], self::IN_KINDS, true) ? 'in' : 'out';
+            // پارت‌نامبر: آخرین مقدارِ نوشته‌شده (فروش ممکن است اصلاحش کرده باشد)
+            if ((string)($r['part_no'] ?? '') !== '') { $units[$key]['part_no'] = (string)$r['part_no']; }
         }
         $rows = []; $in = 0; $out = 0;
         foreach ($units as $u) {

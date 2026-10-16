@@ -433,7 +433,8 @@
         function imeiBox(row, show) {
             var box = row.querySelector('[data-imei-box]'), note = field(row, 'note');
             if (!box) { return; }
-            var filled = field(row, 'imei1').value.trim() !== '' || field(row, 'imei2').value.trim() !== '';
+            var pn = field(row, 'partno');
+            var filled = field(row, 'imei1').value.trim() !== '' || field(row, 'imei2').value.trim() !== '' || (pn && pn.value.trim() !== '');
             box.hidden = !(show || filled);
             if (note) { note.hidden = !box.hidden && note.value.trim() === ''; }
         }

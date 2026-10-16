@@ -345,6 +345,7 @@ $parsed = BizInvoices::parseLines($userId, array_map(fn($l) => [
     'qty' => isset($l['qty']) ? (string)$l['qty'] : '', 'price' => $l['price'] ?? (isset($l['unit_price']) ? (string)$l['unit_price'] : ''),
     'disc' => $l['disc'] ?? (isset($l['line_discount']) ? (string)$l['line_discount'] : ''),
     'imei1' => (string)($l['imei1'] ?? ''), 'imei2' => (string)($l['imei2'] ?? ''), 'note' => (string)($l['note'] ?? ''),
+    'part_no' => (string)($l['part_no'] ?? ''),
 ], $form['lines']));
 $form['lines'] = BizDocView::mergeMeta($form['lines'], $parsed['meta']);
 $vatShow = Biz::accReady() && (Biz::vatRate($userId) > 0 || (float)($inv['vat_rate'] ?? 0) > 0);

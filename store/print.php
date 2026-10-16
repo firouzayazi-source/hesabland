@@ -182,7 +182,7 @@ case 'serials':
         <?php if (!$sr['rows']): ?><tr><td colspan="6" class="pr-empty">هیچ گوشیِ IMEIداری با این صافی نیست.</td></tr><?php endif; ?>
         <?php foreach ($sr['rows'] as $u): $f = $u['first']; $l = $u['last']; $out = $u['state'] === 'out'; ?>
             <tr>
-                <td><span class="pr-num" dir="ltr"><?= h($u['imei1']) ?></span><?php if ($u['imei2'] !== null): ?><br><span class="pr-num pr-sub" dir="ltr"><?= h($u['imei2']) ?></span><?php endif; ?></td>
+                <td><span class="pr-num" dir="ltr"><?= h($u['imei1']) ?></span><?php if ($u['imei2'] !== null): ?><br><span class="pr-num pr-sub" dir="ltr"><?= h($u['imei2']) ?></span><?php endif; ?><?php if (!empty($u['part_no'])): ?><br><span class="pr-sub" dir="ltr"><?= h(BizPartNo::label((string)$u['part_no'])) ?></span><?php endif; ?></td>
                 <td><?= h($u['product']) ?></td>
                 <td><?= h(BizInvoices::KINDS[$f['kind']] ?? '') ?> <span class="pr-num"><?= toPersianDigits((string)$f['number']) ?></span> · <span class="pr-num"><?= h(toJalali($f['date'])) ?></span><br><span class="pr-sub"><?= h($f['party']) ?></span></td>
                 <td class="pr-c-num pr-wide"><?= in_array($f['kind'], BizSerial::IN_KINDS, true) ? $money($f['price']) : '' ?></td>
@@ -194,6 +194,37 @@ case 'serials':
     </table>
     <p class="pr-note">وضعیتِ هر گوشی از آخرین سندِ صادرشده با همان IMEI می‌آید؛ سندِ باطل اثری ندارد. گوشی‌ای که پیش از ثبتِ IMEI (موجودی اول دوره) وارد شده اینجا نیست.</p>
     <?php if ($sr['capped']): ?><p class="pr-note">فهرست بریده شده است؛ با صافیِ وضعیت یا کالا چاپ کنید.</p><?php endif; ?>
+    <?php BizPrint::foot($userId, ['انباردار', 'تأیید']);
+    break;
+
+case 'partnos':
+    // ⛔ همان دستگاه‌های `BizSerial::report()` به تفکیکِ پارت‌نامبر (`BizPartNo::report()`)
+    if (!BizPartNo::ready()) { Biz::notFound(); }
+    $pr = BizPartNo::report($userId, $id);
+    $pp = $id > 0 ? BizProducts::get($userId, $id) : null;
+    if ($id > 0 && !$pp) { Biz::notFound(); }
+    BizPrint::head($userId, BizPrint::DOCS['partnos'], $pp ? Biz::url('product.php?id=' . $id) : Biz::url('reports.php'), [
+        'کالا'     => $pp ? (string)$pp['name'] : '',
+        'در انبار' => toPersianDigits((string)array_sum(array_column($pr, 'in'))) . ' گوشی',
+        'فروخته'   => toPersianDigits((string)array_sum(array_column($pr, 'out'))) . ' گوشی',
+    ]); ?>
+    <table class="pr-table">
+        <thead><tr><th>پارت‌نامبر</th><th>کالا</th><th class="pr-c-num">در انبار</th><th class="pr-c-num">فروخته</th><th class="pr-c-num pr-wide">میانگینِ خرید</th><th class="pr-c-num pr-wide">میانگینِ فروش</th></tr></thead>
+        <tbody>
+        <?php if (!$pr): ?><tr><td colspan="6" class="pr-empty">هیچ گوشیِ IMEIداری نیست.</td></tr><?php endif; ?>
+        <?php foreach ($pr as $g): ?>
+            <tr>
+                <td><span dir="ltr"><?= h($g['label']) ?></span></td>
+                <td><?= h($g['product']) ?></td>
+                <td class="pr-c-num"><?= toPersianDigits((string)$g['in']) ?></td>
+                <td class="pr-c-num"><?= toPersianDigits((string)$g['out']) ?></td>
+                <td class="pr-c-num pr-wide"><?= $g['buy_n'] > 0 ? $money(intdiv($g['buy'], $g['buy_n'])) : '' ?></td>
+                <td class="pr-c-num pr-wide"><?= $g['sell_n'] > 0 ? $money(intdiv($g['sell'], $g['sell_n'])) : '' ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    <p class="pr-note">پارت‌نامبرِ اپل منطقه (مثلاً LL = آمریکا) و نوعِ دستگاه را می‌گوید: M نو، F بازسازی‌شده، N تعویضی. پارت‌نامبرِ هر گوشی آخرین مقداری است که در سندهایش نوشته شده. مبلغ‌ها به تومان.</p>
     <?php BizPrint::foot($userId, ['انباردار', 'تأیید']);
     break;
 

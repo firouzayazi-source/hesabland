@@ -29,6 +29,7 @@ final class BizPrint
         'by_invoice' => 'به تفکیکِ فاکتور',
         'by_party'   => 'خلاصه‌ی گردشِ اشخاص',
         'serials'    => 'گزارش IMEI گوشی‌ها',
+        'partnos'    => 'گزارشِ پارت‌نامبر',
         'account'    => 'گردشِ صندوق و بانک',
         'cheques'    => 'دفترِ چک',
         'repair'     => 'قبضِ پذیرشِ تعمیر',
@@ -43,7 +44,7 @@ final class BizPrint
     public const DOC_CAPS = [
         'prices' => null, 'invoice' => null, 'payment' => null, 'party' => 'receive',
         'stock' => 'reports', 'parties' => 'reports', 'kardex' => 'reports', 'sales' => 'reports',
-        'by_product' => 'reports', 'by_invoice' => 'reports', 'by_party' => 'reports', 'serials' => 'reports',
+        'by_product' => 'reports', 'by_invoice' => 'reports', 'by_party' => 'reports', 'serials' => 'reports', 'partnos' => 'reports',
         'account' => 'money', 'cheques' => 'money', 'repair' => 'repairs', 'commission' => 'reports',
     ];
 
@@ -84,6 +85,8 @@ final class BizPrint
              'desc' => 'همه‌ی ورود و خروج‌های یک کالا با مانده‌ی بعد از هر حرکت.'],
             ['doc' => 'serials', 'label' => 'گزارشِ شماره سریال (IMEI)', 'input' => 'sfilter',
              'desc' => 'هر گوشی: از چه کسی و کِی خریده شد، کجاست، و به چه کسی فروخته شد.'],
+            ['doc' => 'partnos', 'label' => 'گزارشِ پارت‌نامبر', 'input' => 'none',
+             'desc' => 'گوشی‌ها به تفکیکِ پارت‌نامبر: منطقه، نو یا بازسازی‌شده، در انبار و فروخته، و میانگینِ بهای خرید و فروش.'],
         ],
         'خرید و فروش' => [
             ['doc' => 'by_product', 'k' => 'sale', 'label' => 'فروش به تفکیکِ کالا', 'input' => 'period',
