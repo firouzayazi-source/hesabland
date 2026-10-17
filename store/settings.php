@@ -77,6 +77,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $res = BizComms::saveSettings($userId, $rot ? BizComms::settings($userId) : $_POST, $rot);
         redirectWithMessage(Biz::url('settings.php') . '#comms', $res['ok'] ? 'success' : 'error', $res['message']);
     }
+    // ⛔ خلاصه‌ی شبانه فقط به صاحب می‌رود (`BizDaily`)، پس فقط خودش روشن/خاموشش می‌کند
+    if (postParam('action') === 'daily_summary') {
+        if (Biz::isStaff()) { Biz::denied('settings'); }
+        require_once __DIR__ . '/../includes/biz_daily.php';
+        $res = BizDaily::setOn($userId, postParam('daily_on') === '1');
+        redirectWithMessage(Biz::url('settings.php') . '#daily', $res['ok'] ? 'success' : 'error', $res['message']);
+    }
     if (postParam('action') === 'invoice_prefs') {
         $res = Biz::saveInvoicePrefs($userId, $_POST);
         redirectWithMessage(Biz::url('settings.php') . '#invoice', $res['ok'] ? 'success' : 'error', $res['message']);
@@ -273,6 +280,18 @@ require __DIR__ . '/../includes/biz_head.php';
         </select>
     </label>
     <button type="submit" class="st-btn">ذخیره‌ی گزینه‌ها</button>
+</form>
+<?php endif; ?>
+
+<?php if (!Biz::isStaff() && ($__dOn = Biz::dailySummaryOn($userId)) !== null): ?>
+<h2 class="st-h2 st-section-title" id="daily">خلاصه‌ی شبانه</h2>
+<form method="post" class="st-card st-form" action="<?= h(Biz::url('settings.php')) ?>">
+    <?= Csrf::field() ?>
+    <input type="hidden" name="action" value="daily_summary">
+    <label class="st-check"><input type="checkbox" name="daily_on" value="1"<?= $__dOn ? ' checked' : '' ?>>
+        <span>هر شب (از ساعتِ ۹) خلاصه‌ی امروز برایم بیاید: فروش، سود، نقد و چک‌های فردا</span></label>
+    <p class="st-muted">به ایمیلِ حساب و اعلانِ گوشی؛ روزی که هیچ کاری نشده چیزی فرستاده نمی‌شود.</p>
+    <button type="submit" class="st-btn">ذخیره</button>
 </form>
 <?php endif; ?>
 

@@ -185,7 +185,7 @@ $userId = Auth::userId();   // همیشه از اینجا، هرگز از ورو
 | pool مربوط به PHP | `/etc/php/<نسخه>/fpm/pool.d/hesab.conf` |
 | سوکت | `/run/php/php-hesab.sock` |
 | دیتابیس / کاربر | `hesab_db` / `'hesab_user'@'localhost'` با `GRANT ... ON hesab_db.*` |
-| بکاپ | `/opt/hesab/backups` و `/etc/cron.d/hesab-*` (backup، sessions، due، reminders، offsite، store-sync، push، rates، ssl) |
+| بکاپ | `/opt/hesab/backups` و `/etc/cron.d/hesab-*` (backup، sessions، due، reminders، offsite، store-sync، push، rates، ssl، store-daily) |
 | **نسخه‌ی آزمایشی** | پوشه‌ی `/opt/hesab/staging`، کاربرِ `hesabstg`، سایت و pool به نامِ `hesab-staging` (سوکت `/run/php/php-hesab-staging.sock`)، دیتابیسِ `hesab_staging` با `'hesab_stg'@'localhost'` (`GRANT ... ON hesab_staging.*`)، و `/etc/nginx/hesab-staging.htpasswd` |
 
 > **دام دسترسی `var/sessions`:** `deploy.sh` عمداً `chown -R root:root .` می‌زند تا PHP نتواند کد را عوض کند. ولی `session.save_path` این pool داخل خودِ پوشه‌ی اپ است (`var/sessions`)، پس همان دستور آن را هم مال root می‌کرد و PHP — که با کاربر `hesab` اجرا می‌شود — دیگر نمی‌توانست فایل نشست بنویسد. **خرابیِ حاصل هیچ ردی در لاگ نداشت:** هر درخواست یک نشستِ خالیِ تازه می‌گرفت، پس توکن CSRF هرگز نمی‌ماند و صفحه‌ی ورود در حلقه‌ی «نشست شما منقضی شده بود» گیر می‌کرد — هیچ‌کس نمی‌توانست وارد شود، و هر بار اجرای `deploy.sh` دوباره خرابش می‌کرد. `deploy.sh` حالا مثل `uploads`، پوشه‌ی `var` را هم برمی‌گرداند و نوشتنی بودنش را با `sudo -u hesab test -w` واقعاً می‌آزماید. قاعده ۸ در `test_api_contract.php` این را می‌سنجد.
@@ -223,6 +223,7 @@ $userId = Auth::userId();   // همیشه از اینجا، هرگز از ورو
 - **سنجش و بازیابی بکاپ: `deploy/restore.sh`**
 - **HSTS (فقط https در مرورگر): `deploy/nginx-hsts.sh`** (نمایشی؛ `--apply` روشن، `--off` خاموش — فقط با گواهیِ سالم و پایشِ نصب‌شده روشن می‌شود)
 - **پایشِ گواهیِ SSL، هر ۶ ساعت: `deploy/ssl-check.php --install-cron`** (۱۴ روز مانده هشدار، ۳ روز خراب؛ ایمیل + اعلانِ گوشی + «خطاهای برنامه»)؛ **رفعِ یک‌دستوری: `sudo ./hesabland ssl`** (فقط `certbot renew --cert-name` همین دامنه، reload بعد از `nginx -t`) (`docs/decisions/platform.md`)
+- **خلاصه‌ی شبانه‌ی صاحبِ فروشگاه، هر ساعت (فقط از ساعتِ ۲۱، روزی یک بار): `deploy/store-daily.php --install-cron`** (`docs/decisions/store.md`)
 - افزودن استثنای سرویس‌ورکر به nginx روی نصب موجود: `deploy/nginx-sw.sh` (نمایشی؛ با `--apply` اعمال)
 - روشن کردن HTTP/2 روی سایت (سرعت روی شبکه‌ی پرتأخیر): `deploy/nginx-perf.sh` (نمایشی؛ با `--apply` اعمال)
 - تنظیم ارسال ایمیل: `deploy/mail-setup.sh`
@@ -364,6 +365,7 @@ sudo ./hesabland release     # همان abc1234 — و فقط همان — رو�
 - **تغییرِ گروهیِ قیمت (`BizBulkPrice`):** پیش‌نمایش بی‌نوشتن، اعمال با محاسبه‌ی دوباره روی سرور، نوشتن فقط `setSellPrices()`؛ تطبیقِ لیست فقط یکتا (هرگز حدس)، قیمتِ منفی رد.
 - **لیستِ قیمت (`BizPriceList`):** `store/prices.php` بی‌ورود با امضای فروشگاه+سطح+نمک، صافی فقط از تنظیمِ ذخیره‌شده، پیش‌فرض خاموش؛ هرگز قیمتِ خرید یا شمارِ موجودی (`rows()` فقط چهار کلید).
 - **خریدِ دست‌دوم (`BizUsedBuy`):** فقط روی خریدِ صادرشده‌ی IMEIدار، بی‌پول؛ کدِ ملی با رقمِ کنترل؛ عکسِ لحظه (ویرایشِ طرف‌حساب عوضش نمی‌کند)؛ جای امضای رسید همیشه چاپ می‌شود.
+- **خلاصه‌ی شبانه (`BizDaily`، `test_store_daily`):** عددها فقط از تابع‌های داشبورد (`salesDaily`/`cashDaily`/`profit()`/`BizCash::total`/`BizCheques::due`)، هرگز تعریفِ دوم؛ گیرنده فقط `StorePlan::payerFor()` (همکار هرگز)؛ روزی یک بار با `claim()`ِ شرطی؛ روزِ خالی هیچ؛ روشن/خاموش فقط صاحب.
 - ورود از فایل فقط از `BizProducts::save()`/`BizStock::adjustTo()`؛ دریافت از سایت پشتِ سدِ SSRF (`BizFetch`)؛ چاپِ فاکتور فقط `BizInvoiceDesign::render()`؛ لوگو و تصویر از نو کشیده می‌شوند.
 - هر پوشه‌ی PHPِ تازه باید در همه‌ی اسکنرها باشد؛ بودجه‌ی کوئریِ صفحه‌های فروشگاه در `STORE_BUDGET`.
 - **لایه‌ی حسابداری (`includes/biz_acc.php`، `test_store_accounting`):** مالیات فقط `BizInvoices::lineTax()` روی خالصِ ردیف، نرخِ هر سند عکسِ خودش (`vat_rate`)، `net_total` بی‌مالیات و `total` با مالیات (فروش و سود همیشه بی‌مالیات، بهای انبار بی‌مالیاتِ خرید)، برگشت سهمِ مالیاتِ اصل؛ دفترِ دوطرفه مشتق است (`BizLedger`، بی‌جدول) و `reconcile()` هر صندوق و طرف‌حساب را با `BALANCE_SQL` می‌سنجد — نوعِ تازه‌ی `biz_payments.kind` یک `case` در `entries()` و جایش در `BizPay::IN_KINDS` یا `OUT_KINDS` می‌خواهد (فهرستِ نوع‌ها هیچ‌جا دستی تکرار نمی‌شود — `balanceSql()`/`sqlList()`، قاعده ۷۴)؛ آورده/برداشت نه درآمدند نه هزینه؛ سرفصل فقط `BizExpCats` (سه سیستمیِ غیرفعال‌نشدنی)؛ سرگذشت فقط `BizLog` داخلِ همان تراکنش؛ بستنِ سال فقط سالِ تمام‌شده و با `saveLock()`؛ مودیان فقط خروجی (ارسالِ زنده نه).

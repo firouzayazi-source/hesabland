@@ -74,11 +74,22 @@ function hsts(array $env = [], string $args = ''): array
     return ['rc' => $rc, 'out' => implode("\n", $out)];
 }
 
-function served(): string
+/**
+ * سرآیندِ تحویل‌شده. ⚠ با صبر تا `$want`: بعد از reload کارگرهای قدیمیِ nginx تا چند صد
+ * میلی‌ثانیه با پیکربندیِ قبلی جواب می‌دهند (همان صبرِ خودِ `nginx-hsts.sh`) — بی‌آن تست
+ * گاهی سرآیندِ قبلی را می‌دید و الکی شکست می‌خورد.
+ */
+function served(string $want): string
 {
     global $port, $domain;
-    $h = (string)shell_exec("curl -sk --noproxy '*' -o /dev/null -D - --max-time 5 --resolve {$domain}:{$port}:127.0.0.1 https://{$domain}:{$port}/login.php");
-    return preg_match('/^strict-transport-security:\s*(.+?)\s*$/mi', $h, $m) ? $m[1] : '';
+    $v = '';
+    for ($i = 0; $i < 20; $i++) {
+        $h = (string)shell_exec("curl -sk --noproxy '*' -o /dev/null -D - --max-time 5 --resolve {$domain}:{$port}:127.0.0.1 https://{$domain}:{$port}/login.php");
+        $v = preg_match('/^strict-transport-security:\s*(.+?)\s*$/mi', $h, $m) ? $m[1] : '';
+        if ($v === $want) { break; }
+        usleep(500000);
+    }
+    return $v;
 }
 
 $orig = file_get_contents("$N/site");
@@ -88,7 +99,7 @@ $r = hsts();
 T::same(0, $r['rc'], 'نمایشی با پیش‌شرطِ سالم: کدِ ۰');
 T::ok((bool)preg_match('/^  \+\s+add_header Strict-Transport-Security "max-age=15768000" always;$/m', $r['out']), 'نمایشی خطِ افزوده را نشان می‌دهد', $r['out']);
 T::same($orig, file_get_contents("$N/site"), 'نمایشی فایلِ سایت را دست نمی‌زند');
-T::same('', served(), 'پیش از --apply هیچ HSTSی تحویل نمی‌شود');
+T::same('', served(''), 'پیش از --apply هیچ HSTSی تحویل نمی‌شود');
 
 // ۲ — گواهیِ نزدیکِ انقضا: روشن نمی‌شود
 mkCert($N, $domain, 5);
@@ -97,7 +108,7 @@ $r = hsts([], '--apply');
 T::same(1, $r['rc'], '⛔ گواهیِ ۵روزه: --apply رد می‌شود');
 T::ok(strpos($r['out'], 'گواهی سالم نیست') !== false, 'و علت را می‌گوید', $r['out']);
 T::same($orig, file_get_contents("$N/site"), 'و فایل دست‌نخورده می‌ماند');
-T::same('', served(), 'و هیچ HSTSی تحویل نمی‌شود');
+T::same('', served(''), 'و هیچ HSTSی تحویل نمی‌شود');
 
 // ۳ — گواهیِ نامعتبر برای مرورگر (بی‌CAِ مورد اعتماد): روشن نمی‌شود
 mkCert($N, $domain, 90);
@@ -108,7 +119,7 @@ T::same(1, $r['rc'], '⛔ گواهیِ نامعتبر برای مرورگر: --a
 // ۴ — روشن کردن
 $r = hsts([], '--apply');
 T::same(0, $r['rc'], '--apply با گواهیِ سالم موفق است');
-T::same('max-age=15768000', served(), 'سرآیندِ واقعیِ پاسخ: max-age=15768000');
+T::same('max-age=15768000', served('max-age=15768000'), 'سرآیندِ واقعیِ پاسخ: max-age=15768000');
 $site = file_get_contents("$N/site");
 T::ok((bool)preg_match('/Content-Security-Policy[^\n]*\n    add_header Strict-Transport-Security "max-age=15768000" always;\n/', $site), 'درست بعد از CSP درج شد');
 T::same(1, substr_count($site, 'Strict-Transport-Security'), 'فقط یک بار');
@@ -123,7 +134,7 @@ T::ok(strpos($r['out'], 'کاری لازم نیست') !== false, 'و می‌گو
 // ۶ — خاموش: جایگزین می‌شود، اضافه نه
 $r = hsts([], '--off');
 T::same(0, $r['rc'], '--off موفق است');
-T::same('max-age=0', served(), 'سرآیندِ واقعی: max-age=0 (مرورگرها فراموش می‌کنند)');
+T::same('max-age=0', served('max-age=0'), 'سرآیندِ واقعی: max-age=0 (مرورگرها فراموش می‌کنند)');
 T::same(1, substr_count(file_get_contents("$N/site"), 'Strict-Transport-Security'), 'جایگزین شد، نه خطِ دوم');
 
 // ۷ — سایت بعد از reload خراب جواب می‌دهد → برگشت
@@ -133,14 +144,14 @@ $r = hsts([], '--apply');
 T::same(1, $r['rc'], '⛔ صفحه‌ی ورودِ غیرِ ۲۰۰ بعد از reload: شکست');
 T::same($orig, file_get_contents("$N/site"), 'و فایلِ سایت به حالتِ قبل برگشت');
 usleep(400000);
-T::same('', served(), 'و nginx دوباره بی‌HSTS جواب می‌دهد');
+T::same('', served(''), 'و nginx دوباره بی‌HSTS جواب می‌دهد');
 
 // ۸ — فقط Referrer-Policy (بی‌CSP): بعد از آن درج می‌شود
 file_put_contents("$N/site", site($N, $domain, $port, "    add_header Referrer-Policy strict-origin-when-cross-origin always;\n"));
 shell_exec("$N/bin/systemctl reload nginx 2>&1"); usleep(400000);
 $r = hsts([], '--apply');
 T::same(0, $r['rc'], 'بی‌CSP: بعد از Referrer-Policy');
-T::same('max-age=15768000', served(), 'و تحویل می‌شود');
+T::same('max-age=15768000', served('max-age=15768000'), 'و تحویل می‌شود');
 
 // ۹ — هیچ لنگری نیست: حدس نمی‌زند
 file_put_contents("$N/site", $noAnchor = site($N, $domain, $port, ''));

@@ -1212,6 +1212,7 @@ final class Biz
         self::$rateRound[$userId]    = $row ? (int)($row['rate_round'] ?? 1000) : 1000;
         self::$setupHidden[$userId]  = $row ? (int)($row['setup_hidden'] ?? 0) === 1 : false;
         self::$priceListRaw[$userId] = $row ? (string)($row['price_list'] ?? '') : '';
+        self::$dailyOn[$userId]      = $row && array_key_exists('daily_summary', $row) ? (int)$row['daily_summary'] === 1 : null;
         self::$accRow[$userId]       = $row ? [
             'vat_rate' => (float)($row['vat_rate'] ?? 0),
             'moadian_memory_id' => (string)($row['moadian_memory_id'] ?? ''),
@@ -1433,7 +1434,16 @@ final class Biz
     /** بعد از ذخیره‌ی طراحی — همان درخواست مقدارِ تازه را بخواند. */
     public static function forgetSettings(int $userId): void
     {
-        unset(self::$settingsCache[$userId], self::$designRaw[$userId], self::$invoiceRaw[$userId]);
+        unset(self::$settingsCache[$userId], self::$designRaw[$userId], self::$invoiceRaw[$userId], self::$dailyOn[$userId]);
+    }
+
+    /** خلاصه‌ی شبانه (migration_biz_daily) از همان `SELECT *` — `null` یعنی ستون هنوز نیامده. */
+    private static array $dailyOn = [];
+
+    public static function dailySummaryOn(int $userId): ?bool
+    {
+        self::settings($userId);
+        return self::$dailyOn[$userId] ?? null;
     }
 
     /** @return array{update_buy_price:bool, update_sell_price:bool, warn_below_cost:bool, show_profit:bool, default_party:int} */
