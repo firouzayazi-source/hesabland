@@ -1586,3 +1586,7 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-cam-hint { position: absolute; top: max(16px, env(safe-area-inset-top)); inset-inline: 16px; margin: 0; color: #fff; text-align: center; font-size: 14px; line-height: 1.8; }
 .st-cam-close { position: absolute; bottom: max(24px, env(safe-area-inset-bottom)); }
 .st-input-sm { width: 10em; max-width: 100%; }
+
+/* ---------- لیستِ قیمت (store/price-list.php) ---------- */
+.st-pl-link { display: grid; gap: 8px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--st-line); }
+.st-pl-link input { width: 100%; }

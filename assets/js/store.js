@@ -1119,3 +1119,16 @@
         }
     });
 })();
+
+// ---------- اشتراک‌گذاریِ لینک (لیستِ قیمت) — بی‌درخواست به سرور ----------
+(function () {
+    'use strict';
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-share-url]');
+        if (!b) { return; }
+        e.preventDefault();
+        var url = b.getAttribute('data-share-url'), title = b.getAttribute('data-share-title') || '';
+        if (navigator.share) { navigator.share({ title: title, url: url }).catch(function () {}); return; }
+        if (navigator.clipboard) { navigator.clipboard.writeText(url).then(function () { b.textContent = 'لینک کپی شد'; }, function () {}); }
+    });
+})();

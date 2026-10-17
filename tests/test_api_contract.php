@@ -6985,10 +6985,11 @@ foreach (array_merge($storeFiles70, [__DIR__ . '/../includes/biz_head.php', __DI
     }
     // ⛔ `view.php` = فاکتورِ مشتری با لینکِ امضاشده (`BizShare::verify()`)، عمداً بی‌ورود — سنجشِ
     //    خودش در `test_store_comms` (امضای غلط، سندِ غیرِ فروش، نمکِ عوض‌شده همه ۴۰۴)
+    // ⛔ `prices.php` = لیستِ قیمت با لینکِ امضاشده (`BizPriceList::verify()`)، عمداً بی‌ورود — سنجش در `test_store_pricelist`
     // ⛔ `pay-return.php` = برگشت از درگاهِ پرداخت، عمداً بی‌ورود (نشست در درگاه منقضی می‌شود) —
     //    هیچ چیزی از آدرس باور نمی‌شود (authorityِ همان ردیف، مبلغِ خودمان، تأییدِ سرور به سرور)؛
     //    سنجشِ خودش در `test_store_plan`
-    if (str_starts_with($rel, 'store/') && !in_array(basename($f), ['login.php', 'logout.php', 'view.php', 'pay-return.php'], true)
+    if (str_starts_with($rel, 'store/') && !in_array(basename($f), ['login.php', 'logout.php', 'view.php', 'pay-return.php', 'prices.php'], true)
         && !preg_match('/Auth::initSession\(\);\s*Biz::requirePage\(\);/', $src)) {
         $bBad[] = "{$rel} — درست بعد از initSession() دروازه‌ی Biz::requirePage() ندارد";
     }

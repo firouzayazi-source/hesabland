@@ -156,6 +156,8 @@ final class Biz
         'help.php'         => 'index.php',
         'models.php'       => 'products.php',
         'bulk-price.php'   => 'products.php',
+        'price-list.php'   => 'products.php',
+        'prices.php'       => 'products.php',
     ];
 
     /**
@@ -749,6 +751,8 @@ final class Biz
         'models.php' => null,
         // تغییرِ گروهیِ قیمت — «کالا»
         'bulk-price.php' => 'products',
+        // لیستِ قیمت — تنظیم با «کالا»؛ `prices.php` صفحه‌ی عمومیِ بی‌ورود است (امضا)
+        'price-list.php' => 'products', 'prices.php' => null,
     ];
 
     /**
@@ -1176,6 +1180,8 @@ final class Biz
 
     /** «شروعِ کار» پنهان شد؟ — از همان `SELECT *`ِ `settings()` (`BizSetup`)، صفر کوئریِ اضافه. */
     public static array $setupHidden = [];
+    /** تنظیمِ لیستِ قیمت (JSON) — از همان ردیف (`BizPriceList`)، صفر کوئریِ اضافه. */
+    public static array $priceListRaw = [];
 
     public static function settings(int $userId): array
     {
@@ -1202,6 +1208,7 @@ final class Biz
         self::$newMenuRaw[$userId]   = $row ? (string)($row['new_menu'] ?? '') : '';
         self::$rateRound[$userId]    = $row ? (int)($row['rate_round'] ?? 1000) : 1000;
         self::$setupHidden[$userId]  = $row ? (int)($row['setup_hidden'] ?? 0) === 1 : false;
+        self::$priceListRaw[$userId] = $row ? (string)($row['price_list'] ?? '') : '';
         self::$accRow[$userId]       = $row ? [
             'vat_rate' => (float)($row['vat_rate'] ?? 0),
             'moadian_memory_id' => (string)($row['moadian_memory_id'] ?? ''),

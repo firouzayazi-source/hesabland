@@ -86,7 +86,8 @@ const STORE_BUDGET = [
     'store/start.php'          => 7,
     'store/help.php'           => 4,
     'store/models.php'         => 6,
-    'store/bulk-price.php'     => 5,   // تغییرِ قیمت: پوسته + دسته‌ها (بی‌پیش‌نمایش)   // مدل‌ها: پوسته + فهرست با شمار و موجودی (یک کوئری) + نقشه‌ی جدول‌ها   // راهنما: فقط پوسته (کاتالوگِ ثابت)
+    'store/bulk-price.php'     => 5,
+    'store/price-list.php'     => 6,   // لیستِ قیمت: پوسته + دسته‌ها + نقشه‌ی جدول‌ها   // تغییرِ قیمت: پوسته + دسته‌ها (بی‌پیش‌نمایش)   // مدل‌ها: پوسته + فهرست با شمار و موجودی (یک کوئری) + نقشه‌ی جدول‌ها   // راهنما: فقط پوسته (کاتالوگِ ثابت)
     'store/subscription.php'   => 9,   // اشتراک: پوسته + فروشگاهِ اضافه؟ (`payerFor`) + وضعیت + تنظیمات (قیمت، درگاه، کارت) + نقشه‌ی جدول‌ها + پرداخت‌ها   // «شروعِ کار»: پوسته + پیشرفت (یک کوئری) + صندوق‌ها + «پنهان؟» از ردیفِ تنظیمات
     'store/pos.php'            => 8,   // پوسته + کارت‌خوان‌ها + صندوق‌ها + تراکنش‌های اخیر + سنجشِ جدول (`BizPos::ready()`)   // پوسته + فهرستِ فروشگاه‌ها (اصلی و اضافه‌ها در یک کوئری)
     'store/warehouses.php'     => 6,   // انبارها (فروشگاهِ تک‌انبار: فقط فهرست) + موجودیِ هر انبار + انتقال‌ها
@@ -104,7 +105,8 @@ const STORE_BUDGET = [
 //   می‌گیرد (`test_store_errors`، قاعده ۷۵).
 // `view.php` = فاکتورِ مشتری با لینکِ امضاشده، بی‌ورود — سنجشش در `test_store_comms`
 // `pay-return.php`: برگشت از درگاه، بی‌صفحه — فقط ریدایرکت (سنجش در `test_store_plan`)
-const STORE_NO_BUDGET = ['store/login.php', 'store/logout.php', 'store/errors.php', 'store/view.php', 'store/pay-return.php'];
+// `prices.php`: لیستِ قیمتِ عمومی با امضا (بی‌ورود، مثلِ view.php) — بودجه در `test_store_pricelist`
+const STORE_NO_BUDGET = ['store/login.php', 'store/logout.php', 'store/errors.php', 'store/view.php', 'store/pay-return.php', 'store/prices.php'];
 
 try {
     $pdo = Database::getConnection();

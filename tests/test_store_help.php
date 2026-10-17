@@ -21,8 +21,8 @@ require_once __DIR__ . '/../includes/biz_help.php';
 
 T::group('۱ — فهرستِ بسته');
 $root = realpath(__DIR__ . '/..');
-// ⚠ بیرون از راهنما: ورود/خروج، برگه‌ی چاپ، فاکتورِ مشتری، برگشت از درگاه، خطاهای مدیر، و خودِ راهنما
-$exempt = ['login.php', 'logout.php', 'print.php', 'view.php', 'pay-return.php', 'errors.php', 'help.php'];
+// ⚠ بیرون از راهنما: ورود/خروج، برگه‌ی چاپ، فاکتورِ مشتری، لیستِ قیمتِ عمومی، برگشت از درگاه، خطاهای مدیر، و خودِ راهنما
+$exempt = ['login.php', 'logout.php', 'print.php', 'view.php', 'prices.php', 'pay-return.php', 'errors.php', 'help.php'];
 $missing = [];
 $pages = array_map('basename', glob($root . '/store/*.php') ?: []);
 foreach ($pages as $f) {
