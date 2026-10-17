@@ -155,6 +155,7 @@ final class Biz
         'pay-return.php'   => 'settings.php',
         'help.php'         => 'index.php',
         'models.php'       => 'products.php',
+        'bulk-price.php'   => 'products.php',
     ];
 
     /**
@@ -746,6 +747,8 @@ final class Biz
         'help.php' => null,
         // مدل و حالت‌ها — دیدن برای همه، ساختن و قیمت با «کالا» (صفحه خودش می‌سنجد)
         'models.php' => null,
+        // تغییرِ گروهیِ قیمت — «کالا»
+        'bulk-price.php' => 'products',
     ];
 
     /**
