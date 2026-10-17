@@ -103,6 +103,7 @@ $pageTitle = 'تنظیمات فروشگاه';
 require __DIR__ . '/../includes/biz_head.php';
 ?>
 <h1 class="st-h1">تنظیمات فروشگاه</h1>
+<p class="st-muted">تازه شروع کرده‌اید؟ <a href="<?= h(Biz::url('start.php')) ?>">«شروعِ کار»</a> قدم‌به‌قدم سربرگ، صندوق‌ها، کالا و طرف‌حساب‌ها را راه می‌اندازد.</p>
 
 <?php $__av = avatarUrl($_SESSION['avatar'] ?? null); $__avOk = Biz::$avatarReady ?? usersHaveColumn(Database::getConnection(), 'avatar');   // از کوئریِ نوعِ حساب — بی‌کوئریِ ساختار ?>
 <h2 class="st-h2 st-section-title" id="avatar">تصویر شخصی</h2>

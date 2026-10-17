@@ -149,6 +149,8 @@ final class Biz
         'shops.php'        => 'settings.php',
         // کارت‌خوان‌ها — زیرِ «صندوق و بانک»
         'pos.php'          => 'accounts.php',
+        // شروعِ کار — زیرِ «تنظیمات»
+        'start.php'        => 'settings.php',
     ];
 
     /**
@@ -720,6 +722,8 @@ final class Biz
         'shops.php' => 'settings',
         // کارت‌خوان — صفحه خودش جدا می‌سنجد: تعریف = «پول»، اندپوینتِ start/finish = «دریافت»
         'pos.php' => null,
+        // «شروعِ کار» — فقط صاحب (سربرگ و صندوق می‌سازد)
+        'start.php' => 'settings',
     ];
 
     /**
@@ -1145,6 +1149,9 @@ final class Biz
         $st->execute(['u' => $userId]);
     }
 
+    /** «شروعِ کار» پنهان شد؟ — از همان `SELECT *`ِ `settings()` (`BizSetup`)، صفر کوئریِ اضافه. */
+    public static array $setupHidden = [];
+
     public static function settings(int $userId): array
     {
         if (isset(self::$settingsCache[$userId])) { return self::$settingsCache[$userId]; }
@@ -1169,6 +1176,7 @@ final class Biz
         self::$lockCache[$userId]    = $row ? (string)($row['lock_date'] ?? '') : '';
         self::$newMenuRaw[$userId]   = $row ? (string)($row['new_menu'] ?? '') : '';
         self::$rateRound[$userId]    = $row ? (int)($row['rate_round'] ?? 1000) : 1000;
+        self::$setupHidden[$userId]  = $row ? (int)($row['setup_hidden'] ?? 0) === 1 : false;
         self::$accRow[$userId]       = $row ? [
             'vat_rate' => (float)($row['vat_rate'] ?? 0),
             'moadian_memory_id' => (string)($row['moadian_memory_id'] ?? ''),

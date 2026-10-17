@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verifyOrFail(postParam('csrf_token'));
     if (postParam('action') === 'create') {
         $r = Biz::createShop($login, (string)postParam('name'));
-        if ($r['ok'] && postParam('go') === '1') { Biz::switchShop($login, (int)$r['id']); redirectWithMessage(Biz::url('settings.php'), 'success', $r['message'] . ' حالا سربرگ و تنظیماتش را کامل کنید.'); }
+        if ($r['ok'] && postParam('go') === '1') { Biz::switchShop($login, (int)$r['id']); redirectWithMessage(Biz::url('start.php'), 'success', $r['message'] . ' حالا قدم‌به‌قدم راهش بیندازید.'); }
         redirectWithMessage($self, $r['ok'] ? 'success' : 'error', $r['message']);
     }
     if (postParam('action') === 'switch') {

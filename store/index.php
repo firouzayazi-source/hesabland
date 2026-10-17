@@ -39,6 +39,13 @@ if (!Biz::can('money') && !Biz::can('cost')) {
 }
 
 $settings = Biz::settings($userId);
+// ⛔ «شروعِ کار» (`BizSetup`): یک کوئری، فقط برای صاحب و تا وقتی پنهان نشده یا کامل نشده
+require_once __DIR__ . '/../includes/biz_setup.php';
+$setup = null;
+if (Biz::can('settings') && BizSetup::ready() && !BizSetup::hidden($userId)) {
+    $sst = BizSetup::status($userId);
+    $setup = ['next' => BizSetup::next($sst), 'done' => BizSetup::doneCount($sst)];
+}
 $today    = today();
 $mStart   = startOfJalaliMonth();
 [$pmFrom, $pmTo] = BizDash::prevSamePeriod($mStart, $today);
@@ -218,7 +225,14 @@ require __DIR__ . '/../includes/biz_head.php';
     </nav>
 </div>
 
-<?php if ($settings['shop_name'] === ''): ?>
+<?php if ($setup !== null && $setup['next'] !== null): [$nl, $nh] = BizSetup::STEPS[$setup['next']]; ?>
+<section class="st-card st-card-invite" data-setup>
+    <h2 class="st-h2">شروعِ کار — <?= toPersianDigits((string)$setup['done']) ?> از <?= toPersianDigits((string)count(BizSetup::STEPS)) ?> قدم</h2>
+    <div class="st-setup-progress"><span class="st-setup-bar" style="--p: <?= (int)round($setup['done'] * 100 / count(BizSetup::STEPS)) ?>%"></span></div>
+    <p class="st-muted">قدمِ بعد: <b><?= h($nl) ?></b> — <?= h($nh) ?></p>
+    <a class="st-btn" href="<?= h(Biz::url('start.php') . '#' . $setup['next']) ?>">ادامه‌ی راه‌اندازی</a>
+</section>
+<?php elseif ($settings['shop_name'] === ''): ?>
 <section class="st-card st-card-invite">
     <h2 class="st-h2">سربرگِ فروشگاه را کامل کنید</h2>
     <p class="st-muted">نام، تلفن و آدرسِ فروشگاه بالای فاکتورهای چاپی می‌نشیند.</p>

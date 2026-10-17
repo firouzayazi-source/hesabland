@@ -48,7 +48,8 @@ const STORE_BUDGET = [
     //    بار خوانده و همه‌ی نمودارها و مقایسه‌ها در PHP از رویش ساخته می‌شوند.
     //    ⛔ سرعت: مانده‌ی طرف‌حساب‌ها یک بار (`BizDash::partyBook()`)، نه سه بار
     //    (خلاصه + بدهکار + بستانکار) — ۲۴ → ۲۳ (یک کوئریِ گروهیِ «قدیمی‌ترین» ماند).
-    'store/index.php'    => 23,
+    // +۱ (migration_biz_setup): پیشرفتِ «شروعِ کار» برای صاحب، تا پنهان یا کامل نشده (`BizSetup::status()`، یک کوئری)
+    'store/index.php'    => 24,
     'store/search.php'   => 14,   // پنج فهرستِ دامنه (هر کدام شمارش + ردیف) + شماره‌ی چک + صندوق‌ها
     'store/settings.php' => 9,   // +۲ (migration_biz_comms): تنظیماتِ ارتباط و شمارِ پیامکِ این ماه؛ +۲: نرخ‌های روز (نقشه‌ی جدول‌ها برای «راه افتاده؟» + یک SELECT)
     'store/products.php' => 10,
@@ -82,6 +83,7 @@ const STORE_BUDGET = [
     'store/payroll.php'        => 7,   // کارکنان با مانده + صندوق‌ها + گردش
     'store/staff.php'          => 6,
     'store/shops.php'          => 5,
+    'store/start.php'          => 7,   // «شروعِ کار»: پوسته + پیشرفت (یک کوئری) + صندوق‌ها + «پنهان؟» از ردیفِ تنظیمات
     'store/pos.php'            => 8,   // پوسته + کارت‌خوان‌ها + صندوق‌ها + تراکنش‌های اخیر + سنجشِ جدول (`BizPos::ready()`)   // پوسته + فهرستِ فروشگاه‌ها (اصلی و اضافه‌ها در یک کوئری)
     'store/warehouses.php'     => 6,   // انبارها (فروشگاهِ تک‌انبار: فقط فهرست) + موجودیِ هر انبار + انتقال‌ها
     'store/consignments.php'   => 9,   // پوسته + امانی‌ها (فهرست و جمع) + طرف‌حساب‌ها + datalistِ کالا + سنجشِ جدول
@@ -320,7 +322,8 @@ T::ok(!str_contains((string)$asB('store/index.php')[1], 'دفتر شخصی'), '�
 T::ok($c === 200 && str_contains($dash, '</html>'), 'داشبوردِ فروشگاه کامل رندر شد', "کد: {$c}");
 T::ok(str_contains($dash, 'store.css') && !str_contains($dash, 'css/style.css') && !str_contains($dash, 'app.js'),
     '⛔ پوسته‌ی فروشگاه هیچ‌کدام از فایل‌های پوسته‌ی شخصی را لود نمی‌کند');
-T::ok(str_contains($dash, 'سربرگِ فروشگاه را کامل کنید'), 'بدونِ سربرگ، دعوت به تنظیم دیده می‌شود');
+// ⛔ از migration_biz_setup دعوت همان کارتِ «شروعِ کار» است با قدمِ بعدِ «سربرگ»
+T::ok(str_contains($dash, 'سربرگِ فروشگاه') && str_contains($dash, 'start.php#info'), 'بدونِ سربرگ، دعوت به تنظیم دیده می‌شود');
 T::ok(!str_contains($dash, (string)APP_NAME), '⛔ داشبوردِ فروشگاه نامِ حساب لند را ندارد');
 
 foreach (['index.php', 'transactions.php', 'trades.php', 'profile.php', 'dashboard.php', 'admin/users.php', 'login.php'] as $pg) {

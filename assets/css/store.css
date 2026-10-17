@@ -1540,3 +1540,18 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 /* کارت‌خوان در فرمِ دریافت */
 .st-pos-amount { font-size: 15px; margin: 6px 0 10px; }
 .st-pos-amount b { font-size: 22px; }
+
+/* ---------- «شروعِ کار» (store/start.php، کارتِ داشبورد) ---------- */
+.st-setup-progress { display: flex; align-items: center; gap: 12px; margin: 12px 0 16px; }
+.st-setup-progress > .st-setup-bar { flex: 1 1 auto; height: 8px; border-radius: 999px; background: var(--st-line, #e5e7eb); position: relative; overflow: hidden; }
+.st-setup-progress > .st-setup-bar::after { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; width: var(--p, 0%); background: var(--st-accent); border-radius: inherit; }
+.st-setup-progress > b { flex: 0 0 auto; font-size: 13px; }
+.st-setup { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 12px; }
+.st-setup-step { border: 1px solid var(--st-line, #e5e7eb); border-radius: 14px; padding: 16px; background: var(--st-surface, #fff); }
+.st-setup-step.is-next { border-color: var(--st-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-accent) 14%, transparent); }
+.st-setup-step.is-done { opacity: .85; }
+.st-setup-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+.st-setup-head p { margin: 4px 0 0; }
+.st-setup-num { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700;
+    background: color-mix(in srgb, var(--st-accent) 12%, transparent); color: var(--st-accent); }
+.st-setup-step.is-done .st-setup-num { background: var(--st-ok-wash); color: var(--st-ok); }

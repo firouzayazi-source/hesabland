@@ -160,6 +160,7 @@ const EXPECT = [
     'store/staff.php'           => 'blocked',
     'store/shops.php'           => 'blocked',
     'store/pos.php'             => 'blocked',
+    'store/start.php'           => 'blocked',
     'store/repairs.php'         => 'blocked',
     'store/warehouses.php'      => 'blocked',
     'store/consignments.php'    => 'blocked',
