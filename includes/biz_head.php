@@ -193,6 +193,7 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
             <a class="st-icon-btn st-search-mobile" href="<?= h(Biz::url('search.php')) ?>" aria-label="جستجو" data-cmd-link>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
             </a>
+            <?php require_once __DIR__ . '/biz_help.php'; echo BizHelp::button($__bizScript);   // ⛔ «؟»ِ همین صفحه — بی‌کوئری ?>
             <details class="st-dd st-new-top">
                 <summary class="st-new-btn"><span aria-hidden="true">+</span> ثبتِ جدید</summary>
                 <div class="st-dd-menu st-new-menu"><?= Biz::newMenuHtml($__bizUid) ?></div>
@@ -213,6 +214,7 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
                     <?php endif; ?>
                     <?php if (!Biz::isStaff()): ?><a href="<?= h(Biz::url('subscription.php')) ?>">اشتراک و تمدید</a><?php endif; ?>
                     <a href="<?= h(Biz::url('invoice-design.php')) ?>">طراحی فاکتور</a>
+                    <a href="<?= h(Biz::url('help.php')) ?>">راهنما</a>
                     <?php if (!Biz::isStoreOnly()): ?>
                     <a href="<?= h(Biz::personalUrl()) ?>">دفتر شخصی</a>
                     <?php endif; ?>

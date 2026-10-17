@@ -153,6 +153,7 @@ final class Biz
         'start.php'        => 'settings.php',
         'subscription.php' => 'settings.php',
         'pay-return.php'   => 'settings.php',
+        'help.php'         => 'index.php',
     ];
 
     /**
@@ -740,6 +741,8 @@ final class Biz
         'subscription.php' => null,
         // برگشت از درگاه — بی‌ورود (`pay-return.php` خودش `requirePage()` ندارد)
         'pay-return.php' => null,
+        // راهنما — همه
+        'help.php' => null,
     ];
 
     /**
