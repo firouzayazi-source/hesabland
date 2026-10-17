@@ -367,6 +367,37 @@ case 'repair':
     <?php BizPrint::foot($userId, ['امضای تحویل‌گیرنده (فروشگاه)', 'امضای مشتری']);
     break;
 
+case 'used_buy':
+    // ⛔ رسیدِ خریدِ دست‌دوم — عکسِ لحظه‌ی خرید (`BizUsedBuy`)، IMEI از ردیف‌های همان فاکتور
+    require_once __DIR__ . '/../includes/biz_used_buy.php';
+    $ubInv = BizUsedBuy::ready() ? BizInvoices::get($userId, $id) : null;
+    $ub = $ubInv && (string)$ubInv['kind'] === 'purchase' ? BizUsedBuy::get($userId, $id) : null;
+    if (!$ub) { Biz::notFound(); }
+    $ubAcc = array_map(fn($k) => BizUsedBuy::ACCESSORIES[$k] ?? '', array_filter(explode(',', (string)($ub['accessories'] ?? ''))));
+    BizPrint::head($userId, 'رسیدِ خریدِ گوشیِ دست‌دوم', Biz::url('used-buy.php?inv=' . $id), [
+        'فاکتورِ خرید' => toPersianDigits((string)$ubInv['number']),
+        'تاریخ'        => toJalali((string)$ubInv['inv_date']),
+        'مبلغ'         => formatMoney((int)$ubInv['total']) . ' تومان',
+    ]); ?>
+    <table class="pr-table">
+        <tbody>
+            <tr><td>فروشنده</td><td><?= h((string)$ub['seller_name']) ?><?= (string)($ub['father_name'] ?? '') !== '' ? ' فرزندِ ' . h((string)$ub['father_name']) : '' ?></td></tr>
+            <tr><td>کدِ ملی</td><td><span class="pr-num"><?= h(toPersianDigits((string)$ub['national_id'])) ?></span></td></tr>
+            <?php if ((string)($ub['phone'] ?? '') !== ''): ?><tr><td>تلفن</td><td><span class="pr-num"><?= h(toPersianDigits((string)$ub['phone'])) ?></span></td></tr><?php endif; ?>
+            <?php if ((string)($ub['address'] ?? '') !== ''): ?><tr><td>نشانی</td><td><?= h((string)$ub['address']) ?></td></tr><?php endif; ?>
+            <?php foreach ($ubInv['lines'] as $l): if ((string)($l['imei1'] ?? '') === '') { continue; } ?>
+            <tr><td>دستگاه</td><td><?= h((string)($l['description'] ?? $l['product_name'] ?? '')) ?> — IMEI: <span class="pr-num"><?= h(toPersianDigits((string)$l['imei1'])) ?><?= (string)($l['imei2'] ?? '') !== '' ? ' / ' . h(toPersianDigits((string)$l['imei2'])) : '' ?></span></td></tr>
+            <?php endforeach; ?>
+            <?php if ((string)($ub['condition_note'] ?? '') !== ''): ?><tr><td>وضعیت</td><td><?= h((string)$ub['condition_note']) ?></td></tr><?php endif; ?>
+            <tr><td>لوازمِ همراه</td><td><?= $ubAcc ? h(implode('، ', $ubAcc)) : 'ندارد' ?></td></tr>
+            <tr><td>استعلامِ همتا</td><td><?= (int)$ub['hamta_checked'] === 1 ? 'انجام شد' : 'انجام نشده' ?></td></tr>
+        </tbody>
+    </table>
+    <p class="pr-note">اینجانب <?= h((string)$ub['seller_name']) ?> با کدِ ملیِ <span class="pr-num"><?= h(toPersianDigits((string)$ub['national_id'])) ?></span> اقرار می‌کنم دستگاهِ بالا مالِ قانونیِ من است،
+        سرقتی یا مفقودی نیست و با مبلغِ <?= formatMoney((int)$ubInv['total']) ?> تومان به این فروشگاه فروخته شد؛ مسئولیتِ هر ادعای بعدی درباره‌ی مالکیتِ آن با من است.</p>
+    <?php BizPrint::foot($userId, ['امضا و اثرِ انگشتِ فروشنده', 'امضای خریدار (فروشگاه)'], true);
+    break;
+
 case 'legal_journal':
 case 'legal_ledger':
     // ⛔ دفاترِ قانونی — مشتقِ `BizLedger::entries()` (`BizLegalBooks`)، هیچ ثبتِ دومی

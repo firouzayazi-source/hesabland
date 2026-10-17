@@ -95,7 +95,7 @@ T::ok((bool)preg_match('/function setupAmountFormatter\(inputId\) \{(?:(?!\n    
     '⛔ `setupAmountFormatter()` فقط برچسب می‌زند — قالب‌گرِ دومی که مکان‌نما را به ته می‌پراند نیست');
 
 // هر خانه‌ی عددیِ فروشگاه: `data-money`، `data-num`، یا عمداً شناسه (لاتین می‌ماند)
-$IDENT = '/name="(?:[^"]*imei[^"]*|phone|customer_phone|cheque_no|tax_code|moadian_[a-z_]+|code|w|pos_rrn|pos_card|ref|<\?= h\(\$ck\) \?>)"/';
+$IDENT = '/name="(?:[^"]*imei[^"]*|phone|customer_phone|cheque_no|tax_code|moadian_[a-z_]+|code|w|pos_rrn|pos_card|ref|national_id|<\?= h\(\$ck\) \?>)"/';
 $bad = [];
 $files = array_merge(glob("{$root}/store/*.php"), glob("{$root}/includes/biz*.php"));
 foreach ($files as $f) {

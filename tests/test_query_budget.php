@@ -134,7 +134,7 @@ const NO_BUDGET = [
     'store/account.php', 'store/accounting.php', 'store/cash-count.php', 'store/payroll.php',
     'store/errors.php', 'store/staff.php', 'store/repairs.php', 'store/repair.php', 'store/installments.php', 'store/warehouses.php',
     'store/consignments.php', 'store/recurring.php', 'store/bank-rec.php', 'store/reorder.php', 'store/insights.php', 'store/labels.php',
-    'store/shops.php', 'store/pos.php', 'store/start.php', 'store/subscription.php', 'store/help.php', 'store/models.php', 'store/bulk-price.php', 'store/price-list.php', 'store/prices.php',
+    'store/shops.php', 'store/pos.php', 'store/start.php', 'store/subscription.php', 'store/help.php', 'store/models.php', 'store/bulk-price.php', 'store/price-list.php', 'store/prices.php', 'store/used-buy.php',
 ];
 
 // ---------------------------------------------------------------
@@ -660,7 +660,12 @@ try {
     //       شد؛ آن +۳۳ از تاریخِ اجراست (fixture با تاریخِ امروز ساخته می‌شود و ماهِ جاری و ماه‌های
     //       قبلِ خانه با تقویم جابه‌جا می‌شوند)، نه از کد — بی هیچ تغییری گاهی زیرِ سقف و گاهی بالای آن بود.
     //   جدایی از جهشِ «هر دو ایندکس را بردار» (۴۸۵۹/۴۳۸۳) هنوز بیش از ۸۵۰ ردیف است.
-    $LIST_CAP = 3990;
+    // ⚠ و به **۴۱۰۰** (مهر ۱۴۰۵: کارت‌خوان، شروعِ کار، اشتراکِ فروشگاه، مدل و حالت‌ها، لیستِ قیمت، خریدِ دست‌دوم —
+    //   ۴۰ ستونِ تازه فقط در سه جدولِ تازه و چند ستون، به‌علاوه‌ی دو جدولِ کارت‌خوان) — اول کفِ مشترک:
+    //     • `privacy.php` ۲۳۶۲ → **۲۴۱۸** (+۵۶)، `index.php` ۳۹۴۰ → **۳۹۸۸** (+۴۸)، `transactions.php` ۳۵۷۳ → **۳۶۲۵**
+    //       (+۵۲) — همان رشدِ نقشه‌ی ساختار در هر صفحه، نه فهرست؛ `index.php` با تاریخ تا ۴۰۰۴ هم می‌رسد (بندِ بالا).
+    //   جدایی از جهشِ «هر دو ایندکس را بردار» (۴۸۵۹/۴۳۸۳) هنوز بیش از ۲۸۰ ردیف است.
+    $LIST_CAP = 4100;
     if (getenv('QB_DUMP')) { printf("    %-24s %d ردیف خوانده شد (کفِ مشترک)\n", 'privacy.php', $pageReads('privacy.php')); }
     foreach (['index.php', 'transactions.php'] as $page) {
         $read = $pageReads($page);

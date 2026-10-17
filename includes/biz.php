@@ -158,6 +158,7 @@ final class Biz
         'bulk-price.php'   => 'products.php',
         'price-list.php'   => 'products.php',
         'prices.php'       => 'products.php',
+        'used-buy.php'     => 'purchases.php',
     ];
 
     /**
@@ -753,6 +754,8 @@ final class Biz
         'bulk-price.php' => 'products',
         // لیستِ قیمت — تنظیم با «کالا»؛ `prices.php` صفحه‌ی عمومیِ بی‌ورود است (امضا)
         'price-list.php' => 'products', 'prices.php' => null,
+        // رسیدِ خریدِ دست‌دوم — «خرید»
+        'used-buy.php' => 'buy',
     ];
 
     /**

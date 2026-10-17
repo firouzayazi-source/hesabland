@@ -36,6 +36,7 @@ final class BizPrint
         'cheques'    => 'دفترِ چک',
         'repair'     => 'قبضِ پذیرشِ تعمیر',
         'commission' => 'پورسانتِ همکاران',
+        'used_buy'   => 'رسیدِ خریدِ گوشیِ دست‌دوم',
     ];
 
     /**
@@ -49,6 +50,7 @@ final class BizPrint
         'by_product' => 'reports', 'by_invoice' => 'reports', 'by_party' => 'reports', 'serials' => 'reports', 'partnos' => 'reports',
         'legal_journal' => 'accounting', 'legal_ledger' => 'accounting',
         'account' => 'money', 'cheques' => 'money', 'repair' => 'repairs', 'commission' => 'reports',
+        'used_buy' => 'buy',
     ];
 
     /** عنوانِ سندهای دوسویه — `?k=sale|purchase`. */
@@ -214,12 +216,13 @@ final class BizPrint
     }
 
     /** پایینِ برگه — متنِ پای فاکتور و جای امضا، به انتخابِ تنظیمات. */
-    public static function foot(int $userId, array $signs = ['امضای فروشگاه']): void
+    /** ⚠ `$alwaysSign`: برگه‌ای که بی‌امضا مدرک نیست (رسیدِ خریدِ دست‌دوم) جای امضا را به تنظیمِ چاپ نمی‌سپارد. */
+    public static function foot(int $userId, array $signs = ['امضای فروشگاه'], bool $alwaysSign = false): void
     {
         $p   = Biz::printPrefs($userId);
         $set = Biz::settings($userId);
         ?>
-    <?php if ($p['show_sign'] && $signs): ?>
+    <?php if (($p['show_sign'] || $alwaysSign) && $signs): ?>
     <div class="pr-signs">
         <?php foreach ($signs as $s): ?><div class="pr-sign"><?= h($s) ?></div><?php endforeach; ?>
     </div>

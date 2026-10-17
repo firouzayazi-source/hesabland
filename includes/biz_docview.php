@@ -351,6 +351,7 @@ final class BizDocView
     <div class="st-head-actions">
         <a class="st-btn st-btn-ghost" href="<?= h(BizPrint::url('by_invoice', ['k' => $cfg['doc']] + self::periodParams($from, $to))) ?>">چاپِ فهرست</a>
         <?php if ($side === 'sale'): ?><a class="st-btn st-btn-ghost" href="<?= h(Biz::url('quick-sale.php')) ?>">فروشِ سریع</a><?php endif; ?>
+        <?php if ($side === 'purchase'): ?><a class="st-btn st-btn-ghost" href="<?= h(Biz::url('used-buy.php')) ?>">خریدهای دست‌دوم</a><?php endif; ?>
         <a class="st-btn" href="<?= h(Biz::url('invoice-edit.php?k=' . $cfg['doc'])) ?>">+ <?= h(BizInvoices::KINDS[$cfg['doc']]) ?></a>
     </div>
 </div>

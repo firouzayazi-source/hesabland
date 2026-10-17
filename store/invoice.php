@@ -114,6 +114,9 @@ require __DIR__ . '/../includes/biz_head.php';
         <?php if ($canReturn): ?>
             <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('return.php?inv=' . $id)) ?>"><?= h(BizInvoices::KINDS[$retKind]) ?></a>
         <?php endif; ?>
+        <?php if ($inv['kind'] === 'purchase' && $inv['status'] === 'issued' && Biz::can('buy') && array_filter(array_column($inv['lines'], 'imei1'))): /* ⛔ بی‌کوئری — از ردیف‌های همین سند */ ?>
+            <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('used-buy.php?inv=' . $id)) ?>">رسیدِ خریدِ دست‌دوم</a>
+        <?php endif; ?>
     </div>
 </div>
 
