@@ -19,6 +19,7 @@ Auth::initSession();
 Biz::requirePage();
 require_once __DIR__ . '/../includes/biz_docview.php';
 require_once __DIR__ . '/../includes/biz_print.php';
+require_once __DIR__ . '/../includes/biz_offline.php';
 
 $userId   = Biz::ownerId();
 $self     = Biz::url('quick-sale.php');
@@ -31,6 +32,13 @@ $blank = 5;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verifyOrFail(postParam('csrf_token'));
     $action = postParam('action');
+    // ⛔ فروش‌های آفلاینِ این دستگاه → فقط پیش‌نویس (`BizOffline`)؛ نتیجه یک بار به صفحه برمی‌گردد
+    //    تا `store-offline.js` رسیده‌ها را از صفِ دستگاه پاک کند و خطاها را کنارِ همان فروش بگذارد.
+    if ($action === 'offline_sync' && BizOffline::ready()) {
+        $r = BizOffline::import($userId, (string)($_POST['sales'] ?? ''));
+        $_SESSION['biz_offline_result'] = ['done' => $r['done'], 'errors' => $r['errors']];
+        redirectWithMessage($self, $r['ok'] ? 'success' : ($r['created'] ? 'warning' : 'error'), $r['message']);
+    }
     $lines  = is_array($_POST['lines'] ?? null) ? $_POST['lines'] : [];
     $form = array_merge($form, [
         'party_id' => (int)postParam('party_id'), 'discount' => postParam('discount'),
@@ -87,6 +95,9 @@ if (count($parsed['lines']) === count($form['lines'])) {
     foreach ($form['lines'] as $k => $l) { $form['lines'][$k]['line_total'] = $parsed['lines'][$k]['line_total']; }
 }
 $parties = BizDocView::parties($userId, 2000, false);   // منو مانده نشان نمی‌دهد
+$offRes  = $_SESSION['biz_offline_result'] ?? null;
+unset($_SESSION['biz_offline_result']);
+$offOn   = BizOffline::ready();
 Biz::$navActive = 'quick-sale.php';
 
 $pageTitle = 'فروش سریع';
@@ -100,7 +111,24 @@ require __DIR__ . '/../includes/biz_head.php';
 </div>
 <?php if ($error !== ''): ?><div class="st-flash st-flash-err" role="alert"><?= h($error) ?></div><?php endif; ?>
 
-<form method="post" action="<?= h($self) ?>" class="st-docform st-pos" data-invoice data-price="sell" data-pos>
+<?php if ($offOn): ?>
+<section class="st-card st-offline" data-offline-box hidden
+    data-done="<?= h(json_encode($offRes['done'] ?? [], JSON_UNESCAPED_UNICODE)) ?>"
+    data-errors="<?= h(json_encode((object)($offRes['errors'] ?? []), JSON_UNESCAPED_UNICODE)) ?>">
+    <div class="st-offline-head">
+        <b data-offline-title></b>
+        <form method="post" action="<?= h($self) ?>" data-offline-sync>
+            <?= Csrf::field() ?><input type="hidden" name="action" value="offline_sync"><input type="hidden" name="sales" value="">
+            <button type="submit" class="st-btn st-btn-sm">ارسال به‌صورتِ پیش‌نویس</button>
+        </form>
+    </div>
+    <p class="st-muted">فروش‌هایی که بی‌اینترنت در همین دستگاه ثبت شدند. با ارسال فقط پیش‌نویسِ فاکتور می‌شوند؛ موجودی و پول وقتی است که صادرشان کنید.</p>
+    <ul class="st-offline-list" data-offline-list></ul>
+</section>
+<p class="st-flash st-flash-warn" data-offline-note hidden role="status">اینترنت قطع است — «ثبت» فروش را در همین دستگاه نگه می‌دارد و بعد از وصل شدن فرستاده می‌شود.</p>
+<?php endif; ?>
+
+<form method="post" action="<?= h($self) ?>" class="st-docform st-pos" data-invoice data-price="sell" data-pos<?= $offOn ? ' data-offline-shop="' . (int)$userId . '"' : '' ?>>
     <?= Csrf::field() ?><?= BizOnce::field() ?>
     <section class="st-card st-scan">
         <label class="st-field">
@@ -162,4 +190,5 @@ require __DIR__ . '/../includes/biz_head.php';
     </div>
 </form>
 <?= BizDocView::productDatalist($userId, 'bizProducts', 2000, true) ?>
+<?php if ($offOn): foreach (assetUrls(['js/store-offline.js']) as $__u): ?><script defer src="<?= h($__u) ?>"></script><?php endforeach; endif; ?>
 <?php require __DIR__ . '/../includes/biz_foot.php'; ?>

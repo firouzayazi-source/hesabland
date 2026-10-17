@@ -1595,3 +1595,11 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 /* ---------- لیستِ قیمت (store/price-list.php) ---------- */
 .st-pl-link { display: grid; gap: 8px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--st-line); }
 .st-pl-link input { width: 100%; }
+
+/* ---------- فروشِ آفلاین (store-offline.js) ---------- */
+.st-offline { border-color: color-mix(in srgb, var(--st-warn) 35%, var(--st-line)); margin-bottom: 12px; }
+.st-offline-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.st-offline-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.st-offline-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13.5px; }
+.st-offline-list li > span { flex: 1 1 auto; }
+.st-offline-err { flex-basis: 100%; color: var(--st-neg, #c0392b); }
