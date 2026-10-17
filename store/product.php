@@ -148,6 +148,7 @@ require __DIR__ . '/../includes/biz_head.php';
     <div>
         <a class="st-back" href="<?= h(Biz::url('products.php')) ?>">‹ کالاها</a>
         <h1 class="st-h1"><?= h($product ? (string)$product['name'] : 'کالای تازه') ?></h1>
+        <?php if (!empty($product['model_id'])): /* مدل و حالت‌ها — از همان ردیف، بی‌کوئری */ ?><a class="st-badge is-info" href="<?= h(Biz::url('models.php?id=' . (int)$product['model_id'])) ?>">حالتی از یک مدل — همه‌ی حالت‌ها</a><?php endif; ?>
     </div>
     <div class="st-head-actions">
         <?php if ($product && (int)$product['is_active'] !== 1): ?><span class="st-badge is-out">غیرفعال</span><?php endif; ?>

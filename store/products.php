@@ -34,6 +34,7 @@ require __DIR__ . '/../includes/biz_head.php';
 <div class="st-page-head">
     <h1 class="st-h1">کالاها</h1>
     <div class="st-head-actions">
+        <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('models.php')) ?>">مدل و حالت‌ها</a>
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('products-io.php')) ?>">ورود و خروجِ اکسل</a>
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('products-cleanup.php')) ?>">پاک‌سازی و حذفِ کالاها</a>
         <a class="st-btn st-btn-ghost" href="<?= h(Biz::url('print.php') . '?' . http_build_query(array_filter(['doc' => 'stock', 'f' => $filter, 'c' => $cat], fn($v) => $v !== ''))) ?>">چاپ</a>
@@ -99,6 +100,7 @@ require __DIR__ . '/../includes/biz_head.php';
                 <td>
                     <a class="st-row-link" href="<?= h(Biz::url('product.php?id=' . (int)$p['id'])) ?>"><?= h($p['name']) ?></a>
                     <?php if ((string)$p['sku'] !== ''): ?><span class="st-sku" dir="ltr"><?= h($p['sku']) ?></span><?php endif; ?>
+                    <?php if (!empty($p['model_id'])): ?><a class="st-badge is-info" href="<?= h(Biz::url('models.php?id=' . (int)$p['model_id'])) ?>">حالتی از یک مدل</a><?php endif; ?>
                 </td>
                 <td class="st-hide-sm"><?= $p['category'] !== null ? h($p['category']) : '<span class="st-muted-i">—</span>' ?></td>
                 <td class="st-td-num">

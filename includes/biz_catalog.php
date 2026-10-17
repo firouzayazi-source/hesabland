@@ -518,6 +518,55 @@ final class BizProducts
     }
 
     /**
+     * ⛔ قیمتِ فروشِ چند کالا با هم — تنها راهِ گروهی (مدل و حالت‌ها، تغییرِ گروهیِ قیمت).
+     *    کالای وصل به نرخِ روز (`rate_code`) **رد** می‌شود: `BizRates::apply()` تنها نویسنده‌ی
+     *    قیمتِ آن‌هاست (قاعده ۷۰) و نوشتنِ دستی با به‌روزرسانیِ بعدیِ نرخ بی‌صدا پاک می‌شد.
+     *    فاکتورِ صادرشده عوض نمی‌شود — هر ردیف قیمتِ خودش را دارد.
+     *
+     * @param array<int,int> $prices شناسه ← قیمتِ تازه (تومان)
+     * @return array{ok:bool, message:string, changed:int, skipped:list<int>}
+     */
+    public static function setSellPrices(int $userId, array $prices): array
+    {
+        $clean = [];
+        foreach ($prices as $id => $v) {
+            $id = (int)$id; $v = (int)$v;
+            if ($id <= 0) { continue; }
+            if ($v < 0 || ($e = BizCommon::moneyError($v, 'قیمتِ فروش')) !== null) { return ['ok' => false, 'message' => $e ?? 'قیمت منفی نمی‌شود.', 'changed' => 0, 'skipped' => []]; }
+            $clean[$id] = $v;
+        }
+        if (!$clean) { return ['ok' => true, 'message' => 'تغییری نبود.', 'changed' => 0, 'skipped' => []]; }
+        $pdo = Database::getConnection();
+        $rateCol = tableHasColumn('biz_products', 'rate_code');
+        $pdo->beginTransaction();
+        try {
+            Biz::lockShop($pdo, $userId);
+            $ph = []; $bind = ['u' => $userId];
+            foreach (array_keys($clean) as $k => $pid) { $ph[] = ':i' . $k; $bind['i' . $k] = $pid; }
+            $sel = $pdo->prepare('SELECT id, sell_price' . ($rateCol ? ', rate_code' : ', NULL AS rate_code')
+                . ' FROM biz_products WHERE user_id = :u AND id IN (' . implode(',', $ph) . ')');
+            $sel->execute($bind);
+            $rows = $sel->fetchAll();
+            $up = $pdo->prepare('UPDATE biz_products SET sell_price = :p WHERE id = :id AND user_id = :u');
+            $changed = 0; $skipped = [];
+            foreach ($rows as $r) {
+                $id = (int)$r['id'];
+                if (($r['rate_code'] ?? null) !== null && (string)$r['rate_code'] !== '') { $skipped[] = $id; continue; }
+                if ((int)$r['sell_price'] === $clean[$id]) { continue; }
+                $up->execute(['p' => $clean[$id], 'id' => $id, 'u' => $userId]);
+                $changed++;
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+        $msg = $changed > 0 ? 'قیمتِ ' . toPersianDigits((string)$changed) . ' کالا به‌روز شد.' : 'قیمتی عوض نشد.';
+        if ($skipped) { $msg .= ' ' . toPersianDigits((string)count($skipped)) . ' کالا به نرخِ روز وصل است و قیمتش از همان‌جا می‌آید.'; }
+        return ['ok' => true, 'message' => $msg, 'changed' => $changed, 'skipped' => $skipped];
+    }
+
+    /**
      * قیمتِ فروش از نرخِ روز (`includes/rates.php`): پایه به واحدِ نرخ (دلار،
      * گرمِ طلا، سکه…) + درصدِ سود. کدِ خالی = قطع؛ قیمتِ فروش همان آخرین
      * عدد می‌ماند و از این به بعد دستی است.

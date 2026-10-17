@@ -154,6 +154,7 @@ final class Biz
         'subscription.php' => 'settings.php',
         'pay-return.php'   => 'settings.php',
         'help.php'         => 'index.php',
+        'models.php'       => 'products.php',
     ];
 
     /**
@@ -743,6 +744,8 @@ final class Biz
         'pay-return.php' => null,
         // راهنما — همه
         'help.php' => null,
+        // مدل و حالت‌ها — دیدن برای همه، ساختن و قیمت با «کالا» (صفحه خودش می‌سنجد)
+        'models.php' => null,
     ];
 
     /**
