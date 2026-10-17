@@ -211,6 +211,7 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
                     <?php if (!Biz::isStaff() && Biz::$shopsJoined): /* ⛔ بی‌کوئری: از همان کوئریِ نوعِ حساب؛ فهرست در خودِ صفحه */ ?>
                     <a href="<?= h(Biz::url('shops.php')) ?>">فروشگاه‌های من</a>
                     <?php endif; ?>
+                    <?php if (!Biz::isStaff()): ?><a href="<?= h(Biz::url('subscription.php')) ?>">اشتراک و تمدید</a><?php endif; ?>
                     <a href="<?= h(Biz::url('invoice-design.php')) ?>">طراحی فاکتور</a>
                     <?php if (!Biz::isStoreOnly()): ?>
                     <a href="<?= h(Biz::personalUrl()) ?>">دفتر شخصی</a>
@@ -223,6 +224,11 @@ foreach (array_filter(Biz::NEW_MENU, [Biz::class, 'canNew'], ARRAY_FILTER_USE_KE
     </div>
 </header>
 <main class="st-main">
+<?php if (class_exists('StorePlan', false) && ($__planMsg = StorePlan::banner()) !== '' && basename(Biz::currentScript()) !== 'subscription.php'): ?>
+    <?php /* ⛔ اشتراکِ فروشگاه — از وضعیتِ همین درخواست (`StorePlan::$current`)، بی‌کوئری */ ?>
+    <div class="st-flash st-flash-warn st-plan-bar" role="status"><?= h($__planMsg) ?>
+        <?php if (!Biz::isStaff()): ?><a href="<?= h(Biz::url('subscription.php')) ?>">تمدیدِ اشتراک</a><?php else: ?>به صاحبِ فروشگاه خبر دهید.<?php endif; ?></div>
+<?php endif; ?>
 <?php if ($__bizFlash !== null): ?>
     <?php /* «warning» = کار انجام شد ولی چیزی دیدنی است (IMEIِ مشکوک) — نمی‌پرد تا خوانده شود */ ?>
     <div class="st-flash st-flash-<?= $__bizFlash['type'] === 'success' ? 'ok' : ($__bizFlash['type'] === 'warning' ? 'warn' : 'err') ?>" role="status"<?= $__bizFlash['type'] === 'warning' ? '' : ' data-toast' ?>><?= h($__bizFlash['message']) ?></div>

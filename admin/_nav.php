@@ -44,6 +44,7 @@ $__adminTabs = [
     //   و شیتِ مدیریت در `includes/footer.php` هم باید با آن بخواند —
     //   وگرنه کاربر روی گوشی و روی دسکتاپ دو ترتیبِ متفاوت می‌بیند.
     'billing.php'    => ['اشتراک و پرداخت', 'admin'],
+    'store-billing.php' => ['اشتراکِ فروشگاه‌ها', 'admin'],
     'insights.php'   => ['آمار استفاده', 'admin'],
     'support.php'    => ['پشتیبانی', 'support'],
     'errors.php'     => ['خطاها', 'admin'],

@@ -121,6 +121,7 @@ const EXPECT = [
     'admin/errors.php'      => 'page',
     'admin/store-share.php' => 'page',
     'admin/rates.php'       => 'page',
+    'admin/store-billing.php' => 'page',
     'admin/support.php'     => 'page',
     'admin/support-content.php' => 'page',
     // ⛔ partial است، نه صفحه. nginx مسیرِ `/admin/` را نمی‌بندد، پس
@@ -161,6 +162,7 @@ const EXPECT = [
     'store/shops.php'           => 'blocked',
     'store/pos.php'             => 'blocked',
     'store/start.php'           => 'blocked',
+    'store/subscription.php'    => 'blocked',
     'store/repairs.php'         => 'blocked',
     'store/warehouses.php'      => 'blocked',
     'store/consignments.php'    => 'blocked',
@@ -176,6 +178,7 @@ const EXPECT = [
     'store/payroll.php'         => 'blocked',
     'store/login.php'       => 'away',
     'store/view.php'        => 'blocked',   // بی‌امضا ۴۰۴ِ خنثی (`BizShare::verify()`)
+    'store/pay-return.php'  => 'away',      // برگشت از درگاه: فقط ریدایرکت به صفحه‌ی اشتراک
     'store/logout.php'      => 'skip',
 ];
 

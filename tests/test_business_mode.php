@@ -83,7 +83,8 @@ const STORE_BUDGET = [
     'store/payroll.php'        => 7,   // کارکنان با مانده + صندوق‌ها + گردش
     'store/staff.php'          => 6,
     'store/shops.php'          => 5,
-    'store/start.php'          => 7,   // «شروعِ کار»: پوسته + پیشرفت (یک کوئری) + صندوق‌ها + «پنهان؟» از ردیفِ تنظیمات
+    'store/start.php'          => 7,
+    'store/subscription.php'   => 9,   // اشتراک: پوسته + فروشگاهِ اضافه؟ (`payerFor`) + وضعیت + تنظیمات (قیمت، درگاه، کارت) + نقشه‌ی جدول‌ها + پرداخت‌ها   // «شروعِ کار»: پوسته + پیشرفت (یک کوئری) + صندوق‌ها + «پنهان؟» از ردیفِ تنظیمات
     'store/pos.php'            => 8,   // پوسته + کارت‌خوان‌ها + صندوق‌ها + تراکنش‌های اخیر + سنجشِ جدول (`BizPos::ready()`)   // پوسته + فهرستِ فروشگاه‌ها (اصلی و اضافه‌ها در یک کوئری)
     'store/warehouses.php'     => 6,   // انبارها (فروشگاهِ تک‌انبار: فقط فهرست) + موجودیِ هر انبار + انتقال‌ها
     'store/consignments.php'   => 9,   // پوسته + امانی‌ها (فهرست و جمع) + طرف‌حساب‌ها + datalistِ کالا + سنجشِ جدول
@@ -99,7 +100,8 @@ const STORE_BUDGET = [
 // ⚠ `errors.php` فقط برای مدیرِ نصب است؛ حسابِ فروشگاهیِ این تست فقط ۴۰۴ِ خنثی
 //   می‌گیرد (`test_store_errors`، قاعده ۷۵).
 // `view.php` = فاکتورِ مشتری با لینکِ امضاشده، بی‌ورود — سنجشش در `test_store_comms`
-const STORE_NO_BUDGET = ['store/login.php', 'store/logout.php', 'store/errors.php', 'store/view.php'];
+// `pay-return.php`: برگشت از درگاه، بی‌صفحه — فقط ریدایرکت (سنجش در `test_store_plan`)
+const STORE_NO_BUDGET = ['store/login.php', 'store/logout.php', 'store/errors.php', 'store/view.php', 'store/pay-return.php'];
 
 try {
     $pdo = Database::getConnection();

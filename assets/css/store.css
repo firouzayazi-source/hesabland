@@ -1555,3 +1555,12 @@ html.st-locked, html.st-locked body { overflow: hidden; }
 .st-setup-num { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700;
     background: color-mix(in srgb, var(--st-accent) 12%, transparent); color: var(--st-accent); }
 .st-setup-step.is-done .st-setup-num { background: var(--st-ok-wash); color: var(--st-ok); }
+
+/* ---------- اشتراکِ فروشگاه (store/subscription.php، نوارِ بالای پوسته) ---------- */
+.st-plan-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.st-plan-bar a { font-weight: 700; }
+.st-plan-state { margin: 0; font-size: 15px; }
+.st-plan-state.is-ok { color: var(--st-ok); }
+.st-plan-state.is-err { color: var(--st-err); }
+.st-plan-periods { border: 0; padding: 0; margin: 0 0 16px; display: grid; gap: 10px; }
+.st-plan-card { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--st-line); display: grid; gap: 10px; }

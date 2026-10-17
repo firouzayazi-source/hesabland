@@ -6985,7 +6985,10 @@ foreach (array_merge($storeFiles70, [__DIR__ . '/../includes/biz_head.php', __DI
     }
     // ⛔ `view.php` = فاکتورِ مشتری با لینکِ امضاشده (`BizShare::verify()`)، عمداً بی‌ورود — سنجشِ
     //    خودش در `test_store_comms` (امضای غلط، سندِ غیرِ فروش، نمکِ عوض‌شده همه ۴۰۴)
-    if (str_starts_with($rel, 'store/') && !in_array(basename($f), ['login.php', 'logout.php', 'view.php'], true)
+    // ⛔ `pay-return.php` = برگشت از درگاهِ پرداخت، عمداً بی‌ورود (نشست در درگاه منقضی می‌شود) —
+    //    هیچ چیزی از آدرس باور نمی‌شود (authorityِ همان ردیف، مبلغِ خودمان، تأییدِ سرور به سرور)؛
+    //    سنجشِ خودش در `test_store_plan`
+    if (str_starts_with($rel, 'store/') && !in_array(basename($f), ['login.php', 'logout.php', 'view.php', 'pay-return.php'], true)
         && !preg_match('/Auth::initSession\(\);\s*Biz::requirePage\(\);/', $src)) {
         $bBad[] = "{$rel} — درست بعد از initSession() دروازه‌ی Biz::requirePage() ندارد";
     }
@@ -7669,7 +7672,8 @@ if (preg_match_all('/<\?= Csrf::field\(\) \?>\s*<input type="hidden" name="actio
 if (!str_contains($head70e, "avatarUrl(\$_SESSION['avatar'] ?? null)") || preg_match('#uploads/avatars/\'\s*\.#', $head70e)) {
     $eBad[] = 'biz_head.php — آدرسِ تصویر فقط از avatarUrl() (نامِ خوانده‌شده خام در مسیر نمی‌نشیند)';
 }
-if (!preg_match("/SELECT account_type, avatar FROM users WHERE id = :id LIMIT 1/", $biz70e)) {
+// ⚠ ستون‌های بعدی (پرچمِ اشتراکِ فروشگاه، زیرکوئری) در همان کوئری مجازند — شرط «همان کوئری» است
+if (!preg_match("/SELECT account_type, avatar[^\\n]*? FROM users WHERE id = :id LIMIT 1/", $biz70e)) {
     $eBad[] = 'Biz::refreshType — نامِ تصویر در همان کوئریِ نوعِ حساب (صفر کوئریِ اضافه)';
 }
 if (!preg_match('/createImageBitmap\(f\)/', $js70e) || !str_contains($js70e, 'rd.readAsDataURL(f)')) {

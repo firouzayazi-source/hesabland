@@ -395,6 +395,7 @@ sudo ./hesabland release     # همان abc1234 — و فقط همان — رو�
 ### `docs/decisions/plans.md` — اشتراک و کدِ تخفیف
 - `planEnforced()` پیش‌فرض خاموش؛ `planAllows()` تنها گیت؛ هسته‌ی ثبتِ پول هرگز پولی نمی‌شود؛ منقضی = فقط خواندنی نه قفل (`planReadOnly()`).
 - انقضا با تاریخ (`planExtendUntil()`، از بیشترِ امروز و انقضا)؛ مادام‌العمر تاریخِ دور؛ کد با `normalizeDiscountCode()` و شمارنده زیرِ قفل.
+- **اشتراکِ فروشگاه (`StorePlan`، `admin/store-billing.php`):** اجرا پیش‌فرض خاموش و پرچمش فقط از کوئریِ `refreshType()` (صفر کوئریِ اضافه)؛ انقضا `users.store_until`ِ صاحب (`payerFor()`)؛ آزمایشی از اولین دیدنِ پس از روشن شدن؛ منقضی = فقط خواندنی (`guard()`، `OPEN_PAGES`)؛ تمدید فقط `extend()`؛ درگاه فقط `PayGateway` — مبلغ از ردیفِ خودمان، تأییدِ سرور به سرور، یک بار؛ برگشت `store/pay-return.php` (بی‌ورود).
 
 ### `docs/decisions/mobile.md` — PWA، api/v1، اندروید
 - `api/` داخلی است، اپ فقط `api/v1` (افزودن مجاز، تغییر ممنوع)؛ `Auth::userId()` در v1 ممنوع؛ قاعده‌ی nginx بی‌`^~`.

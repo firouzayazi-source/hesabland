@@ -151,6 +151,8 @@ final class Biz
         'pos.php'          => 'accounts.php',
         // شروعِ کار — زیرِ «تنظیمات»
         'start.php'        => 'settings.php',
+        'subscription.php' => 'settings.php',
+        'pay-return.php'   => 'settings.php',
     ];
 
     /**
@@ -494,6 +496,9 @@ final class Biz
     /** ستونِ `users.avatar` هست؟ — از همان کوئریِ `refreshType()`، بی‌سنجشِ ساختار. */
     public static ?bool $avatarReady = null;
 
+    /** اشتراکِ فروشگاه اجرا می‌شود؟ — از کوئریِ `refreshType()`، بی‌کوئریِ اضافه (`StorePlan::guard()`). */
+    public static bool $planOn = false;
+
     public static function refreshType(): string
     {
         if (empty($_SESSION['user_id'])) { return 'personal'; }
@@ -509,7 +514,7 @@ final class Biz
             $pick = (int)($_SESSION['biz_shop'] ?? 0);
             try {
                 $st = Database::getConnection()->prepare(
-                    'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active, sh.shop_id
+                    'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active, sh.shop_id, (SELECT setting_value FROM app_settings WHERE setting_key = \'store_plan_enforced\') AS plan_on
                      FROM users u LEFT JOIN store_staff s ON s.staff_id = u.id
                      LEFT JOIN store_shops sh ON sh.user_id = u.id AND sh.shop_id = :shop WHERE u.id = :id LIMIT 1');
                 $st->execute(['id' => $uid, 'shop' => $pick]);
@@ -518,17 +523,19 @@ final class Biz
                 if ((string)$e->getCode() !== '42S02') { throw $e; }
                 try {
                     $st = Database::getConnection()->prepare(
-                        'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active
+                        'SELECT u.account_type, u.avatar, s.user_id AS staff_owner, s.role AS staff_role, s.is_active AS staff_active, (SELECT setting_value FROM app_settings WHERE setting_key = \'store_plan_enforced\') AS plan_on
                          FROM users u LEFT JOIN store_staff s ON s.staff_id = u.id WHERE u.id = :id LIMIT 1');
                     $st->execute(['id' => $uid]);
                 } catch (PDOException $e2) {
                     if ((string)$e2->getCode() !== '42S02') { throw $e2; }
-                    $st = Database::getConnection()->prepare('SELECT account_type, avatar FROM users WHERE id = :id LIMIT 1');
+                    $st = Database::getConnection()->prepare('SELECT account_type, avatar, (SELECT setting_value FROM app_settings WHERE setting_key = \'store_plan_enforced\') AS plan_on FROM users WHERE id = :id LIMIT 1');
                     $st->execute(['id' => $uid]);
                 }
             }
             $row = $st->fetch() ?: [];
             self::applyStaff($row);
+            // ⛔ «اشتراکِ فروشگاه اجرا می‌شود؟» از **همین** کوئری (زیرکوئریِ `app_settings`) — خاموش = صفر کوئریِ اضافه
+            self::$planOn = (string)($row['plan_on'] ?? '0') === '1';
             $v = $row['account_type'] ?? null;
             $t = is_string($v) && isset(self::TYPES[$v]) ? $v : 'personal';
             $a = $row['avatar'] ?? null;
@@ -644,6 +651,11 @@ final class Biz
         }
         $cap = self::pageCap(basename(self::currentScript()));
         if ($cap !== null && !self::can($cap)) { self::denied($cap); }
+        // ⛔ اشتراکِ فروشگاه (`StorePlan`) — اجرا خاموش: فقط خواندنِ تنظیمات، صفر کوئری
+        if (self::$planOn) {
+            require_once __DIR__ . '/store_plan.php';
+            StorePlan::guard(self::ownerId(), basename(self::currentScript()), ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST');
+        }
     }
 
     /** ۴۰۴ِ خنثی — نه نامِ فروشگاه، نه سربرگ، نه هیچ نشانه‌ای. */
@@ -724,6 +736,10 @@ final class Biz
         'pos.php' => null,
         // «شروعِ کار» — فقط صاحب (سربرگ و صندوق می‌سازد)
         'start.php' => 'settings',
+        // اشتراک — همکار فقط وضعیت را می‌بیند (صفحه خودش پرداخت را به صاحب محدود می‌کند)
+        'subscription.php' => null,
+        // برگشت از درگاه — بی‌ورود (`pay-return.php` خودش `requirePage()` ندارد)
+        'pay-return.php' => null,
     ];
 
     /**

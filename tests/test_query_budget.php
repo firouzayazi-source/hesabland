@@ -88,6 +88,7 @@ const BUDGET = [
     'admin/errors.php'      => 16,
     'admin/store-share.php' => 15,
     'admin/rates.php'       => 16,
+    'admin/store-billing.php' => 16,  // پوسته‌ی مدیر + تنظیماتِ اشتراک + صاحبانِ فروشگاه + پرداخت‌ها
     'admin/support.php'     => 18,
     'admin/support-content.php' => 17,
     // ⚠ از ۱۷ به ۱۶: فهرست دیگر همه‌ی کاربران را نمی‌خواند، ولی یک
@@ -124,7 +125,7 @@ const NO_BUDGET = [
     // ⛔ محیطِ فروشگاهی: برای کاربرِ شخصیِ این تست فقط ۴۰۴ است؛ بودجه‌ی
     //    واقعی‌شان با یک حسابِ **فروشگاهی** در `test_business_mode`
     //    (`STORE_BUDGET`، فهرستِ بسته‌ی خودش) سنجیده می‌شود.
-    'store/index.php', 'store/search.php', 'store/settings.php', 'store/login.php', 'store/logout.php', 'store/view.php',
+    'store/index.php', 'store/search.php', 'store/settings.php', 'store/login.php', 'store/logout.php', 'store/view.php', 'store/pay-return.php',
     'store/products.php', 'store/product.php', 'store/parties.php', 'store/party.php',
     'store/products-io.php', 'store/import.php', 'store/reports.php', 'store/print-settings.php', 'store/print.php',
     'store/accounts.php', 'store/cheques.php', 'store/categories.php', 'store/invoice-edit.php', 'store/invoice.php',
@@ -133,7 +134,7 @@ const NO_BUDGET = [
     'store/account.php', 'store/accounting.php', 'store/cash-count.php', 'store/payroll.php',
     'store/errors.php', 'store/staff.php', 'store/repairs.php', 'store/repair.php', 'store/installments.php', 'store/warehouses.php',
     'store/consignments.php', 'store/recurring.php', 'store/bank-rec.php', 'store/reorder.php', 'store/insights.php', 'store/labels.php',
-    'store/shops.php', 'store/pos.php', 'store/start.php',
+    'store/shops.php', 'store/pos.php', 'store/start.php', 'store/subscription.php',
 ];
 
 // ---------------------------------------------------------------
